@@ -1,0 +1,14 @@
+{
+  "id": "template-bundle",
+  "displayName": "Template Compose Adapter",
+  "framework": "android-compose",
+  "selectionHints": {
+    "androidImports": [
+      "com.example.template"
+    ]
+  },
+  "packagePrefixes": [
+    "com.example.template"
+  ],
+  "notes": "Minimal template bundle for adapter generation."
+}

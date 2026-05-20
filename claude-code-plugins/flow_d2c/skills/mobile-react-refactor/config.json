@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "pixelValidation": {
+    "browser": "chromium",
+    "waitMs": 10000,
+    "matchReferenceSize": true,
+    "referenceScreenshot": "Preview.png",
+    "screenshotPath": "current-preview.png",
+    "diffPath": "pixel-diff.png",
+    "channelThreshold": 96,
+    "mismatchThreshold": 0.1,
+    "maxFixRounds": 3
+  }
+}

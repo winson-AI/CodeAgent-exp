@@ -1,0 +1,8 @@
+{
+  "button": [
+    "TemplateButton"
+  ],
+  "title_bar": [
+    "TemplateTopBar"
+  ]
+}

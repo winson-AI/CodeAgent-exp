@@ -1,0 +1,14 @@
+{
+  "version": 4,
+  "gradle": {
+    "assembleCommand": "./gradlew :app:assembleDebug"
+  },
+  "resources": {
+    "parsedManifest": "parsed_resources/resources.json"
+  },
+  "adapters": {
+    "rootDir": "${skill dir}/adapters",
+    "registry": "${skill dir}/adapters/registry.json",
+    "maxRetrievedComponents": 12
+  }
+}

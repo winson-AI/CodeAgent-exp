@@ -1,0 +1,25 @@
+{
+  "TemplateButton": {
+    "description": "Example primary button component for a minimal adapter bundle.",
+    "interfaces": [
+      {
+        "description": "Basic button usage",
+        "params": {
+          "text": {
+            "type": "String",
+            "required": false,
+            "description": "Visible button label."
+          },
+          "onClick": {
+            "type": "() -> Unit",
+            "required": true,
+            "description": "Click callback."
+          }
+        }
+      }
+    ]
+  },
+  "TemplateTopBar": {
+    "description": "Example title bar component for a minimal adapter bundle."
+  }
+}

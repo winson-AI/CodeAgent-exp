@@ -12,6 +12,12 @@
       "source": "./kmp-migration",
       "description": "End-to-end Android to KMP migration toolkit. Agents for analysis, migration, and validation.",
       "version": "0.1.2"
+    },
+    {
+      "name": "flow_d2c",
+      "source": "./flow_d2c",
+      "description": "Figma to React to optimized mobile React to Android/KMP Compose workflow with UI reconstruction scoring and adapter generation.",
+      "version": "0.1.0"
     }
   ]
 }

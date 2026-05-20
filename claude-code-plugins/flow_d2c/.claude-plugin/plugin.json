@@ -1,0 +1,9 @@
+{
+  "name": "flow_d2c",
+  "version": "0.1.0",
+  "description": "Figma to React to Android/KMP Compose design-to-code workflow toolkit.",
+  "author": {
+    "name": "Winson"
+  },
+  "license": "MIT"
+}

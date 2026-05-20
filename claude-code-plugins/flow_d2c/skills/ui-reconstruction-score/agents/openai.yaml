@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Reconstruction Score"
+  short_description: "Score UI screenshot reconstruction and report key layout issues."
+  default_prompt: "Compare a design screenshot with an implementation screenshot, then return a reconstruction score or the top one or two actionable UI differences."
