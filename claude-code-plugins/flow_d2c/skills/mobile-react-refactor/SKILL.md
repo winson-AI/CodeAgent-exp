@@ -1,13 +1,13 @@
 ---
 name: mobile-react-refactor
-description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为 ./react/src/RefactoredComponent.jsx，并严格区分截图输入：单张 Figma 只使用 Preview.png；多张 Figma flow 只使用 Preview-screen-**.png，不应出现或依赖 Preview.png。用于把 Figma 导出的静态 React 或交互 flow 重构为移动端自适应、跨 Figma 渲染环境稳定、优先复用本地 Figma resource（layer/icon/image/section/json/component 等），并在检测到缺失资源时从 Figma 资源库补齐以保障还原度；识别并实现 input/search/input bar 等交互组件、保留 React 页面跳转事件、且通过 mock API 数据加载接口支撑多屏展示数据的 optimized React。
+description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为 ./react/src/RefactoredComponent.jsx，并严格区分截图输入：单张 Figma 只使用 Preview.png；多张 Figma flow 只使用 Preview-screen-**.png，不应出现或依赖 Preview.png。用于把 Figma 导出的静态 React 或交互 flow 重构为移动端自适应、跨 Figma 渲染环境稳定、优先复用本地 Figma resource（layer/icon/image/section/json/component 等），并在检测到缺失资源时从 Figma 资源库补齐以保障还原度；识别并实现 input/search/input bar 等交互组件、保留 React 页面跳转事件、且通过 mock API 数据加载接口支撑多屏展示数据的 optimized React。如果 Figma 设计稿在第三方参考代码库中已有实现，先理解参考库的 UI/逻辑/数据控制/API/网络架构并抽取对应业务场景，再将可映射能力对齐到 optimized React。
 ---
 
 # Mobile React Refactor
 
 在 React 验证阶段使用此 skill。
 
-此工作流使用预准备的本地 React 产物和本地 Figma resource，聚焦于重构、验证、像素校验、动态适配、交互恢复和数据接口抽象。输入可能是单屏静态 Figma React，也可能是由多个 Figma section 拼接出的 flow 跳转版本。先判定输入模式，再选择验证粒度：单屏沿用单张 Figma 重构逻辑；多屏在逐屏重构能力之上保留 React 事件驱动的前后跳转行为，并通过 mock API 数据支撑页面展示与跨屏状态。
+此工作流使用预准备的本地 React 产物和本地 Figma resource，聚焦于重构、验证、像素校验、动态适配、交互恢复和数据接口抽象。输入可能是单屏静态 Figma React，也可能是由多个 Figma section 拼接出的 flow 跳转版本。先判定输入模式，再选择验证粒度：单屏沿用单张 Figma 重构逻辑；多屏在逐屏重构能力之上保留 React 事件驱动的前后跳转行为，并通过 mock API 数据支撑页面展示与跨屏状态。当存在第三方参考代码库时，参考库是业务语义和交互/数据控制的重要证据；optimized React 仍以 Figma 截图和已验证 React 为视觉真实来源，但应对齐参考库中对应业务的 UI 结构、交互逻辑、数据控制和 API/network 语义。
 
 ## 输入
 
@@ -18,6 +18,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 单屏和多屏截图约定互斥：多屏 flow 不应创建、读取或依赖 `Preview.png`
 - 本地 Figma resource 通常已预准备；可选资源清单位于 `./parsed_resources/resources.json` 或导出产物中的等价 manifest。如果本轮 React 优化检测到资源缺失，应从 Figma 资源库补齐缺失项以优先保障还原度
 - Figma resource 可能包括 layer、icon、image、section、json、component、SVG、字体、样式 token、导出图片和资源引用映射
+- 可选第三方参考代码库路径：当 Figma 设计稿在参考库中已有实现时，用于提取对应业务场景的 UI、逻辑、数据控制、API 和网络实现
 - 来自上次重试的可选验证失败摘要
 
 ## 输入模式和完成度判断
@@ -71,6 +72,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 4. 已完成输入模式判定：单屏 Figma React 或多屏 Figma React flow
 5. 确认 Figma resource 是否在本地完备可用。若 `parsed_resources/resources.json` 缺失，先从本地工作文件和本地资源目录生成索引清单；如果检测到 layer/icon/image/section/json/component 等资源缺失，允许从 Figma 资源库下载缺失项并更新清单，优先保障视觉还原度
 6. 如果存在多屏 flow，确认每个可达 screen 都有对应的 `Preview-screen-**.png`，并记录 screenId 到截图文件的映射
+7. 如果调用方提供第三方参考代码库路径，确认路径存在并记录为 referenceRepo；如果路径缺失但用户明确要求参考库对齐，先要求补充路径
 
 ## 如何阅读此 Skill
 
@@ -96,6 +98,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
    - 已解析资源清单位于 `parsed_resources/resources.json`；缺失时先从本地文件创建索引清单
    - 如果发现 JSX、manifest 或截图验证证明资源缺失，允许从 Figma 资源库下载缺失资源并更新 `parsed_resources/resources.json`
    - 下载只用于补齐缺失的 Figma resource；不要用通用占位图、公共图标包、emoji 或重绘替代真实资源
+   - 第三方参考代码库路径（如存在）
 
    - 在继续之前确保以下产物在本地存在：
      - React 工作文件
@@ -103,14 +106,16 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
      - 多屏：每个可达 screen 对应的 `Preview-screen-**.png`
      - Figma resource 本地文件或本地 manifest；如果缺失项已检测到，已有下载计划或已完成补齐
      - 已解析资源清单位于 `parsed_resources/resources.json`
+     - 第三方参考代码库路径存在（如调用方提供）
 2. 读取预准备的输入：
    - React 工作文件
    - 单屏：`Preview.png`
    - 多屏：`Preview-screen-**.png` 映射
    - 已解析资源清单，默认为 `parsed_resources/resources.json`
+   - 第三方参考代码库的入口、模块结构和与 Figma 业务相关文件（如存在）
    - 重试失败摘要（如存在）
    - 目的：
-     - 在做出布局决策之前，确立原始导出结构、可编辑壳目标、输入模式、视觉参考、flow 边界、跳转表、交互组件清单和具体资源清单
+     - 在做出布局决策之前，确立原始导出结构、可编辑壳目标、输入模式、视觉参考、flow 边界、跳转表、交互组件清单、具体资源清单和参考库业务证据
 3. 在做出锚点决策之前打开对应参考截图：单屏打开 `Preview.png`；多屏只打开每个 `Preview-screen-**.png`
    - 不要使用 `cat`、`head`、`grep` 或 `sed` 等面向文本的命令读取 `Preview.png` 或其他截图文件
    - 需要尺寸或元数据时，使用 `sips` 或 `file` 等图像安全检查命令
@@ -138,6 +143,11 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
    - 目的：
      - 判断导出代码是否依赖固定画布宽高、Figma preview 外壳、设备 chrome、缩放比例、根级居中夹具或不可迁移的 viewport 假设
      - 为后续移动端动态适配建立约束：根页面必须填满真实视口，内部区域按父级和内容语义适配
+8.7. 如果存在第三方参考代码库，在重构 JSX 之前理解参考库并抽取 Figma 对应业务场景
+   - 目的：
+     - 理解参考代码库整体架构，包括 UI 层、逻辑层、状态/数据控制、API/network、路由/导航、资源和设计系统
+     - 定位 Figma 设计稿对应业务在参考库中的实现，并抽取 UI 结构、交互逻辑、数据模型、API 调用、网络请求、错误/空态/加载态和控制流
+     - 明确哪些能力可以在 optimized React 中对齐实现，哪些只能作为语义参考
 9. 在重构 class 之前，根据代码、截图和审计视图编写意图伪代码
    - 目的：
      - 产出语义布局方案，用于指导第 2.5 至 6 轮
@@ -190,6 +200,8 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 如果多屏 flow 的重构版本无法通过设计内事件到达每个目标 screen，不要当作阶段已完成
 - 如果 input/search/input bar 等明显交互控件只是静态 div 或图片，没有 React 状态、输入事件或提交/筛选行为，不要当作阶段已完成
 - 如果多屏展示数据仍散落在重复 JSX 中，或没有 mock API/local service/adapter 边界，不要当作阶段已完成
+- 如果提供了第三方参考代码库但没有完成参考库架构理解、Figma 对应业务定位和可映射能力清单，不要开始 JSX 重构
+- 如果参考库中能定位 Figma 对应业务实现，但 optimized React 的 UI/交互/数据/控制逻辑未对齐该业务语义，不要当作阶段已完成
 
 截图命名必须先按输入模式分流：
 
@@ -202,6 +214,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 这些轮次展开工作流步骤 5-15。在上述准备和初始读取完成后按顺序执行。
 
 - 第 1-2 轮展开工作流步骤 5-7
+- 第 2.2 轮展开工作流步骤 8.7
 - 第 2.5-2.75 轮展开工作流步骤 9
 - 第 2.8 轮展开工作流步骤 9.5
 - 第 2.9 轮展开工作流步骤 9.6
@@ -256,6 +269,36 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 
 如果截图显示节点位于中间视觉条带，不要仅凭代码将其分类为底部锚定或顶部锚定。
 
+### 第 2.2 轮：第三方参考代码库业务抽取
+
+仅当调用方提供第三方参考代码库路径时运行。
+
+目标：当 Figma 设计稿在第三方参考代码库中已有实现时，先理解参考库整体架构，再抽取当前 Figma 业务场景的 UI、逻辑、数据控制、API 和网络实现细节，作为 optimized React 的业务对齐依据。
+
+在编辑 JSX 之前完成以下工作：
+
+1. 理解参考代码库整体架构：
+   - 技术栈、入口、路由/导航、页面/screen/module 组织
+   - UI 层、组件库、设计系统、资源和样式组织
+   - 状态管理、业务逻辑、表单/搜索/筛选/分页等控制逻辑
+   - 数据模型、service/repository/API client、网络请求、参数和响应模型
+   - loading、empty、error、权限、会话或缓存等运行时状态
+2. 定位 Figma 对应业务场景：
+   - 与截图视觉结构匹配的页面、组件或 flow
+   - 与 React mock data 字段匹配的数据模型、API、列表、详情和状态
+   - 与设计内可交互组件匹配的点击、输入、搜索、筛选、提交和导航逻辑
+3. 输出可对齐清单：
+   - 可在 optimized React 中实现对齐的 UI 结构和组件语义
+   - 可在 optimized React 中实现对齐的交互逻辑、状态机和控制流
+   - 可映射为 mock API/local service 的数据结构、API 参数、响应模型和状态
+   - 只能作为语义参考、不能直接迁移到 React 的实现细节
+4. 明确优先级：
+   - Figma 截图和已验证 React 仍决定视觉还原度
+   - 第三方参考库决定业务语义、交互行为、数据控制和 API/network 形态
+   - 如果二者冲突，保留 Figma 视觉，同时在 optimized React 的状态、事件和 mock API 中对齐参考库业务语义
+
+不要照搬整个参考仓库或把参考库依赖引入 React 验证壳。只抽取当前 Figma 业务所需的 UI/逻辑/数据/API/network 语义，并用 React state、事件处理和 mock API adapter 表达。
+
 ### 第 2.5 轮：编写意图伪代码
 
 目标：在重构 class 之前，将截图和导出代码翻译为布局意图。
@@ -308,6 +351,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 文案、图片、图标、状态、数量、价格、时间、标签等字段的命名
 - 交互 flow 中 screen 之间传递的最小状态，例如当前 tab、选中项、输入文本、搜索词、筛选条件或详情页 id
 - 多屏 flow 中每个 screen 的输入数据、输出事件和共享状态，例如 query、inputValue、selected filter、selected item、form draft、search results、back target
+- 如果存在第三方参考代码库，将参考库中的 API 参数、响应字段、domain model、状态字段和错误/空态/加载态映射到 React mock API 数据结构
 - 可能来自接口的 loading、empty、error 状态；如果截图没有体现，不要强行展示，但要在数据边界中留出可扩展位置
 
 实现要求：
@@ -318,6 +362,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 数据接口返回结构应接近线上 API 可替换形态：包含稳定字段名、列表数组、资源引用和状态字段。
 - 多屏 flow 的 service 应能按 screen 或 flow 聚合返回数据，例如 `loadFlowData()`、`getScreenData(screenId)`、`getTransitionMap()`、`searchItems(query)`、`filterItems(filters)` 或等价接口，避免让跳转逻辑和展示数据从硬编码 JSX 反推。
 - 搜索、输入、筛选和表单提交可以调用同步 mock API 函数或 Promise-like mock adapter；不要引入真实网络请求。
+- 如果第三方参考库提供了对应 API/network 语义，mock API 函数命名、参数、响应结构和状态字段应尽量对齐参考实现，例如查询参数、分页字段、筛选条件、详情 id、错误码或加载态。
 - 不要为了接口化引入真实网络请求、后端依赖或复杂状态库；此阶段只建立可替换边界。
 - 不要把纯布局常量误抽象为业务 API 数据。间距、颜色和响应式断点仍属于布局实现。
 
@@ -352,6 +397,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 通过 React 状态、screen registry、route 参数或等价机制切换当前 screen。
 - 对多屏 flow，保持输入顺序和明确交互关系一致；如果重构拆分组件，不要丢失原有 `screenId`、回退目标或跨 screen 状态。
 - 对多屏 flow，页面跳转和展示数据必须联动：列表项点击应携带 selected id，搜索/筛选应影响结果或状态，详情页应读取对应 mock 数据。
+- 如果第三方参考库提供了对应交互或控制逻辑，optimized React 应对齐其行为语义，例如 tab 切换规则、搜索提交时机、筛选组合方式、列表项进入详情、表单校验、返回路径、loading/empty/error 展示和重试逻辑。
 - 不要把 `Preview-screen-**.png` 作为 `<img>`、背景图或 scroll view 的主要 UI 实现。
 - 截图只允许作为验证参考，不允许成为 flow 的可见 UI 主体。
 - 不要只添加外部上一页/下一页调试按钮就结束；必须检查设计稿自身的按钮、箭头、tab、卡片、列表项和底部导航。
@@ -551,6 +597,10 @@ python3 scripts/pixel_diff.py <reference-preview> current-preview.png --channel-
 - 在重构前先恢复数据模型和接口边界；不要把 Figma 展示数据继续散落在重复 JSX 中。
 - 对重复内容使用数组和 `map`，对 screen 数据、搜索结果、筛选结果、详情数据和表单状态使用本地 mock API service、mock API adapter 或等价模块。
 - 数据接口应是后续线上 API 可替换的形态，但本阶段不要引入真实网络请求或后端依赖。
+- 如果存在第三方参考代码库，必须先理解参考库整体架构并定位 Figma 对应业务实现，再将可映射的 UI、交互、数据控制、API/network 语义对齐到 optimized React。
+- 第三方参考库用于业务语义对齐，不用于替代 Figma 视觉还原。Figma 截图和已验证 React 决定视觉，参考库决定业务行为、数据控制和 API/network 形态。
+- 基于第三方参考库实现优化 React 时，应保持 UI、交互、数据以及控制逻辑一致：组件语义、状态流转、输入/搜索/筛选/提交行为、列表/详情数据流、loading/empty/error 和导航路径都应有对应表达。
+- 不要照搬参考仓库依赖或整体架构到 React 验证壳；只把当前 Figma 业务所需的能力表达为 React state、组件拆分、事件处理和 mock API adapter。
 - 区分业务展示数据与布局参数。业务文案、列表项、标签、图片和状态可以接口化；像素间距、锚点、颜色和响应式断点仍由布局负责。
 - 当用户后续要映射线上接口时，保留清晰的字段命名和 adapter 函数，避免让 Compose 阶段从硬编码 JSX 中反推数据。
 - 仅当 `absolute` 明确表达 overlay 或边缘锚定时才保留它。
@@ -643,6 +693,8 @@ python3 scripts/parse_resources.py \
 - Figma 静态展示数据已抽象为本地 mock API service、mock adapter 或等价数据源，重复 UI 通过数据渲染
 - 多屏 flow 的页面跳转、selected item、query/filter/form state 和展示数据之间有明确的数据流
 - 数据加载边界具备后续映射线上接口的稳定字段名和 adapter 位置
+- 如果存在第三方参考代码库，已记录参考库整体架构、Figma 对应业务场景、UI/逻辑/数据控制/API/network 可映射清单，并已在 optimized React 中对齐可实现部分
+- 基于第三方参考库的 UI、交互、数据和控制逻辑一致性已体现在 React 组件、状态、事件和 mock API adapter 中；不可直接对齐的部分已说明
 - 原始 JSX 和本地 Figma resource 使用已保留；若检测到资源缺失，已从 Figma 资源库补齐真实资源或报告无法补齐的缺失项；没有占位替换或重新设计 layer/icon/image/section/json/component
 - 顶层页面壳仍保持全屏无边距，没有根级 max width 或 max height 夹具
 - 页面在窄手机、常见手机和较大手机 viewport 下没有明显结构性偏移

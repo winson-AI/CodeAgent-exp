@@ -1,7 +1,7 @@
 {
   "name": "flow_d2c",
   "version": "0.1.0",
-  "description": "Figma to React to Android/KMP Compose design-to-code workflow toolkit.",
+  "description": "Figma to React to optimized mobile React to Android/KMP Compose workflow with UI reconstruction scoring and adapter generation.",
   "author": {
     "name": "Winson"
   },
