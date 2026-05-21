@@ -1,6 +1,6 @@
 ---
 name: react-to-compose-ui
-description: 使用已验证的 optimized React 壳作为真实来源执行 Compose 翻译阶段。支持单 Figma 输入沿用当前转码流程，也支持多 Figma -> React -> optimized React flow 转换为 Compose 导航、交互逻辑和数据流。先区分目标代码库是默认壳工程还是存量 Android/KMP/CMP 工程；默认壳工程直接转码验证，存量工程先理解仓库、明确 Figma/React 业务在目标代码中的位置，查找 mock API 对应的真实线上数据和可复用 UI/逻辑/数据流组件，再按复用原则增量接入或扩展新业务模块。若存在第三方参考代码库，先分析其 UI/逻辑/数据控制/API/网络实现，并映射到目标工程。保留 overlay 映射、资源保真、adapter 注册表解析和构建验证。
+description: 使用已验证的 optimized React 壳作为真实来源执行 Compose 翻译阶段。支持单 Figma 输入沿用当前转码流程，也支持多 Figma -> React -> optimized React flow 转换为 Compose 导航、交互逻辑和数据流。先区分目标代码库是默认壳工程还是存量 Android/KMP/CMP 工程；默认壳工程直接转码验证，存量工程先理解仓库、明确 Figma/React 业务在目标代码中的位置，查找 mock API 对应的真实线上数据和可复用 UI/逻辑/数据流组件，再按复用原则增量接入或扩展新业务模块。若存在第三方参考代码库，先分析其 UI/逻辑/数据控制/API/网络实现，将 Mock API 替换为参考代码实际使用的线上数据 API，并将 Figma 业务能力和 React 中间表现无缝嵌入目标 KMP/CMP 仓库。保留 overlay 映射、资源保真、adapter 注册表解析、目标仓库验证门控和构建验证。
 ---
 
 # React To Compose UI
@@ -175,11 +175,14 @@ targetRepoType: shell-compose | existing-android-compose | existing-kmp-cmp
    - 可直接借鉴的 UI 结构和组件语义
    - 可映射到目标工程的逻辑、状态和数据控制
    - 可映射到目标工程真实 API 或 repository/use case 的数据模型
+   - React mock API 应替换为参考仓库实际线上数据 API 的位置，包括 endpoint/service、请求参数、响应模型、错误处理、鉴权/session、分页/搜索/筛选语义
    - 需要新增到目标工程的必要依赖
    - 不能直接复用、只能作为语义参考的实现
-4. 不要照搬参考仓库结构。参考仓库用于理解业务实现，最终代码必须遵循目标工程结构、依赖和风格。
+4. 不要照搬参考仓库结构。参考仓库用于理解业务实现，最终代码必须遵循目标工程结构、依赖、编码规范、架构边界和验证门控。
 
 如果目标是 `shell-compose`，仍应复用参考代码库中与 Figma 业务对应的 UI/逻辑/数据控制/API/network 设计；同时补充最小必要依赖和 mock/real API 边界，使壳工程可编译运行。
+
+如果目标是 `existing-kmp-cmp`，参考代码库提取结果必须被映射到目标 KMP/CMP 仓库的既有 source set、feature/module、navigation、DI、repository/use case、ViewModel/store、UiState、resource 和 networking 约定中。不要创建与目标仓库割裂的独立实现。
 
 ### 第 7.8 轮：存量目标工程业务落点和复用分析
 
@@ -338,6 +341,8 @@ Compose 翻译检查清单：
 4. 将 React mock API/local service 数据边界映射到 Compose 数据层：
    - 默认壳工程可创建最小 mock repository 或 in-memory provider。
    - 存量工程优先接入已有 repository/use case/ViewModel/store/UiState；没有对应能力时新增最小必要模块，并遵循仓库命名、分层和 DI 约定。
+   - 如果存在第三方参考代码库，并且参考库中已实现该 Figma 业务的线上数据 API，必须优先用参考代码中的真实 API/service/repository/network 模型替换 React mock API；不要继续保留 mock 作为最终数据源。
+   - 将参考 API 的请求参数、响应模型、错误处理、鉴权/session、分页、搜索、筛选和缓存语义映射到目标 KMP/CMP 仓库已有网络层和数据层。
 5. 每个可达 screen 必须能展示对应数据，并且跳转时携带必要状态，例如 selected id、query、filter、form draft 或 back target。
 6. 不要把多张 `Preview-screen-**.png` 作为图片拼接进 Compose；截图只作为验证参考。
 
@@ -357,6 +362,10 @@ Compose 翻译检查清单：
 - React mock API 必须尝试映射到目标工程真实线上数据能力，包括 API service、repository、use case、DTO/domain model、ViewModel/store 和 UiState。找不到真实能力时保留 adapter 边界并报告缺口，不要发明线上接口。
 - React 中使用的 UI 组件、交互逻辑和数据流控制必须在目标 Android/KMP/CMP 工程中查找可复用实现；优先复用已有设计系统、组件、状态管理、导航、数据层和 DI。
 - 如果提供第三方参考代码库，必须先理解其架构和 Figma 对应业务实现，再只抽取可映射的 UI/逻辑/数据控制/API/network 设计对齐到目标工程。目标为壳工程时，也要复用参考实现的业务设计并补充必要依赖。
+- 如果第三方参考代码库中存在该 Figma 业务实际使用的线上数据 API，最终目标实现必须用该真实 API/service/repository/network 模型替换 React mock API。Mock 只能作为无法接入真实 API 时的临时 adapter，并且必须在报告中说明缺口。
+- 生成到 `existing-kmp-cmp` 时，Figma 业务能力和 optimized React 中间表现必须无缝嵌入目标 KMP/CMP 仓库：遵循既有 source set、feature/module、navigation、DI、resource、network、repository/use case、ViewModel/store、UiState 和编码规范。
+- 融合过程必须符合目标 KMP/CMP 仓库已有架构要求和代码风格；不得孤立于目标仓库，不得引入与目标仓库约定冲突的平行架构、平行网络层、平行状态管理或平行资源体系。
+- 必须沿用目标 KMP/CMP 仓库已有评估和验证门控，例如 build、unit test、KMP/CMP target 编译、detekt/ktlint/lint、preview/screenshot、CI 脚本或仓库自定义校验。发现问题时先修复，再声明完成。
 - 不要在存量工程中生成孤立 demo、独立壳 App 或绕过现有导航入口的新页面。
 - 除非重试摘要证明存在直接翻译 bug，否则不要重新设计已验证的 React 层级。
 - 使用 `Box` 用于真正的 overlay 和对齐层。
@@ -383,6 +392,7 @@ Compose 翻译检查清单：
 - 当 React 语义和截图证据强烈不一致时，不要强制使用 adapter 组件。
 - 使用 `component_knowledge.json` 作为默认完整查找源，仅当 `component_knowledge.jsonl` 文件存在时将其保留用于针对性深度示例。
 - 在声称翻译就绪之前，运行目标工程适用的构建命令。默认壳工程使用 [config.json](config.json)；存量工程优先使用仓库已有验证命令，找不到时询问用户。
+- 对目标 KMP/CMP 仓库，验证不应只停留在单个 Android assemble。优先执行仓库已有的 KMP/CMP 验证门控；如果门控失败，修复由本次融合引入的问题，直到通过或明确报告外部阻塞。
 - 如果运行时网络图片使 Compose 屏幕看起来空白或不稳定，仅先本地化关键支撑层资源，以便布局验证可以继续。
 
 ## 脚本
@@ -415,11 +425,13 @@ python3 scripts/convert_svg_to_android_vector.py \
 - 存量工程中 Figma 对应业务已接入现有模块，或按仓库基础能力扩展为新业务模块；没有孤立 demo
 - 存量工程中已记录 Figma/React 业务落点、真实数据/API 映射、可复用 UI 组件、可复用逻辑和可复用数据流控制；缺口已明确说明
 - 如果存在第三方参考代码库，已记录其 Figma 对应业务场景的 UI/逻辑/数据控制/API/network 映射结果，并说明哪些被复用、哪些只作为语义参考
+- 如果参考代码库提供真实线上数据 API，React mock API 已被目标实现中的真实 API/service/repository/network 模型替换，或已明确说明无法替换的外部阻塞
+- 如果目标是 KMP/CMP 存量仓库，Figma 业务能力和 optimized React 中间表现已按目标仓库架构无缝嵌入，未引入平行架构或与仓库约定冲突的实现
 - 来自验证壳的仿 `device-chrome` 已从最终 Compose UI 中移除
 - Compose 屏幕在仿 `device-chrome` 移除后仍填满真实设备视口；没有留下空白顶部或底部条带
 - 锚定内容在仿 `device-chrome` 移除后仍与真实模拟器系统栏和底部手势指示器保持距离
 - 真实图标和矢量/图片资源已保留或正确转换；最终 Compose 屏幕中未留下占位符图稿
 - 当 adapter 模式启用时，所选 adapter 包已被解析、验证并用于组件检索
 - Android 项目路径存在并已就地检查
-- 目标工程适用的验证命令已通过：默认壳工程使用 [config.json](config.json)，存量工程使用仓库已有命令；若无法确定命令，已询问用户并报告阻塞
+- 目标工程适用的验证命令已通过：默认壳工程使用 [config.json](config.json)，存量工程使用仓库已有命令；KMP/CMP 仓库沿用了已有评估和验证门控并修复本次引入的问题；若无法确定命令，已询问用户并报告阻塞
 - stdout 简要列出已更改的文件、adapter 模式启用时的所选 adapter id、构建状态和任何仍存在的实际障碍
