@@ -1,6 +1,6 @@
 ---
 name: react-to-compose-ui
-description: 使用已验证的 optimized React 壳作为真实来源执行 Compose 翻译阶段。支持单 Figma 输入沿用当前转码流程，也支持多 Figma -> React -> optimized React flow 转换为 Compose 导航、交互逻辑和数据流。先区分目标代码库是默认壳工程还是存量 Android/KMP/CMP 工程；默认壳工程直接转码验证，存量工程先理解仓库、寻找对应业务模块并按复用原则增量接入或扩展新业务模块。保留 overlay 映射、资源保真、adapter 注册表解析和构建验证。
+description: 使用已验证的 optimized React 壳作为真实来源执行 Compose 翻译阶段。支持单 Figma 输入沿用当前转码流程，也支持多 Figma -> React -> optimized React flow 转换为 Compose 导航、交互逻辑和数据流。先区分目标代码库是默认壳工程还是存量 Android/KMP/CMP 工程；默认壳工程直接转码验证，存量工程先理解仓库、明确 Figma/React 业务在目标代码中的位置，查找 mock API 对应的真实线上数据和可复用 UI/逻辑/数据流组件，再按复用原则增量接入或扩展新业务模块。若存在第三方参考代码库，先分析其 UI/逻辑/数据控制/API/网络实现，并映射到目标工程。保留 overlay 映射、资源保真、adapter 注册表解析和构建验证。
 ---
 
 # React To Compose UI
@@ -24,6 +24,7 @@ Adapter 包仅提供知识。它们不拥有工作流，也不注入自定义执
 - 一个预准备的 Android 项目路径
 - 一个 Compose 输出目录或目标模块路径
 - 当调用方提供时的可选 KMP 上下文目录
+- 当调用方提供时的可选第三方参考代码库路径，用于对齐已有业务实现
 - 来自上次重试的可选验证失败摘要
 
 ## 输入模式和目标类型
@@ -76,6 +77,7 @@ targetRepoType: shell-compose | existing-android-compose | existing-kmp-cmp
    - Android 项目路径
    - Compose 输出目录或目标模块路径
    - KMP 上下文目录（如存在）
+   - 第三方参考代码库路径（如存在）
    - 重试失败摘要（如存在）
 2. 判定并记录 `reactInputMode`：
    - 单 Figma 输入直接使用当前单屏转码路径
@@ -101,32 +103,34 @@ targetRepoType: shell-compose | existing-android-compose | existing-kmp-cmp
    - 现有库导入和依赖提示
    - 存量工程中的 feature/module 结构、业务入口、ViewModel/state/repository/use case/DI 约定
    - Figma 对应业务在当前仓库是否已有模块；有则增量接入，无则依赖仓库基础能力扩展新模块
-10. 在大型翻译编辑之前，将已解析的 React 资源物化到目标资源目录：
+10. 如果存在第三方参考代码库，先运行第 7.5 轮理解参考代码库并抽取 Figma 对应业务实现
+11. 对存量目标工程运行第 7.8 轮，明确 Figma/React 业务落点、真实数据/API 映射和可复用组件/逻辑/数据流
+12. 在大型翻译编辑之前，将已解析的 React 资源物化到目标资源目录：
    - 从 `parsed_resources/resources.json` 读取已解析资源清单，除非调用方显式覆盖清单路径
    - Android 壳/Android Compose 工程：运行 `scripts/convert_svg_to_android_vector.py`，使已解析的 SVG 资源成为 Android `VectorDrawable` XML 文件，已解析的位图资源被复制到目标 drawable 目录
    - KMP/CMP 工程：优先复用现有 multiplatform resource 方案；如果仓库使用 Android drawable 资源，则按现有 source set/模块约定写入
    - 在翻译依赖这些资源的 UI 区域之前，停止并修复资源同步失败
-11. 在大型翻译编辑之前，盘点已验证 React 屏幕的真实视觉资源：
-   - 当 adapter 模式启用时，壳或所选 adapter 资源已提供的图标
+13. 在大型翻译编辑之前，盘点已验证 React 屏幕的真实视觉资源：
+   - 当 adapter 模式启用时，目标工程或所选 adapter 资源已提供的图标
    - 从 React 资源清单物化的已解析 drawable 资源
    - 必须保留的 SVG 或内联矢量形状
    - 属于最终 UI 的本地或远程图片资源
    - 当前有被占位符替换风险的任何区域
-12. 如果重试摘要存在，先修复该阻塞问题，再扩展翻译
-13. 运行第 8 轮以确保每个剩余 overlay 是 Compose 安全的
-14. 如果 adapter 模式启用，运行第 8.5 轮以加载所选 adapter 知识并仅检索与当前屏幕或当前 flow 相关的组件条目
-15. 运行第 9 轮将已验证的壳层级翻译到目标 Compose 工程
-16. 如果 `reactInputMode` 是 `multi-figma-flow`，运行第 9.5 轮生成 Compose 多屏导航、交互逻辑和数据流
-17. 显式分类从 React 携带过来的任何仿状态栏、home indicator 或其他 `device-chrome`，并在布局基线正确后从最终 Compose UI 中移除该仿 chrome
-18. 移除仿 `device-chrome` 后，保持实际应用内容和背景填满全屏；不要在模拟器应提供真实系统 chrome 的位置留下顶部或底部空白条带
-19. 虽然仿 `device-chrome` 必须移除，但锚定内容（如工具栏、底部操作、浮动按钮和底部导航）须保持与真实模拟器系统栏的安全距离；背景可以保持全屏无边距，但内容不得与导航栏或底部手势指示器冲突
-20. 先添加专用 screen/feature composable，然后按 `targetRepoType` 挂载：
+14. 如果重试摘要存在，先修复该阻塞问题，再扩展翻译
+15. 运行第 8 轮以确保每个剩余 overlay 是 Compose 安全的
+16. 如果 adapter 模式启用，运行第 8.5 轮以加载所选 adapter 知识并仅检索与当前屏幕或当前 flow 相关的组件条目
+17. 运行第 9 轮将已验证的壳层级翻译到目标 Compose 工程
+18. 如果 `reactInputMode` 是 `multi-figma-flow`，运行第 9.5 轮生成 Compose 多屏导航、交互逻辑和数据流
+19. 显式分类从 React 携带过来的任何仿状态栏、home indicator 或其他 `device-chrome`，并在布局基线正确后从最终 Compose UI 中移除该仿 chrome
+20. 移除仿 `device-chrome` 后，保持实际应用内容和背景填满全屏；不要在模拟器应提供真实系统 chrome 的位置留下顶部或底部空白条带
+21. 虽然仿 `device-chrome` 必须移除，但锚定内容（如工具栏、底部操作、浮动按钮和底部导航）须保持与真实模拟器系统栏的安全距离；背景可以保持全屏无边距，但内容不得与导航栏或底部手势指示器冲突
+22. 先添加专用 screen/feature composable，然后按 `targetRepoType` 挂载：
    - `shell-compose`：挂载到壳入口点
    - 存量工程：挂载到现有导航、feature 入口或业务模块入口，避免孤立 demo
-21. 自行负责 build -> fix -> build 循环：
+23. 自行负责 build -> fix -> build 循环：
    - `shell-compose` 使用 [config.json](config.json) 中的构建命令，默认为 `./gradlew :app:assembleDebug`
    - 存量工程使用仓库已有验证命令；无法确定时询问用户
-22. 仅在 Compose 文件存在且验证健康，或报告了实际阻塞后退出
+24. 仅在 Compose 文件存在且验证健康，或报告了实际阻塞后退出
 
 ## 停止条件
 
@@ -138,6 +142,8 @@ targetRepoType: shell-compose | existing-android-compose | existing-kmp-cmp
 - 如果 `scripts/convert_svg_to_android_vector.py` 在物化已解析资源时失败，停止并报告资源物化阻塞，再继续 Compose 翻译
 - 如果多 Figma 输入没有 `Preview-screen-**.png` 映射、screen registry、可达 screen 或基本跳转关系，停止并报告 flow 输入阻塞
 - 如果存量工程无法确定目标业务模块、导航入口或扩展位置，先完成仓库理解；仍无法判断时询问用户，不要写孤立 demo
+- 如果存量工程中无法确认 React mock API 对应的真实数据/API/repository/use case，先报告候选和缺口；不要擅自发明线上接口
+- 如果第三方参考代码库存在但无法定位 Figma 对应业务场景，先报告已搜索范围和缺口；不要把整个参考仓库照搬到目标工程
 - 如果验证命令失败，持续修复项目直到通过或遇到实际阻塞；不要在未明确说明阻塞内容的情况下将控制权交还作为部分成功
 
 如果构建因环境配置而非布局代码失败，先修复本地前置条件：
@@ -149,6 +155,60 @@ targetRepoType: shell-compose | existing-android-compose | existing-kmp-cmp
 不要将这些视为布局失败。修复壳环境，然后继续验证。
 
 ## 轮次
+
+### 第 7.5 轮：第三方参考代码库理解和业务抽取
+
+仅当调用方提供第三方参考代码库时运行。
+
+目标：如果 Figma 设计稿在第三方参考代码库中已有实现，先理解参考仓库整体架构，再抽取与当前 Figma 业务场景直接相关的实现细节，作为目标 Android/KMP/CMP 工程的映射参考。
+
+执行：
+
+1. 识别参考仓库技术栈、模块结构、入口、路由/导航、UI 层、状态管理、数据控制、API/network 层和资源组织。
+2. 定位 Figma 对应业务场景在参考仓库中的实现：
+   - 页面/screen/component
+   - 交互逻辑和状态流转
+   - 数据模型、repository/service/API 调用
+   - 网络请求、参数、响应模型、错误/空态/加载态
+   - 资源、主题、组件和设计系统使用
+3. 输出可映射清单：
+   - 可直接借鉴的 UI 结构和组件语义
+   - 可映射到目标工程的逻辑、状态和数据控制
+   - 可映射到目标工程真实 API 或 repository/use case 的数据模型
+   - 需要新增到目标工程的必要依赖
+   - 不能直接复用、只能作为语义参考的实现
+4. 不要照搬参考仓库结构。参考仓库用于理解业务实现，最终代码必须遵循目标工程结构、依赖和风格。
+
+如果目标是 `shell-compose`，仍应复用参考代码库中与 Figma 业务对应的 UI/逻辑/数据控制/API/network 设计；同时补充最小必要依赖和 mock/real API 边界，使壳工程可编译运行。
+
+### 第 7.8 轮：存量目标工程业务落点和复用分析
+
+仅当 `targetRepoType` 是 `existing-android-compose` 或 `existing-kmp-cmp` 时运行。
+
+目标：在写 Compose 代码之前，明确 Figma/React 业务在存量代码中的位置，并找到可复用的 UI、逻辑和真实数据能力。
+
+执行：
+
+1. 明确业务落点：
+   - Figma/React 对应的是哪个业务域、feature、route、tab、入口或用户流程
+   - 目标仓库是否已有对应模块；如果已有，作为增量开发无缝融合
+   - 如果没有对应模块，选择最贴近的父模块、导航入口、主题和数据层能力扩展新业务模块
+2. 对齐 React mock API 到真实数据：
+   - 读取 React mock API/local service/adapter 的字段、数据结构、状态和调用方式
+   - 在目标仓库搜索对应的 API service、repository、use case、DAO/cache、DTO/domain model、ViewModel/store 和 UiState
+   - 建立 `reactMockField -> targetRealField/API/model` 映射
+   - 找不到真实接口时，只保留最小 mock 或 adapter 边界并明确缺口；不要发明线上接口
+3. 查找可复用 UI/逻辑/数据流组件：
+   - UI：design system、theme、button、card、list item、toolbar、bottom nav、input/search/filter、dialog、loading/empty/error 组件
+   - 逻辑：navigation、selection、pagination/search/filter/form validation、back handling、permission/session 等已有机制
+   - 数据流控制：ViewModel/store、UiState、Flow/StateFlow、repository/use case、DI、error handling、loading/empty 状态
+4. 输出接入决策：
+   - 复用哪些已有模块/组件/API/状态流
+   - 新增哪些最小文件
+   - Figma 业务接入到哪条 navigation/feature 入口
+   - React mock 数据如何替换为真实数据或保留为临时 adapter
+
+已有模块增量开发时，优先修改或扩展现有模块内的 screen/component/ViewModel/state/repository 接入点，避免创建平行的新 feature。
 
 ### 第 8 轮：将剩余 Overlay 映射到 Compose
 
@@ -293,6 +353,10 @@ Compose 翻译检查清单：
 - 在编辑前必须判定 `reactInputMode` 和 `targetRepoType`。单屏走当前单屏流程；多屏必须保留 flow、交互和数据边界。
 - 存量工程必须先理解仓库，再写代码。优先复用现有 navigation、theme、component、resource、ViewModel/store、repository/use case、DI 和 module 结构。
 - 存量工程中如果存在 Figma 对应业务模块，直接增量接入；如果不存在，依赖当前仓库基础能力扩展新的业务模块。两种情况都遵循复用原则。
+- 存量工程必须明确 Figma/React 在目标代码中的业务落点。已有模块增量开发时，应与现有模块无缝融合，不要创建平行模块绕过原业务。
+- React mock API 必须尝试映射到目标工程真实线上数据能力，包括 API service、repository、use case、DTO/domain model、ViewModel/store 和 UiState。找不到真实能力时保留 adapter 边界并报告缺口，不要发明线上接口。
+- React 中使用的 UI 组件、交互逻辑和数据流控制必须在目标 Android/KMP/CMP 工程中查找可复用实现；优先复用已有设计系统、组件、状态管理、导航、数据层和 DI。
+- 如果提供第三方参考代码库，必须先理解其架构和 Figma 对应业务实现，再只抽取可映射的 UI/逻辑/数据控制/API/network 设计对齐到目标工程。目标为壳工程时，也要复用参考实现的业务设计并补充必要依赖。
 - 不要在存量工程中生成孤立 demo、独立壳 App 或绕过现有导航入口的新页面。
 - 除非重试摘要证明存在直接翻译 bug，否则不要重新设计已验证的 React 层级。
 - 使用 `Box` 用于真正的 overlay 和对齐层。
@@ -349,6 +413,8 @@ python3 scripts/convert_svg_to_android_vector.py \
 - 已记录 `reactInputMode` 和 `targetRepoType`
 - 单 Figma 输入沿用单屏转码流程；多 Figma 输入保留了多 preview、页面跳转、交互逻辑和数据流
 - 存量工程中 Figma 对应业务已接入现有模块，或按仓库基础能力扩展为新业务模块；没有孤立 demo
+- 存量工程中已记录 Figma/React 业务落点、真实数据/API 映射、可复用 UI 组件、可复用逻辑和可复用数据流控制；缺口已明确说明
+- 如果存在第三方参考代码库，已记录其 Figma 对应业务场景的 UI/逻辑/数据控制/API/network 映射结果，并说明哪些被复用、哪些只作为语义参考
 - 来自验证壳的仿 `device-chrome` 已从最终 Compose UI 中移除
 - Compose 屏幕在仿 `device-chrome` 移除后仍填满真实设备视口；没有留下空白顶部或底部条带
 - 锚定内容在仿 `device-chrome` 移除后仍与真实模拟器系统栏和底部手势指示器保持距离
