@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.8`
+Version: `0.1.12`
 
 ## Agents
 
@@ -23,7 +23,122 @@ Reviews conversation context at regular turn intervals and recommends creating o
 
 ## Usage
 
-After installation, the agents will be available in your Claude Code environment. You can trigger them by name or by describing the task (e.g., "Analyze this Android project for KMP migration").
+After installation, the agents are available in your Claude Code environment. You can trigger them by name or by describing the task.
+
+Default artifact roots:
+
+- Understand/explore artifacts: `~/.d2c_agents/understand/`
+- Migration artifacts: `~/.d2c_agents/migration/`
+- Validation artifacts: `~/.d2c_agents/validation/`
+
+SPEC documents are written under `<output_dir>/SPEC`.
+
+### Explore Mode Prompt Template
+
+Use `android-project-analyst` when you want structured understanding of an existing Android project before migration or refactoring.
+
+```text
+Use the android-project-analyst agent in exploration mode.
+
+source_project_path: <absolute path to Android project>
+analysis_scope: <whole project | module | feature | screen>
+mode: exploration
+output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+language: English
+
+Goal:
+- Understand the Android project structure, UI, architecture, APIs, resources, data flow, and logic/control flow.
+- Generate SPEC artifacts under <output_dir>/SPEC: prd.md, design.md, verification.md.
+```
+
+Example:
+
+```text
+Use android-project-analyst in exploration mode.
+
+source_project_path: /Users/me/projects/legacy-android
+analysis_scope: checkout feature
+mode: exploration
+output_dir: ~/.d2c_agents/understand/checkout
+language: English
+
+Please analyze the checkout feature and produce evidence-backed SPEC docs.
+```
+
+Natural-language example:
+
+```text
+Analyze this Android project with android-project-analyst in exploration mode:
+/Users/me/projects/legacy-android
+
+Focus on the checkout feature and write SPEC docs under ~/.d2c_agents/understand/checkout/SPEC.
+```
+
+### Migration Mode Prompt Template
+
+Use `android-to-kmp-migrator` when you want to migrate Android behavior into a KMP or Compose Multiplatform target. If Legacy Android SPEC artifacts are missing or incomplete, the migrator will invoke `android-project-analyst` in migration mode first.
+
+```text
+Use the android-to-kmp-migrator agent.
+
+legacy_android_project_path: <absolute path to Android project>
+kmp_target_project_path: <absolute path to KMP target project>
+migration_scope: <whole project | module | feature | screen | task>
+spec_dir: <optional path to existing SPEC directory>
+output_dir: <optional artifact root; default ~/.d2c_agents/migration/>
+validation_requirements: <optional build targets, use cases, preview expectations, acceptance criteria>
+language: English
+
+Goal:
+- Migrate the requested Android behavior into the KMP target project.
+- Preserve UI, resources, navigation, data flow, API contracts, state, and business logic.
+- Produce a migration report under <output_dir> and invoke KMP validation when ready.
+```
+
+Example:
+
+```text
+Use android-to-kmp-migrator.
+
+legacy_android_project_path: /Users/me/projects/legacy-android
+kmp_target_project_path: /Users/me/projects/app-kmp
+migration_scope: checkout feature
+spec_dir: ~/.d2c_agents/understand/checkout/SPEC
+output_dir: ~/.d2c_agents/migration/checkout
+validation_requirements:
+- Run the smallest available KMP build/check task.
+- Verify checkout happy path, empty cart, payment error, and retry behavior.
+- Check Compose renderability for migrated checkout screens.
+language: English
+```
+
+Natural-language example:
+
+```text
+Migrate the checkout feature from /Users/me/projects/legacy-android into
+/Users/me/projects/app-kmp using android-to-kmp-migrator.
+
+Use existing SPEC from ~/.d2c_agents/understand/checkout/SPEC, write migration
+artifacts to ~/.d2c_agents/migration/checkout, and validate build,
+renderability, and checkout use cases after migration.
+```
+
+### Validation Prompt Template
+
+Use `kmp-test-validator` when a migrated KMP target is ready to validate against Android source, SPEC, or a migration report.
+
+```text
+Use the kmp-test-validator agent.
+
+kmp_target_project_path: <absolute path to migrated KMP project>
+legacy_android_project_path: <absolute path to Android project>
+migration_scope: <whole project | module | feature | screen | task>
+spec_dir: <path to SPEC directory>
+migration_report_path: <path to migration_report.md or migration_report.json>
+output_dir: <optional artifact root; default ~/.d2c_agents/validation/>
+validation_requirements: <build targets, use cases, preview expectations, acceptance criteria>
+language: English
+```
 
 ## Skills
 
