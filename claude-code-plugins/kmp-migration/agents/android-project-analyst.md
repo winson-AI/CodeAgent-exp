@@ -38,7 +38,7 @@ Accept these inputs from the user or invocation context:
 - `analysis_scope` (optional): whole project, module, feature, screen, or migration scope.
 - `mode` (optional): `exploration` or `migration`; infer when omitted.
 - `target_project_path` (required only for migration mode): target KMP/new architecture project path.
-- `output_dir` (optional): SPEC output directory; default to `~/.d2c_agents/understand/`.
+- `output_dir` (optional): artifact root directory; SPEC documents are written under `<output_dir>/SPEC`; default root is `~/.d2c_agents/understand/`.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
 If `source_project_path` is missing or cannot be inferred, ask for it before dispatching nodes. If migration mode is selected and `target_project_path` is missing, ask for it before producing a PLAN.
@@ -51,15 +51,15 @@ Select exactly one mode and announce it before node dispatch:
 - `migration`: user wants to migrate, port, refactor to KMP/new architecture, or provides a target project path.
 
 Exploration outputs:
-- `<output_dir or ~/.d2c_agents/understand>/prd.md`
-- `<output_dir or ~/.d2c_agents/understand>/design.md`
-- `<output_dir or ~/.d2c_agents/understand>/verification.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/prd.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/design.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/verification.md`
 
 Migration outputs:
-- `<output_dir or ~/.d2c_agents/understand>/prd.md`
-- `<output_dir or ~/.d2c_agents/understand>/design.md`
-- `<output_dir or ~/.d2c_agents/understand>/plan.md`
-- `<output_dir or ~/.d2c_agents/understand>/verification.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/prd.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/design.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/plan.md`
+- `<output_dir or ~/.d2c_agents/understand>/SPEC/verification.md`
 
 `verification.md` is required in both modes. It records coverage, traceability, unresolved gaps, and mode-specific readiness checks.
 
@@ -212,7 +212,7 @@ Integrate only from verified node outputs. Reconcile disagreements explicitly:
 
 ### Step 6: Write SPEC Artifacts
 
-Write SPEC documents in the selected output location.
+Write SPEC documents under `<output_dir>/SPEC`.
 
 ### `prd.md` Goal and Content
 

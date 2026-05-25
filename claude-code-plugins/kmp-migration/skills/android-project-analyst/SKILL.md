@@ -10,7 +10,7 @@ This directory stores the node skill specs used by the `android-project-analyst`
 
 ## Default Output Directory
 
-Unless the user or controller provides an explicit `output_dir`, write analyst/SPEC and node artifacts under `~/.d2c_agents/understand/`.
+Unless the user or controller provides an explicit `output_dir`, use `~/.d2c_agents/understand/` as the artifact root. Write SPEC artifacts under `<output_dir>/SPEC` and node artifacts under `<output_dir>/node-results`.
 
 ## Node Skills
 
@@ -33,7 +33,7 @@ Unless the user or controller provides an explicit `output_dir`, write analyst/S
 
 ## SPEC Output Contract
 
-The controller must integrate verified node outputs into a SPEC package:
+The controller must integrate verified node outputs into a SPEC package under `<output_dir>/SPEC`:
 
 | Artifact | Goal | Required in |
 |---|---|---|
