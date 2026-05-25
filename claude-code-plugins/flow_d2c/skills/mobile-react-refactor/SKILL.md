@@ -1,7 +1,7 @@
 ---
-name: mobile-react-refactor
+
+## name: mobile-react-refactor
 description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为 ./react/src/RefactoredComponent.jsx，并严格区分截图输入：单张 Figma 只使用 Preview.png；多张 Figma flow 只使用 Preview-screen-**.png，不应出现或依赖 Preview.png。用于把 Figma 导出的静态 React 或交互 flow 重构为移动端自适应、跨 Figma 渲染环境稳定、优先复用本地 Figma resource（layer/icon/image/section/json/component 等），并在检测到缺失资源时从 Figma 资源库补齐以保障还原度；识别并实现 input/search/input bar 等交互组件、保留 React 页面跳转事件、且通过 mock API 数据加载接口支撑多屏展示数据的 optimized React。如果 Figma 设计稿在第三方参考代码库中已有实现，先理解参考库的 UI/逻辑/数据控制/API/网络架构并抽取对应业务场景，再将可映射能力对齐到 optimized React。
----
 
 # Mobile React Refactor
 
@@ -55,12 +55,14 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 多屏展示数据必须来自 mock API、local service 或 adapter：列表、详情、搜索结果、选中态、筛选条件和跨屏参数不能继续散落在硬编码 JSX 中。
 - 多屏不使用 `Preview.png` 代表初始 screen；初始 screen 也必须有自己的 `Preview-screen-**.png` 截图。
 - 多屏完成度必须覆盖每个可达 screen 的截图、布局检查、交互跳转和构建验证。
+- 多 Figma 生成场景下，optimized React 必须是多 Figma 对应业务场景的 flow 跳转实现。如果生成结果只是静态图、截图墙、背景图切换或不可交互的多屏展示，视为生成失败，必须重新生成 `RefactoredComponent.jsx`，不能进入退出条件。
 
 ### 完成度关系
 
 - 单屏完成 = 一个 screen 的视觉、数据边界、响应式和构建健康。
 - 多屏完成 = 每个 screen 均满足单屏完成要求，并且 screen 之间的 React 事件跳转前后行为与输入 flow 一致。
 - 如果某个 screen 的 `Preview-screen-**.png` 截图缺失、路由不可达或触发目标不确定，先补齐证据或在报告中标注低置信度 fallback；不要把多屏 flow 简化为静态截图墙。
+- 多屏完成还要求 `RefactoredComponent.jsx` 中存在真实 flow 机制，例如 screen registry、当前 screen 状态、跳转函数、事件绑定、回退/目标 screen 关系和跨屏数据状态；如果只看到图片节点、背景图、静态列表或仅靠外部截图展示，必须重新生成。
 
 ## 准备
 
@@ -88,101 +90,107 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 按顺序执行以下步骤。不要跳过、重排或并行跳过强制步骤。
 
 1. 确认预准备的本地产物：
-   - `react/src/ValidatedComponent.jsx`
-   - 单屏：`Preview.png`
-   - 多屏：`Preview-screen-**.png` 映射；不要要求或读取 `Preview.png`
-   - React 壳路由 `/validated`
-   - 输入模式：单屏 Figma React 或多屏 Figma React flow
-   - 多屏 flow 的 screen 清单、初始 screen、可达 screen、跳转入口和 `Preview-screen-**.png` 映射
-   - Figma resource 优先使用本地已有资产，包括 layer/icon/image/section/json/component 等可用资源
-   - 已解析资源清单位于 `parsed_resources/resources.json`；缺失时先从本地文件创建索引清单
-   - 如果发现 JSX、manifest 或截图验证证明资源缺失，允许从 Figma 资源库下载缺失资源并更新 `parsed_resources/resources.json`
-   - 下载只用于补齐缺失的 Figma resource；不要用通用占位图、公共图标包、emoji 或重绘替代真实资源
-   - 第三方参考代码库路径（如存在）
-
-   - 在继续之前确保以下产物在本地存在：
-     - React 工作文件
-     - 单屏：`Preview.png`
-     - 多屏：每个可达 screen 对应的 `Preview-screen-**.png`
-     - Figma resource 本地文件或本地 manifest；如果缺失项已检测到，已有下载计划或已完成补齐
-     - 已解析资源清单位于 `parsed_resources/resources.json`
-     - 第三方参考代码库路径存在（如调用方提供）
+  - `react/src/ValidatedComponent.jsx`
+  - 单屏：`Preview.png`
+  - 多屏：`Preview-screen-**.png` 映射；不要要求或读取 `Preview.png`
+  - React 壳路由 `/validated`
+  - 输入模式：单屏 Figma React 或多屏 Figma React flow
+  - 多屏 flow 的 screen 清单、初始 screen、可达 screen、跳转入口和 `Preview-screen-**.png` 映射
+  - Figma resource 优先使用本地已有资产，包括 layer/icon/image/section/json/component 等可用资源
+  - 已解析资源清单位于 `parsed_resources/resources.json`；缺失时先从本地文件创建索引清单
+  - 如果发现 JSX、manifest 或截图验证证明资源缺失，允许从 Figma 资源库下载缺失资源并更新 `parsed_resources/resources.json`
+  - 下载只用于补齐缺失的 Figma resource；不要用通用占位图、公共图标包、emoji 或重绘替代真实资源
+  - 第三方参考代码库路径（如存在）
+  - 在继续之前确保以下产物在本地存在：
+    - React 工作文件
+    - 单屏：`Preview.png`
+    - 多屏：每个可达 screen 对应的 `Preview-screen-**.png`
+    - Figma resource 本地文件或本地 manifest；如果缺失项已检测到，已有下载计划或已完成补齐
+    - 已解析资源清单位于 `parsed_resources/resources.json`
+    - 第三方参考代码库路径存在（如调用方提供）
 2. 读取预准备的输入：
-   - React 工作文件
-   - 单屏：`Preview.png`
-   - 多屏：`Preview-screen-**.png` 映射
-   - 已解析资源清单，默认为 `parsed_resources/resources.json`
-   - 第三方参考代码库的入口、模块结构和与 Figma 业务相关文件（如存在）
-   - 重试失败摘要（如存在）
-   - 目的：
-     - 在做出布局决策之前，确立原始导出结构、可编辑壳目标、输入模式、视觉参考、flow 边界、跳转表、交互组件清单、具体资源清单和参考库业务证据
+  - React 工作文件
+  - 单屏：`Preview.png`
+  - 多屏：`Preview-screen-**.png` 映射
+  - 已解析资源清单，默认为 `parsed_resources/resources.json`
+  - 第三方参考代码库的入口、模块结构和与 Figma 业务相关文件（如存在）
+  - 重试失败摘要（如存在）
+  - 目的：
+    - 在做出布局决策之前，确立原始导出结构、可编辑壳目标、输入模式、视觉参考、flow 边界、跳转表、交互组件清单、具体资源清单和参考库业务证据
 3. 在做出锚点决策之前打开对应参考截图：单屏打开 `Preview.png`；多屏只打开每个 `Preview-screen-**.png`
-   - 不要使用 `cat`、`head`、`grep` 或 `sed` 等面向文本的命令读取 `Preview.png` 或其他截图文件
-   - 需要尺寸或元数据时，使用 `sips` 或 `file` 等图像安全检查命令
-   - 目的：
-     - 使用截图判断视觉条带位置、重叠深度，以及节点是真正贴边还是自由浮动
-     - 对多屏 flow，建立每个 screen 的视觉边界、可点击区域和目标 screen 关系
+  - 不要使用 `cat`、`head`、`grep` 或 `sed` 等面向文本的命令读取 `Preview.png` 或其他截图文件
+  - 需要尺寸或元数据时，使用 `sips` 或 `file` 等图像安全检查命令
+  - 目的：
+    - 使用截图判断视觉条带位置、重叠深度，以及节点是真正贴边还是自由浮动
+    - 对多屏 flow，建立每个 screen 的视觉边界、可点击区域和目标 screen 关系
 4. 读取 [config.json](config.json)
-   - 目的：
-     - 了解像素验证默认值，如浏览器和等待时间
+  - 目的：
+    - 了解像素验证默认值，如浏览器和等待时间
 5. 如果运行时暴露了专用工具 `run_layout_audit`、`capture_preview` 和 `run_pixel_diff`，优先使用这些工具，而非手动用 shell 重建脚本命令
-   - 目的：
-     - 保持审计、截图和 diff 行为与 skill 默认值一致，而非临时拼凑命令
+  - 目的：
+    - 保持审计、截图和 diff 行为与 skill 默认值一致，而非临时拼凑命令
 6. 自行对工作文件运行布局审计，并将其输出作为第一轮风险图
-   - 目的：
-     - 识别 absolute 节点、固定尺寸和锚点密集区域，后续轮次必须优先检查这些区域
-     - 对多屏 flow，同时识别 flow shell、每个 screen 子树和跨 screen 共享组件中的布局风险
+  - 目的：
+    - 识别 absolute 节点、固定尺寸和锚点密集区域，后续轮次必须优先检查这些区域
+    - 对多屏 flow，同时识别 flow shell、每个 screen 子树和跨 screen 共享组件中的布局风险
 7. 读取 [references/heuristics.md](references/heuristics.md) 并对节点分类
-   - 目的：
-     - 将导出节点分类为 background、support-layer、overlay、floating-content、flow-content 和 device-chrome
-     - 决定哪些节点应保留分层含义，哪些应转换为父级相对的流式结构
+  - 目的：
+    - 将导出节点分类为 background、support-layer、overlay、floating-content、flow-content 和 device-chrome
+    - 决定哪些节点应保留分层含义，哪些应转换为父级相对的流式结构
 8. 为实现像素一致性，在编辑 JSX 之前读取 [references/pixel-validation.md](references/pixel-validation.md)
-   - 目的：
-     - 在进行后续将以 `Preview.png`（单屏）或对应 `Preview-screen-**.png`（多屏）为评判标准的编辑之前，先了解截图循环规则
+  - 目的：
+    - 在进行后续将以 `Preview.png`（单屏）或对应 `Preview-screen-**.png`（多屏）为评判标准的编辑之前，先了解截图循环规则
+
 8.5. 在重构 JSX 之前识别 Figma 渲染环境假设
-   - 目的：
-     - 判断导出代码是否依赖固定画布宽高、Figma preview 外壳、设备 chrome、缩放比例、根级居中夹具或不可迁移的 viewport 假设
-     - 为后续移动端动态适配建立约束：根页面必须填满真实视口，内部区域按父级和内容语义适配
-8.7. 如果存在第三方参考代码库，在重构 JSX 之前理解参考库并抽取 Figma 对应业务场景
-   - 目的：
-     - 理解参考代码库整体架构，包括 UI 层、逻辑层、状态/数据控制、API/network、路由/导航、资源和设计系统
-     - 定位 Figma 设计稿对应业务在参考库中的实现，并抽取 UI 结构、交互逻辑、数据模型、API 调用、网络请求、错误/空态/加载态和控制流
-     - 明确哪些能力可以在 optimized React 中对齐实现，哪些只能作为语义参考
-9. 在重构 class 之前，根据代码、截图和审计视图编写意图伪代码
-   - 目的：
-     - 产出语义布局方案，用于指导第 2.5 至 6 轮
+
+- 目的：
+  - 判断导出代码是否依赖固定画布宽高、Figma preview 外壳、设备 chrome、缩放比例、根级居中夹具或不可迁移的 viewport 假设
+  - 为后续移动端动态适配建立约束：根页面必须填满真实视口，内部区域按父级和内容语义适配
+  8.7. 如果存在第三方参考代码库，在重构 JSX 之前理解参考库并抽取 Figma 对应业务场景
+- 目的：
+  - 理解参考代码库整体架构，包括 UI 层、逻辑层、状态/数据控制、API/network、路由/导航、资源和设计系统
+  - 定位 Figma 设计稿对应业务在参考库中的实现，并抽取 UI 结构、交互逻辑、数据模型、API 调用、网络请求、错误/空态/加载态和控制流
+  - 明确哪些能力可以在 optimized React 中对齐实现，哪些只能作为语义参考
+
+1. 在重构 class 之前，根据代码、截图和审计视图编写意图伪代码
+  - 目的：
+    - 产出语义布局方案，用于指导第 2.5 至 6 轮
+
 9.5. 在重构 JSX 之前抽象展示数据
-   - 目的：
-     - 从 Figma 静态展示内容中恢复数据模型，识别重复卡片、列表、tab、指标、标签、徽章、按钮文案、空态和加载态线索
-     - 定义 mock API/local service/adapter 数据加载边界，使输出能够从本地 mock 数据平滑映射到线上接口
-     - 对多屏 flow，明确哪些数据属于单个 screen，哪些是跨 screen 共享状态或由上一个 screen 传入
-     - 覆盖搜索词、输入文本、筛选条件、选中项、表单值、列表查询结果和详情页 id 等交互数据
-9.6. 在重构 JSX 之前恢复 flow 交互触发
-   - 目的：
-     - 对单屏输入，保留 screen 内原有交互，不强行创造跨屏跳转
-     - 对多屏 flow 使用 VLM/视觉理解能力检查每个 `Preview-screen-**.png`，结合 JSX 结构识别按钮、箭头、tab、卡片、列表项、图标按钮、input text、search bar、input bar、筛选控件、表单控件和底部导航等可交互触发点
-     - 将可交互触发点映射到 React 状态切换、screen route 切换、回退事件、输入更新、搜索提交、筛选更新或 mock API 查询，确保 UI 预览之间是 React 交互跳转和数据更新，而不是截图或静态图片滚动
-10. 在预准备的 React 壳内执行移动端重构
-    - 目的：
-      - 将第 3-6 轮做出的决策应用到实际验证目标中，而非隔离副本
-      - 将重构后的组件写入 `react/src/RefactoredComponent.jsx`，不覆盖 `react/src/ValidatedComponent.jsx`
-      - 添加或更新 `/refactored` 路由，使重构组件可直接验证
-      - 保留输入中的 flow 跳转关系；如果输入是多屏 flow，输出也必须是可交互 flow
-      - 保留或补强按钮、箭头、tab、卡片、列表项、图标按钮和底部导航项的 `onClick` 跳转事件
-      - 将 input text、search bar、input bar、textarea、select、filter chip、segmented control 等表单/查询控件实现为受控 React 状态，并接入 mock API 查询、筛选或提交行为
-      - 禁止把多屏 flow 改成截图、静态图、背景图或滚动图片预览
-      - 将展示数据迁移到本地 mock API service、adapter 函数或等价数据源文件中，组件通过数据渲染而非硬编码重复 JSX
-11. 在认为重构稳定之前，在 React 壳内验证移动端适配
-    - 目的：
-      - 在进行截图级别的清理之前，确认页面结构在不同 Figma 渲染环境和真实移动视口中都是响应式的
-12. 为实现像素一致性，在任何 Compose 翻译之前自行负责 compare -> fix -> compare 循环，并保持截图尺寸与对应参考截图匹配
-    - 目的：
-      - 在结构稳定后，使用截图 diff 作为最终的几何反馈循环
-      - 单屏输入默认对比 `Preview.png`
-      - 多屏 flow 必须逐个可达 screen 对比对应 `Preview-screen-**.png`，不要只验证初始 screen
-13. 当当前参考截图中出现 `device-chrome` 时，在截图匹配期间保留它
-14. 保持最外层页面壳全屏且自适应；不要在根页面容器上放置 `max-width`、`max-height`、`maxWidth`、`maxHeight`、`max-w-*` 或 `max-h-*` 约束
-15. 仅在 `react/src/RefactoredComponent.jsx` 和 `/refactored` 路由稳定、React 构建健康、数据加载边界清晰、且你已将单屏或多屏的对应像素循环推进到无法突破的实际障碍时才退出
+
+- 目的：
+  - 从 Figma 静态展示内容中恢复数据模型，识别重复卡片、列表、tab、指标、标签、徽章、按钮文案、空态和加载态线索
+  - 定义 mock API/local service/adapter 数据加载边界，使输出能够从本地 mock 数据平滑映射到线上接口
+  - 对多屏 flow，明确哪些数据属于单个 screen，哪些是跨 screen 共享状态或由上一个 screen 传入
+  - 覆盖搜索词、输入文本、筛选条件、选中项、表单值、列表查询结果和详情页 id 等交互数据
+  9.6. 在重构 JSX 之前恢复 flow 交互触发
+- 目的：
+  - 对单屏输入，保留 screen 内原有交互，不强行创造跨屏跳转
+  - 对多屏 flow 使用 VLM/视觉理解能力检查每个 `Preview-screen-**.png`，结合 JSX 结构识别按钮、箭头、tab、卡片、列表项、图标按钮、input text、search bar、input bar、筛选控件、表单控件和底部导航等可交互触发点
+  - 将可交互触发点映射到 React 状态切换、screen route 切换、回退事件、输入更新、搜索提交、筛选更新或 mock API 查询，确保 UI 预览之间是 React 交互跳转和数据更新，而不是截图或静态图片滚动
+
+1. 在预准备的 React 壳内执行移动端重构
+  - 目的：
+    - 将第 3-6 轮做出的决策应用到实际验证目标中，而非隔离副本
+    - 将重构后的组件写入 `react/src/RefactoredComponent.jsx`，不覆盖 `react/src/ValidatedComponent.jsx`
+    - 添加或更新 `/refactored` 路由，使重构组件可直接验证
+    - 保留输入中的 flow 跳转关系；如果输入是多屏 flow，输出也必须是可交互 flow
+    - 保留或补强按钮、箭头、tab、卡片、列表项、图标按钮和底部导航项的 `onClick` 跳转事件
+    - 将 input text、search bar、input bar、textarea、select、filter chip、segmented control 等表单/查询控件实现为受控 React 状态，并接入 mock API 查询、筛选或提交行为
+    - 禁止把多屏 flow 改成截图、静态图、背景图或滚动图片预览
+    - 如果重构后发现多屏 flow 退化为静态图或不可交互展示，废弃该 `RefactoredComponent.jsx` 结果并重新生成，直到输出包含真实 React flow 跳转、事件和数据状态
+    - 将展示数据迁移到本地 mock API service、adapter 函数或等价数据源文件中，组件通过数据渲染而非硬编码重复 JSX
+2. 在认为重构稳定之前，在 React 壳内验证移动端适配
+  - 目的：
+    - 在进行截图级别的清理之前，确认页面结构在不同 Figma 渲染环境和真实移动视口中都是响应式的
+3. 为实现像素一致性，在任何 Compose 翻译之前自行负责 compare -> fix -> compare 循环，并保持截图尺寸与对应参考截图匹配
+  - 目的：
+    - 在结构稳定后，使用截图 diff 作为最终的几何反馈循环
+    - 单屏输入默认对比 `Preview.png`
+    - 多屏 flow 必须逐个可达 screen 对比对应 `Preview-screen-**.png`，不要只验证初始 screen
+4. 当当前参考截图中出现 `device-chrome` 时，在截图匹配期间保留它
+5. 保持最外层页面壳全屏且自适应；不要在根页面容器上放置 `max-width`、`max-height`、`maxWidth`、`maxHeight`、`max-w-`* 或 `max-h-*` 约束
+6. 仅在 `react/src/RefactoredComponent.jsx` 和 `/refactored` 路由稳定、React 构建健康、数据加载边界清晰、且你已将单屏或多屏的对应像素循环推进到无法突破的实际障碍时才退出
 
 ## 停止条件
 
@@ -198,6 +206,7 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 - 如果运行时暴露了 `run_layout_audit`，使用该工具而非手动重建布局审计命令；如果审计失败，停止并修复，不要仅凭代码猜测有风险的布局意图
 - 如果 React 壳尚未稳定，不要当作阶段已完成而继续
 - 如果多屏 flow 的重构版本无法通过设计内事件到达每个目标 screen，不要当作阶段已完成
+- 如果多 Figma 生成场景下的 optimized React 只是静态图、截图墙、背景图或不可交互多屏展示，立即判定为失败并重新生成 `react/src/RefactoredComponent.jsx`；不要通过补充说明或 fallback 把它算作完成
 - 如果 input/search/input bar 等明显交互控件只是静态 div 或图片，没有 React 状态、输入事件或提交/筛选行为，不要当作阶段已完成
 - 如果多屏展示数据仍散落在重复 JSX 中，或没有 mock API/local service/adapter 边界，不要当作阶段已完成
 - 如果提供了第三方参考代码库但没有完成参考库架构理解、Figma 对应业务定位和可映射能力清单，不要开始 JSX 重构
@@ -278,24 +287,24 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 在编辑 JSX 之前完成以下工作：
 
 1. 理解参考代码库整体架构：
-   - 技术栈、入口、路由/导航、页面/screen/module 组织
-   - UI 层、组件库、设计系统、资源和样式组织
-   - 状态管理、业务逻辑、表单/搜索/筛选/分页等控制逻辑
-   - 数据模型、service/repository/API client、网络请求、参数和响应模型
-   - loading、empty、error、权限、会话或缓存等运行时状态
+  - 技术栈、入口、路由/导航、页面/screen/module 组织
+  - UI 层、组件库、设计系统、资源和样式组织
+  - 状态管理、业务逻辑、表单/搜索/筛选/分页等控制逻辑
+  - 数据模型、service/repository/API client、网络请求、参数和响应模型
+  - loading、empty、error、权限、会话或缓存等运行时状态
 2. 定位 Figma 对应业务场景：
-   - 与截图视觉结构匹配的页面、组件或 flow
-   - 与 React mock data 字段匹配的数据模型、API、列表、详情和状态
-   - 与设计内可交互组件匹配的点击、输入、搜索、筛选、提交和导航逻辑
+  - 与截图视觉结构匹配的页面、组件或 flow
+  - 与 React mock data 字段匹配的数据模型、API、列表、详情和状态
+  - 与设计内可交互组件匹配的点击、输入、搜索、筛选、提交和导航逻辑
 3. 输出可对齐清单：
-   - 可在 optimized React 中实现对齐的 UI 结构和组件语义
-   - 可在 optimized React 中实现对齐的交互逻辑、状态机和控制流
-   - 可映射为 mock API/local service 的数据结构、API 参数、响应模型和状态
-   - 只能作为语义参考、不能直接迁移到 React 的实现细节
+  - 可在 optimized React 中实现对齐的 UI 结构和组件语义
+  - 可在 optimized React 中实现对齐的交互逻辑、状态机和控制流
+  - 可映射为 mock API/local service 的数据结构、API 参数、响应模型和状态
+  - 只能作为语义参考、不能直接迁移到 React 的实现细节
 4. 明确优先级：
-   - Figma 截图和已验证 React 仍决定视觉还原度
-   - 第三方参考库决定业务语义、交互行为、数据控制和 API/network 形态
-   - 如果二者冲突，保留 Figma 视觉，同时在 optimized React 的状态、事件和 mock API 中对齐参考库业务语义
+  - Figma 截图和已验证 React 仍决定视觉还原度
+  - 第三方参考库决定业务语义、交互行为、数据控制和 API/network 形态
+  - 如果二者冲突，保留 Figma 视觉，同时在 optimized React 的状态、事件和 mock API 中对齐参考库业务语义
 
 不要照搬整个参考仓库或把参考库依赖引入 React 验证壳。只抽取当前 Figma 业务所需的 UI/逻辑/数据/API/network 语义，并用 React state、事件处理和 mock API adapter 表达。
 
@@ -535,16 +544,17 @@ description: 将 React 验证壳从 ./react/src/ValidatedComponent.jsx 重构为
 5. 运行 `scripts/pixel_diff.py <reference-preview> current-preview.png`
 6. 先检查 diff 图像，再使用不匹配比率作为辅助量化提示
 7. 在编辑之前命名主要不匹配集群：
-   - 如果 `mismatch_ratio > 0.2`，优先检查整体布局偏移（例如内容被状态栏 padding 推得太靠下或靠上，缺少边距）或 overlay 定位错误（例如绝对定位元素、固定头部或模态框偏移），再进行微调
-   - 哪个视觉区域有误
-   - 最可能的布局原因
-   - 下一步要修复的几何集群
+  - 如果 `mismatch_ratio > 0.2`，优先检查整体布局偏移（例如内容被状态栏 padding 推得太靠下或靠上，缺少边距）或 overlay 定位错误（例如绝对定位元素、固定头部或模态框偏移），再进行微调
+  - 哪个视觉区域有误
+  - 最可能的布局原因
+  - 下一步要修复的几何集群
 8. 每次修正一个几何集群
 9. 如果当前参考截图中出现 `device-chrome`，在此循环中保留它
 10. 当 `mismatch_ratio < 0.1` 时停止循环，前提是剩余 diff 不隐藏明显的结构性布局错误
 11. 否则将此循环上限设为 5 轮聚焦 diff 修复；仅在连续两轮未产生有意义的视觉改善时提前停止
 12. 当剩余 diff 已仅限于微调细节（如 font-weight 微调、微小 letter-spacing 变化或个位数间距调整）时，不要在这些轮次上花费时间
 13. **强制执行：** 你绝对不能仅因为代码结构看起来更整洁就提前退出此循环。你必须严格重复 compare -> fix -> compare 循环，直到 `mismatch_ratio < 0.1` 或你已完成恰好 `5` 轮修复。如果比率仍高于 0.1，不要主观判断布局是否"足够好"。
+
 13.1. **禁止回退：** 绝对不要为了通过像素 diff 测试而将代码回退到固定 width/height（如 `w-[129px]`）和绝对定位。你必须保持响应式 flex/grid 布局（`flex-1`、`aspect-square`、`w-full`）。如果布局在结构上是健全且响应式的，但在 5 轮后仍因渲染差异未达到 0.1 阈值，接受该 diff 并停止。永远不要用结构语义和响应性换取更低的不匹配比率。
 14. **显式状态日志：** 每次运行 `pixel_diff.py` 后，你必须在做出下一个决策之前以以下精确格式将当前状态打印到 stdout：
     - 当前轮次：[1 到 5]
@@ -591,6 +601,7 @@ python3 scripts/pixel_diff.py <reference-preview> current-preview.png --channel-
 - 不要覆盖 `react/src/ValidatedComponent.jsx`；使用 `react/src/RefactoredComponent.jsx` 作为重写组件。
 - 在任何 Compose 翻译之前先验证 React 壳。
 - 多屏 flow 必须由 React 组件、状态和事件处理实现跳转；不要用截图、静态图、背景图或滚动图片预览表达多屏 UI。
+- 多 Figma 生成场景下，静态图结果不是可接受的中间结果，也不是可接受的最终结果；必须重新生成 optimized React，直到 `RefactoredComponent.jsx` 通过 React 状态、事件、screen registry/route 和数据流实现对应场景的 flow 跳转。
 - 多屏 flow 的逐屏重构可以复用单屏方法，但最终验收必须同时覆盖每个 screen 的视觉质量和 screen 间事件行为。
 - 必须使用 VLM/视觉理解能力结合 JSX 结构判断设计内可交互触发点，并为高置信度触发点接入 `onClick`、`onChange`、`onSubmit`、`onKeyDown` 或等价事件。
 - 重点检查按钮、箭头、tab、卡片、列表项、图标按钮、input text、search bar、input bar、筛选控件、表单控件和底部导航项；这些组件通常比额外添加的调试按钮更接近真实产品交互。
@@ -680,12 +691,14 @@ python3 scripts/parse_resources.py \
 - [references/pixel-validation.md](references/pixel-validation.md)
 
 ## 退出条件
+
 - `react/src/RefactoredComponent.jsx` 存在
 - `/refactored` 渲染 `react/src/RefactoredComponent.jsx`
 - React 壳仍反映已验证的移动端层级，而非全新设计
 - 已记录输入模式：单屏 Figma React 或多屏 Figma React flow
 - 如果输入是多屏 flow，`RefactoredComponent.jsx` 仍保留可操作的 screen 跳转关系
 - 多屏跳转由 React 状态和事件触发实现，不是截图、静态图或滚动图片预览
+- 多 Figma 生成场景下，`RefactoredComponent.jsx` 不是静态图、截图墙、背景图切换或不可交互展示；若曾出现该情况，已重新生成并通过 flow 跳转验证
 - 如果输入是多屏 flow，每个可达 screen 均已通过移动端适配检查，并且有对应 `Preview-screen-**.png` 截图验证；没有使用 `Preview.png` 作为多屏参考
 - 如果输入是单屏 Figma React，未强行新增无来源 screen，且已有单屏状态交互仍可操作
 - 高置信度的按钮、箭头、tab、卡片、列表项和底部导航触发点已经接入跳转事件，低置信度触发点已说明 fallback
@@ -703,3 +716,4 @@ python3 scripts/parse_resources.py \
 - 如果要求了面向像素的工作，你必须仅在 `mismatch_ratio < 0.1` 或修复轮次超过 5 时停止。报告任何残留的结构或排版差异。
 - **隔离要求：** 不要急于开始下一个 skill 或阶段。你必须完全穷尽像素一致性循环，并确保所有当前 React 验证规则满足后，才能认为此 skill 成功完成。
 - stdout 简要列出已更改的文件、构建状态和任何仍存在的实际障碍
+
