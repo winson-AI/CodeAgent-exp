@@ -6,7 +6,7 @@ A cross-CLI plugin repository for AI-powered development workflows. The current 
 
 | Toolkit | Description | Claude Code | Codex | Gemini CLI |
 |--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP migration workflow covering source analysis, runnable KMP generation, fidelity validation, and agent memory/skill maintenance for Claude Code. | 0.1.2 | 0.1.2 | 0.1.2 |
+| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP migration workflow covering source analysis, runnable KMP generation, fidelity validation, and agent memory/skill maintenance for Claude Code. | 0.1.8 | 0.1.2 | 0.1.2 |
 
 ## Current Agent and Skill Content
 
@@ -16,9 +16,9 @@ The Claude Code plugin ships 5 specialized agents in `claude-code-plugins/kmp-mi
 
 | Agent | Purpose |
 |-------|---------|
-| `android-project-analyst` | Deep Android project analysis for architecture, XML/Compose UI, data/control flow, onboarding docs, and SPEC output (`PRD`, `DESIGN`, `PLAN`). |
-| `android-to-kmp-migrator` | Full or explicitly scoped Android-to-KMP migration that produces runnable KMP code with UI, business/data layers, navigation, theming, and mandatory validation. |
-| `kmp-test-validator` | KMP validation against test cases, acceptance criteria, and Android source behavior, including failure diagnosis, repair guidance, and reporting. |
+| `android-project-analyst` | Deep Android project analysis for architecture, XML/Compose UI, resources, data/control flow, onboarding docs, and SPEC output (`PRD`, `DESIGN`, `PLAN`, `verification.md`). |
+| `android-to-kmp-migrator` | Controller-only Android-to-KMP migration agent that verifies migration intent, dispatches workspace-state, SPEC-delta, target-understanding, resource/theme/navigation/platform/state, UI, dataflow/logic, module/node review-fix, guard/parity/fidelity/build-check, completion-check, and migration-report node skills, and requires KMP validation gates. |
+| `kmp-test-validator` | Controller-only post-migration KMP validation agent that verifies migration context, dispatches fidelity audit, validation planning, build/preview, test decomposition/execution, remediation, workspace-state, and reporting node skills. |
 | `memory-curator` | Audits and optimizes agent memory stores, including retention/archive/delete recommendations and state recovery records. |
 | `skill-maintenance-advisor` | Periodically reviews conversation context and recommends creating or updating reusable skills. |
 
@@ -32,7 +32,7 @@ The Codex and Gemini distributions currently ship 3 KMP-focused skills:
 | `android-to-kmp-migrator` | `codex-plugins/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` | `gemini-extensions/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` |
 | `kmp-test-validator` | `codex-plugins/kmp-migration/skills/kmp-test-validator/SKILL.md` | `gemini-extensions/kmp-migration/skills/kmp-test-validator/SKILL.md` |
 
-Claude Code also contains placeholder directories for future `commands/`, `skills/`, `hooks/`, and `templates/` content.
+Claude Code also contains controller node skill specs under `claude-code-plugins/kmp-migration/skills/android-project-analyst/`, `claude-code-plugins/kmp-migration/skills/android-to-kmp-migrator/`, and `claude-code-plugins/kmp-migration/skills/kmp-test-validator/`, plus placeholder directories for future `commands/`, `hooks/`, and `templates/` content.
 
 ## Install Guidance
 
@@ -101,7 +101,7 @@ When changing plugin behavior, keep these versions aligned:
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
 
-Current release: `0.1.2`.
+Current Claude Code release: `0.1.8`. Codex and Gemini remain at `0.1.2`.
 
 ## Project Structure
 
