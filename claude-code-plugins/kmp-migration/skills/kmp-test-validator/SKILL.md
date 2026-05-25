@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 This directory stores node skill specs used by the `kmp-test-validator` controller. The controller owns migration-scenario gating, routing, output validation, re-dispatch, and final readiness decisions. Node subagents own bounded validation work.
 
+## Default Output Directory
+
+Unless the user or controller provides an explicit `output_dir`, write validation and node artifacts under `~/.d2c_agents/validation/`.
+
 ## Methodology Boundary
 
 When learning from another workflow, use methodology only: controller/subagent separation, explicit input and output contracts, small node responsibilities, gated verification, serial execution where artifacts depend on previous artifacts, and final synthesis after verified node completion. Do not copy project-specific commands, framework assumptions, private examples, or reference workflow content.

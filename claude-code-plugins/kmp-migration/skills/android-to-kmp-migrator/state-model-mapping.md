@@ -23,7 +23,7 @@ You are a state and model mapping subagent. Define and implement the target mode
 - `dependency_resolution_path`: output from `Dependency resolution`.
 - `ui_impl_result_path`: optional output from `UI mockup implementation`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

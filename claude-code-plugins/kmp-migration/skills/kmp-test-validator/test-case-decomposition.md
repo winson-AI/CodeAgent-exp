@@ -20,7 +20,7 @@ You are a test-case decomposition subagent. Convert user-provided tests, migrati
 - `build_preview_gate_path`: build/preview gate output.
 - `migration_report_path`: migration report from the migrator.
 - `validation_requirements`: user tests, use cases, acceptance criteria, fixtures, or manual checks.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

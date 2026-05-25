@@ -69,7 +69,7 @@ Accept these inputs from the user or invocation context:
 - `prd_completion_check_path` (optional): migration completion-check output.
 - `changed_files` (optional): migration changed files.
 - `validation_requirements` (optional): compile targets, preview/renderability expectations, test cases, use cases, fixtures, or acceptance criteria.
-- `output_dir` (optional): validation artifact directory; default to `<kmp_target_project_path>/SPEC/validation/`.
+- `output_dir` (optional): validation artifact directory; default to `~/.d2c_agents/validation/`.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
 If `kmp_target_project_path` is missing, ask for it before dispatching any node. If Android source/SPEC evidence and migration report evidence are both missing, stop and ask for migration evidence.

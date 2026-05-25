@@ -19,7 +19,7 @@ You are a source-set placement guard subagent. Verify that migrated files are pl
 - `platform_api_replacement_path`: platform API replacement output.
 - `state_model_mapping_path`: state/model mapping output.
 - `dependency_resolution_path`: dependency-resolution output.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

@@ -37,7 +37,7 @@ You are a migration completion-check subagent. Verify that the target implementa
 - `ui_render_fidelity_check_path`: output from `UI render fidelity check`.
 - `incremental_build_check_path`: output from `Incremental build check`.
 - `changed_files`: changed files from implementation nodes.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

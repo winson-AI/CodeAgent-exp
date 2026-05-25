@@ -17,7 +17,7 @@ You are a target-project understanding subagent for Android-to-KMP migration. Yo
 - `migration_scope`: whole project, module, feature, screen, or task.
 - `spec_dir`: directory containing Legacy Android `prd.md`, `design.md`, `plan.md`, and `verification.md`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

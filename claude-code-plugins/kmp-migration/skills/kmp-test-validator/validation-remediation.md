@@ -22,7 +22,7 @@ You are a validation-remediation subagent. Fix only confirmed target KMP failure
 - `test_execution_results_path`: failing test execution output, when applicable.
 - `allowed_files`: files this remediation may edit.
 - `failure_ids`: failure IDs or test case IDs to fix.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

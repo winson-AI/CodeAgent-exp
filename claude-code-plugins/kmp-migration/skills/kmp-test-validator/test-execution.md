@@ -20,7 +20,7 @@ You are a test-execution subagent. Execute atomic validation cases and capture e
 - `build_preview_gate_path`: build/preview gate output.
 - `test_case_inventory_path`: output from `Test case decomposition`.
 - `changed_files`: current changed files.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

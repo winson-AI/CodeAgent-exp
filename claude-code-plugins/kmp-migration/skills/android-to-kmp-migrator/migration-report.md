@@ -25,7 +25,7 @@ You are a migration report subagent. Produce the final migration report consumed
 - `module_node_fix_paths`: module/node fix outputs, when fixes were needed.
 - `changed_files`: all changed files with owner nodes.
 - `prd_completion_check_path`: PRD completion check output.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

@@ -19,7 +19,7 @@ You are a theme and design-system mapping subagent. Convert Legacy Android visua
 - `migration_alignment_path`: output from `Migration alignment`.
 - `dependency_resolution_path`: output from `Dependency resolution`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

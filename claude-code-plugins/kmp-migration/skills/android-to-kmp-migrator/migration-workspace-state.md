@@ -20,7 +20,7 @@ You are a migration workspace state subagent. Maintain the controller's single s
 - `changed_files`: changed files with node ownership when available.
 - `rerun_reports`: rerun requests or build/completion failures.
 - `blocking_gaps`: current blockers.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

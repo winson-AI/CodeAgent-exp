@@ -16,7 +16,7 @@ You are a UI understanding subagent for an existing Android project. Your output
 - `analysis_scope`: whole project, module, feature, screen, or user-specified scope.
 - `mode`: `exploration` or `migration`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/understand/`.
 - Optional `known_entry_points`: paths or class names supplied by the controller.
 
 ## Specific Task

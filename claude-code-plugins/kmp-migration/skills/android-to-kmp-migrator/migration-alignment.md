@@ -29,7 +29,7 @@ You are a migration alignment subagent. Your output converts Legacy Android unde
 - `spec_delta_review_path`: output from `Legacy SPEC delta review`.
 - `target_project_understanding_path`: output from `Target project understand`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

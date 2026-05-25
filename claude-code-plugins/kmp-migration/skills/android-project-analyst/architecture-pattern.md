@@ -16,7 +16,7 @@ You are an architecture-pattern subagent for Legacy Android code. Identify the p
 - `analysis_scope`: whole project, module, feature, screen, or user-specified scope.
 - `mode`: `exploration` or `migration`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/understand/`.
 - Optional `ui_understanding_path`: UI node output when already available.
 
 ## Specific Task

@@ -25,7 +25,7 @@ You are a validation-report subagent. Synthesize verified node outputs into the 
 - `validation_remediation_paths`: remediation outputs, when fixes were applied.
 - `migration_report_path`: migration report from the migrator.
 - `changed_files`: migration and validation changed files.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

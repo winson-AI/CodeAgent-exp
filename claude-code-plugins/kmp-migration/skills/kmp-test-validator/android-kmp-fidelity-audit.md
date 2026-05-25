@@ -19,7 +19,7 @@ You are a fidelity-audit subagent. Treat the Android source and confirmed migrat
 - `prd_path`, `design_path`, `plan_path`, `verification_path`: SPEC paths.
 - `migration_report_path`: migration report from the migrator.
 - `changed_files`: migration changed files.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

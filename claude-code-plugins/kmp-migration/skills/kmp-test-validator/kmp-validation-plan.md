@@ -19,7 +19,7 @@ You are a KMP validation-planning subagent. Discover how the target project shou
 - `android_kmp_fidelity_audit_path`: fidelity audit output.
 - `user_provided_build_or_test_commands`: optional commands supplied by the user.
 - `validation_requirements`: compile targets, preview expectations, use cases, fixtures, and acceptance criteria.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

@@ -19,7 +19,7 @@ You are a SPEC delta review subagent for Android-to-KMP migration. Verify that t
 - `plan_path`: Legacy Android PLAN/SPEC migration plan.
 - `verification_path`: Legacy Android SPEC verification report.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

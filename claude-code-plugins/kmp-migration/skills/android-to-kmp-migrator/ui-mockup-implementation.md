@@ -33,7 +33,7 @@ You are a KMP UI implementation subagent. Implement the visible UI surface first
 - `resource_migration_path`: output from `Resource migration`.
 - `navigation_migration_path`: output from `Navigation migration`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

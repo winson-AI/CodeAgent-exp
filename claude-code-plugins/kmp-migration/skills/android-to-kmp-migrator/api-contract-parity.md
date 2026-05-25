@@ -18,7 +18,7 @@ You are an API contract parity subagent. Compare Legacy Android API/data contrac
 - `data_flow_path`: Legacy Android data-flow output.
 - `dataflow_logic_impl_result_path`: dataflow/logic implementation output.
 - `changed_files`: changed API/model/repository files.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

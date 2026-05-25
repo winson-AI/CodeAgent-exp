@@ -20,7 +20,7 @@ You are a dependency-resolution subagent for Android-to-KMP migration. Your job 
 - `design_path`: DESIGN/SPEC architecture, ecosystem, data flow, API, and logic.
 - `plan_path`: PLAN/SPEC migration plan.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

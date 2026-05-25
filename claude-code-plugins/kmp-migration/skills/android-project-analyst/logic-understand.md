@@ -21,7 +21,7 @@ You are a logic understanding subagent for Legacy Android code. Use the upstream
 - `android_ecosystem_path`: `android_ecosystem.json` or equivalent ecosystem node output.
 - `api_list_path`: `api_list.json` or equivalent API node output.
 - `data_flow_path`: `data_flow.json` or equivalent data-flow node output.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/understand/`.
 
 ## Specific Task
 

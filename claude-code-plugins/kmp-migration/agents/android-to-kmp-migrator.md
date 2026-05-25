@@ -75,7 +75,7 @@ Accept these inputs from the user or invocation context:
 - `migration_scope` (optional): whole project, module, feature, screen, or task.
 - `spec_dir` (optional): directory containing `prd.md`, `design.md`, `plan.md`, and `verification.md`.
 - `legacy_understanding_artifacts` (optional): node outputs or SPEC artifacts from `android-project-analyst`.
-- `output_dir` (optional): migration artifact output directory; default to `<kmp_target_project_path>/SPEC/migration/`.
+- `output_dir` (optional): migration artifact output directory; default to `~/.d2c_agents/migration/`.
 - `validation_requirements` (optional): compile targets, use-case tests, UI preview expectations, or acceptance criteria.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
@@ -150,7 +150,7 @@ legacy_android_project_path: <absolute path or null>
 kmp_target_project_path: <absolute path>
 migration_scope: <scope or "whole project">
 spec_dir: <path>
-output_dir: <path>
+output_dir: <path, default ~/.d2c_agents/migration/>
 prd_path: <path>
 design_path: <path>
 plan_path: <path>

@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 This directory stores node skill specs used by the `android-to-kmp-migrator` controller. The controller owns trigger verification, routing, output validation, re-dispatch, and final migration readiness. Node subagents own target-project understanding and migration implementation work.
 
+## Default Output Directory
+
+Unless the user or controller provides an explicit `output_dir`, write migration and node artifacts under `~/.d2c_agents/migration/`.
+
 ## Node Skills
 
 | Node | Skill spec | Responsibility |
@@ -52,6 +56,8 @@ This directory stores node skill specs used by the `android-to-kmp-migrator` con
 ## Subagent Contracts
 
 The controller must pass each node a complete contract. Each node must return the declared artifacts, or the controller re-runs that node with the missing-output reason.
+
+All `output_dir` fields in the node contracts below inherit the migration stage default `~/.d2c_agents/migration/` unless the user or controller provides a node-specific directory.
 
 ### `Migration workspace state`
 

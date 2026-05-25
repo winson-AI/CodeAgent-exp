@@ -20,7 +20,7 @@ You are a validation workspace-state subagent. Keep a truthful ledger of the val
 - `changed_files`: files changed during migration or validation, with owner node when known.
 - `rerun_reports`: rerun attempts and reasons.
 - `blocking_gaps`: unresolved blockers from any node.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

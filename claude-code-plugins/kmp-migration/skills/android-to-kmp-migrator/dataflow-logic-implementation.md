@@ -35,7 +35,7 @@ You are a KMP dataflow and logic implementation subagent. Implement the behavior
 - `resource_migration_path`: output from `Resource migration`.
 - `ui_impl_result_path`: output from `UI mockup implementation`.
 - `shared_brief_path` or inline shared brief from the controller.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

@@ -23,7 +23,7 @@ You are a module/node migration fix subagent. Apply narrowly scoped fixes from a
 - `allowed_files`: file paths this fix node may edit.
 - `upstream_evidence_paths`: relevant SPEC and upstream node outputs.
 - `migration_workspace_state_path`: current workspace state ledger.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

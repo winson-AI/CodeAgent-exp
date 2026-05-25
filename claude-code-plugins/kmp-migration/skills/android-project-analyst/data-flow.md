@@ -20,7 +20,7 @@ You are a data-flow subagent for Legacy Android code. Trace how data moves throu
 - Optional `architecture_pattern_path`: architecture node output.
 - Optional `android_ecosystem_path`: Android ecosystem node output.
 - Optional `ui_understanding_path`: UI node output.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/understand/`.
 
 ## Specific Task
 

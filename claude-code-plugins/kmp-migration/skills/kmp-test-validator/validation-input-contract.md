@@ -22,7 +22,7 @@ You are a validation input-contract subagent. Confirm the validator is being use
 - `changed_files`: changed files from migration.
 - `validation_requirements`: build targets, preview expectations, user test cases, use cases, acceptance criteria, or manual checks.
 - `user_requested_task`: original invocation text or path to it.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

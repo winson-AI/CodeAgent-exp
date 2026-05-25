@@ -18,7 +18,7 @@ You are an incremental build-check subagent. Run the smallest relevant target bu
 - `dependency_resolution_path`: output from `Dependency resolution`.
 - `changed_files`: changed files from migration nodes.
 - `upstream_node_outputs`: paths for resource/theme/navigation/platform/state/UI/logic outputs.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 

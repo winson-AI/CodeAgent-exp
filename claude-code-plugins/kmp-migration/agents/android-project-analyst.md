@@ -38,7 +38,7 @@ Accept these inputs from the user or invocation context:
 - `analysis_scope` (optional): whole project, module, feature, screen, or migration scope.
 - `mode` (optional): `exploration` or `migration`; infer when omitted.
 - `target_project_path` (required only for migration mode): target KMP/new architecture project path.
-- `output_dir` (optional): SPEC output directory.
+- `output_dir` (optional): SPEC output directory; default to `~/.d2c_agents/understand/`.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
 If `source_project_path` is missing or cannot be inferred, ask for it before dispatching nodes. If migration mode is selected and `target_project_path` is missing, ask for it before producing a PLAN.
@@ -51,15 +51,15 @@ Select exactly one mode and announce it before node dispatch:
 - `migration`: user wants to migrate, port, refactor to KMP/new architecture, or provides a target project path.
 
 Exploration outputs:
-- `<output_dir or source_project_path/SPEC>/prd.md`
-- `<output_dir or source_project_path/SPEC>/design.md`
-- `<output_dir or source_project_path/SPEC>/verification.md`
+- `<output_dir or ~/.d2c_agents/understand>/prd.md`
+- `<output_dir or ~/.d2c_agents/understand>/design.md`
+- `<output_dir or ~/.d2c_agents/understand>/verification.md`
 
 Migration outputs:
-- `<output_dir or target_project_path/SPEC>/prd.md`
-- `<output_dir or target_project_path/SPEC>/design.md`
-- `<output_dir or target_project_path/SPEC>/plan.md`
-- `<output_dir or target_project_path/SPEC>/verification.md`
+- `<output_dir or ~/.d2c_agents/understand>/prd.md`
+- `<output_dir or ~/.d2c_agents/understand>/design.md`
+- `<output_dir or ~/.d2c_agents/understand>/plan.md`
+- `<output_dir or ~/.d2c_agents/understand>/verification.md`
 
 `verification.md` is required in both modes. It records coverage, traceability, unresolved gaps, and mode-specific readiness checks.
 
@@ -143,7 +143,7 @@ analysis_scope: <scope or "whole project">
 mode: <exploration|migration>
 shared_brief_path: <path if written, otherwise inline brief>
 skill_spec_path: <node skill spec path>
-output_dir: <SPEC/node-results/<node-name>>
+output_dir: <output_dir/node-results/<node-name>, default ~/.d2c_agents/understand/node-results/<node-name>>
 return_format: json
 ```
 

@@ -18,7 +18,7 @@ You are a build-preview gate subagent. Establish that the migrated KMP target ca
 - `kmp_validation_plan_path`: output from `KMP validation plan`.
 - `android_kmp_fidelity_audit_path`: fidelity audit output.
 - `changed_files`: migration and validation changed files.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/validation/`.
 
 ## Specific Task
 

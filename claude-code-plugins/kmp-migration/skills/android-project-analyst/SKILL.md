@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 This directory stores the node skill specs used by the `android-project-analyst` controller. The controller owns routing, output verification, SPEC integration, and final readiness judgment. Node subagents own deep analysis of Legacy Android code.
 
+## Default Output Directory
+
+Unless the user or controller provides an explicit `output_dir`, write analyst/SPEC and node artifacts under `~/.d2c_agents/understand/`.
+
 ## Node Skills
 
 | Node | Skill spec | Responsibility |

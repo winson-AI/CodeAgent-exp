@@ -19,7 +19,7 @@ You are a resource-understanding subagent for Legacy Android code. Map local res
 - Optional `ui_understanding_path`: `ui_understanding.json` or equivalent UI node output.
 - Optional `api_list_path`: `api_list.json` or equivalent API node output.
 - Optional `android_ecosystem_path`: `android_ecosystem.json` or equivalent ecosystem node output.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/understand/`.
 
 ## Specific Task
 

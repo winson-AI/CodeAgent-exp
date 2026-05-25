@@ -19,7 +19,7 @@ You are a UI render fidelity check subagent. Verify that migrated UI screens are
 - `resource_migration_path`: resource migration output.
 - `navigation_migration_path`: navigation migration output.
 - `target_project_understanding_path`: target preview/render command context.
-- `output_dir`: directory where this node must write outputs.
+- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
 
 ## Specific Task
 
