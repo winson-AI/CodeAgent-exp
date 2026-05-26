@@ -1,0 +1,12 @@
+{
+    "kotlin": {
+      "command": "kotlin-language-server",
+      "args": [],
+      "extensionToLanguage": {
+        ".kt": "kotlin",
+        ".kts": "kotlin"
+      },
+      "restartOnCrash": true,
+      "maxRestarts": 3
+    }
+}

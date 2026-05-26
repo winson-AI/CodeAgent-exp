@@ -6,7 +6,7 @@ A cross-CLI plugin repository for AI-powered development workflows. The current 
 
 | Toolkit | Description | Claude Code | Codex | Gemini CLI |
 |--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.15 | 0.1.2 | 0.1.2 |
+| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP integration, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.16 | 0.1.2 | 0.1.2 |
 
 ## Current Agent and Skill Content
 
@@ -42,6 +42,8 @@ The Claude Code plugin includes two slash commands:
 - `/fix-issue-kmp`: fixes known KMP compile issues or migrated use-case failures with focused edits and rerun evidence.
 
 It also includes a `PreToolUse` hook that blocks write/edit tool calls targeting `.env` files. The hook configuration lives in `claude-code-plugins/kmp-migration/hooks/hooks.json`, and its command script lives in `claude-code-plugins/kmp-migration/scripts/pre-edit-protect.sh`.
+
+The Claude Code plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android Studio or another JetBrains IDE at `http://localhost:64342/sse`. Enable the IDE MCP server from Android Studio's **Settings | Tools | MCP Server** before use.
 
 ## Install Guidance
 
@@ -110,7 +112,7 @@ When changing plugin behavior, keep these versions aligned:
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
 
-Current Claude Code release: `0.1.15`. Codex and Gemini remain at `0.1.2`.
+Current Claude Code release: `0.1.16`. Codex and Gemini remain at `0.1.2`.
 
 ## Project Structure
 

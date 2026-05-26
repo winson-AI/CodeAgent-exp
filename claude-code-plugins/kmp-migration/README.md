@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.15`
+Version: `0.1.16`
 
 ## Agents
 
@@ -199,6 +199,23 @@ The plugin ships a `PreToolUse` command hook that blocks write/edit tools from m
 - Matched tools: `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`
 - Behavior: returns exit code `2` when the target path is a protected `.env` file.
 
+## MCP Configuration
+
+The plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android Studio and other JetBrains IDEs:
+
+```json
+{
+  "mcpServers": {
+    "jetbrains": {
+      "type": "sse",
+      "url": "http://localhost:64342/sse"
+    }
+  }
+}
+```
+
+Before using it, enable Android Studio's MCP server from **Settings | Tools | MCP Server**. If your Android Studio MCP server uses a custom port, update the URL in `.mcp.json`.
+
 ## Skills
 
 ### `skills/android-project-analyst`
@@ -258,6 +275,6 @@ Node skill specs used by the `kmp-test-validator` controller:
 - `scripts/`: Hook and utility scripts, including `pre-edit-protect.sh`.
 - `monitors/`: Plugin monitor configuration.
 - `templates/`: Reserved for future migration templates.
-- `.mcp.json`: Plugin MCP configuration.
+- `.mcp.json`: Plugin MCP configuration, including the Android Studio/JetBrains MCP server.
 - `.lsp.json`: Plugin LSP configuration.
 - `settings.json`: Plugin settings.

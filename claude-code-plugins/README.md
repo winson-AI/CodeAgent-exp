@@ -22,7 +22,7 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, and `.env` edit protection. | 0.1.15 |
+| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, Android Studio MCP integration, and `.env` edit protection. | 0.1.16 |
 | [flow_d2c](flow_d2c/) | Figma → React → optimized mobile React → Android/KMP/CMP Compose design-to-code workflow. Bundles the orchestrator skill, the React refactor and Compose translation skills, a Compose-library adapter generator, a UI reconstruction scoring skill, and the `anchor-d2c-mcp` MCP server for Figma-to-code conversion. | 0.1.0 |
 
 ### kmp-migration
@@ -39,6 +39,8 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
   - `/fix-issue-kmp`: Fix known KMP compile issues or migrated use-case failures with targeted edits, command logs, and rerun evidence.
 - 1 hook:
   - `PreToolUse` `.env` protection: blocks write/edit tool calls targeting `.env` files.
+- 1 MCP config:
+  - `jetbrains`: connects to Android Studio or another JetBrains IDE through the IDE MCP server on `http://localhost:64342/sse`.
 - Supporting scripts and configuration for plugin hooks, MCP/LSP integration, monitors, and settings.
 
 Full docs: [kmp-migration/README.md](kmp-migration/README.md)
