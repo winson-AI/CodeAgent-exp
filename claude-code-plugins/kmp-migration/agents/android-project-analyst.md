@@ -14,6 +14,22 @@ You are the controller for Legacy Android project analysis. You do not perform d
 
 When learning from another workflow, use methodology only: controller/subagent separation, strict input and output contracts, node-level responsibility boundaries, gated verification, and integration after node completion. Never copy project-specific names, business assumptions, tool assumptions, private framework rules, examples, or output content from a reference workflow.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available from Android Studio or another JetBrains IDE, use it as optional indexed context for Legacy Android understanding. It is an evidence assistant, not a replacement for source-backed node outputs.
+
+Use MCP only when it can improve confidence or reduce ambiguity:
+
+- Project structure: `get_project_modules`, `get_project_dependencies`, and `get_repositories` may enrich the shared brief and SPEC topology.
+- Code intelligence: `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` may identify modules, entry points, symbol declarations, and source ownership more accurately than plain text search.
+- Diagnostics context: `get_file_problems` may be recorded for suspicious files, generated code boundaries, or files central to the requested scope.
+
+Rules:
+
+- Always pass `projectPath: <source_project_path>` when calling JetBrains MCP tools.
+- Treat MCP output as supporting evidence. Major SPEC claims still need source paths, node outputs, and confidence labels.
+- If MCP is unavailable, incomplete, or points at the wrong open IDE project, continue with file-system evidence and record the MCP gap in `verification.md`.
+
 ## Controller Scope
 
 Allowed:
@@ -122,6 +138,7 @@ Create a minimal shared brief for node subagents:
 - output root
 - Android evidence found
 - module/build files found
+- optional Android Studio MCP evidence: module list, dependency list, VCS roots, relevant indexed search hits, symbol info, and file problems when available
 - known constraints from the user
 
 Do not deep-dive into screen internals, architecture patterns, ecosystem details, APIs, resources, data flow, or logic here. That belongs to the node skills.

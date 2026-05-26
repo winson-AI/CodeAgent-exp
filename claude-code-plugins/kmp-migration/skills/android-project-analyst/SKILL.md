@@ -31,6 +31,16 @@ Unless the user or controller provides an explicit `output_dir`, use `~/.d2c_age
 3. Run `Data flow` after API and architecture outputs are available.
 4. Run `Logic understand` last, using all upstream outputs.
 
+## Optional Android Studio MCP Context
+
+When the `jetbrains` MCP server is available, the controller may pass indexed Android Studio context to node subagents as part of the shared brief:
+
+- project modules, dependencies, and VCS roots from `get_project_modules`, `get_project_dependencies`, and `get_repositories`.
+- file and symbol discovery from `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info`.
+- file diagnostics from `get_file_problems` for suspicious or scope-critical files.
+
+Node subagents may use this MCP context to focus analysis and improve output representation, but they must still cite source paths and mark unsupported MCP-only claims as inferred or unknown.
+
 ## SPEC Output Contract
 
 The controller must integrate verified node outputs into a SPEC package under `<output_dir>/SPEC`:

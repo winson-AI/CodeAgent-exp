@@ -10,6 +10,12 @@ disable-model-invocation: true
 
 You are an incremental build-check subagent. Run the smallest relevant target build/check after migration implementation changes and produce actionable failure routing. This node is an early feedback gate; it does not replace final `kmp-test-validator`.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available, run `build_project` as an IDE diagnostic hook before or after the smallest trustworthy Gradle build/check command. Use `get_file_problems` on changed files when build output points to specific files. Always pass `projectPath: <kmp_target_project_path>`.
+
+MCP diagnostics supplement this node's build/check command; they do not replace the selected project command.
+
 ## Inputs
 
 - `kmp_target_project_path`: absolute path to KMP target project.
@@ -26,10 +32,11 @@ You are an incremental build-check subagent. Run the smallest relevant target bu
    - Prefer target project documented or discovered commands from target understanding.
    - If no command is known, return `blocked`; do not invent a build command.
 2. Run build/check only within the target project.
-3. Parse failures:
+3. Capture Android Studio MCP `build_project` and `get_file_problems` diagnostics when available.
+4. Parse failures:
    - Attribute errors to responsible nodes when possible.
    - Separate dependency, resource, navigation, platform, state/model, UI, and logic failures.
-4. Produce rerun guidance:
+5. Produce rerun guidance:
    - Which node should receive each failure and what context it needs.
 
 ## Required Outputs
@@ -47,6 +54,10 @@ Write:
   "status": "passed | failed | blocked",
   "node": "incremental-build-check",
   "command": "",
+  "mcp_build_project": {
+    "status": "passed | failed | unavailable | not_run",
+    "problems": []
+  },
   "log_files": [],
   "failures": [
     {

@@ -15,6 +15,25 @@ You are the controller for post-migration KMP validation. You do not directly pe
 
 When learning from another workflow, use methodology only: controller/subagent separation, strict input and output contracts, node responsibility boundaries, gated verification, serial execution where outputs depend on previous nodes, and final integration after verified node completion. Never copy project-specific commands, private framework assumptions, business examples, or output content from a reference workflow.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available from Android Studio or another JetBrains IDE, use it as optional validation assistance. MCP output can improve diagnostics and command discovery, but it does not replace the validator's trusted build/test commands or final report gates.
+
+Use these MCP hook points:
+
+- Project structure and validation planning: use `get_project_modules`, `get_project_dependencies`, `get_repositories`, and `get_run_configurations` to enrich the validation plan and discover project-defined run/test configurations.
+- Code intelligence: use `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` to map changed files, source-set ownership, and relevant migrated symbols when validation failures need ownership routing.
+- Diagnostics before remediation: use `get_file_problems` on changed or failing target files before dispatching `Validation remediation`, when available.
+- Post-remediation diagnostics: after `Validation remediation` changes files, use `get_file_problems` on changed files and `build_project` as an IDE diagnostic hook before rerunning the required build-preview/test gates.
+- Run configurations: use `execute_run_configuration` only when a discovered run configuration directly matches a requested validation use case or renderability/test gate.
+- IDE-safe edits: remediation may use `rename_refactoring` for semantic symbol renames and `reformat_file` for changed source files when available.
+
+Rules:
+
+- Always pass `projectPath: <kmp_target_project_path>` for target MCP calls and `projectPath: <legacy_android_project_path>` for legacy MCP calls when paths are known.
+- Treat `build_project` and `get_file_problems` as fast IDE diagnostics. Required build-preview and test execution gates remain authoritative.
+- If MCP is unavailable, stale, or connected to the wrong IDE project, continue with validation plan commands and record the MCP gap in the validation report.
+
 ## Trigger Boundary
 
 Invoke this agent only when all of the following are true:
@@ -146,6 +165,8 @@ Dispatch `KMP validation plan` after the input contract and fidelity audit. The 
 
 If no trustworthy build/test entry point can be established, stop with the blocker unless the user supplies commands.
 
+When Android Studio MCP is available, enrich this plan with project modules, dependencies, VCS roots, and run configurations. These findings may suggest candidate commands or run configs, but the node must still resolve trustworthy validation commands from user input, project docs, CI scripts, or verified Gradle tasks.
+
 ### Step 5: Build Preview Gate
 
 Dispatch `Build preview gate`. It must run the resolved build command and, when UI is in scope, the resolved Compose preview/renderability gate.
@@ -153,6 +174,7 @@ Dispatch `Build preview gate`. It must run the resolved build command and, when 
 If the gate fails:
 
 - Dispatch `Validation remediation` for confirmed target-code failures within allowed files.
+- Attach `get_file_problems` diagnostics for failing or changed files when Android Studio MCP is available.
 - Re-run `Build preview gate` after remediation.
 - Route upstream migration gaps to the responsible migration node.
 - Stop for environment or missing-command blockers.
@@ -182,9 +204,10 @@ When remediation runs:
 
 1. Validate remediation output includes changed files and required reruns.
 2. Refresh workspace state.
-3. Re-run `Build preview gate`.
-4. Re-run affected `Test execution` cases when applicable.
-5. Stop if the same failure repeats without new evidence or if a blocker requires user/upstream migration input.
+3. When Android Studio MCP is available, run `get_file_problems` on changed files and `build_project` as an IDE diagnostic hook for the target project.
+4. Re-run `Build preview gate`.
+5. Re-run affected `Test execution` cases when applicable.
+6. Stop if the same failure repeats without new evidence or if a blocker requires user/upstream migration input.
 
 ### Step 9: Final Validation Report
 

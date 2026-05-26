@@ -10,6 +10,17 @@ disable-model-invocation: true
 
 You are a module/node migration fix subagent. Apply narrowly scoped fixes from a review report. Preserve the owning node's skill contract and the target KMP project's conventions. Do not perform unrelated cleanup or broad redesign.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available, use it as optional bug-fix assistance:
+
+- Use `get_file_problems` on `allowed_files` before and after the fix to confirm the local diagnostic delta.
+- Use `get_symbol_info` to understand failing symbols before editing.
+- Prefer `rename_refactoring` for semantic symbol renames and `reformat_file` for changed Kotlin/Compose files.
+- Use `build_project` after fixing a build-related issue when the controller asks for an IDE diagnostic hook. This supplements, but does not replace, the required re-review and build/check gates.
+
+Always pass `projectPath: <kmp_target_project_path>` when calling MCP tools. If MCP is unavailable or stale, continue with review evidence and record the gap in the fix output.
+
 ## Inputs
 
 - `kmp_target_project_path`: absolute path to KMP target project.
@@ -31,8 +42,9 @@ You are a module/node migration fix subagent. Apply narrowly scoped fixes from a
 2. Keep changes inside `allowed_files` and the declared `module_or_node_scope`.
 3. Preserve target project conventions, source-set placement, dependency decisions, and single-project invariant.
 4. Do not add dependencies, root Gradle files, settings files, wrappers, placeholder TODOs, or unrelated refactors.
-5. If a finding cannot be fixed within scope, return it as a blocker with the exact upstream node or user input needed.
-6. Produce a fix summary and the changed-file list for re-review.
+5. Use Android Studio MCP diagnostics/refactoring/formatting hooks when available and scoped to `allowed_files`.
+6. If a finding cannot be fixed within scope, return it as a blocker with the exact upstream node or user input needed.
+7. Produce a fix summary and the changed-file list for re-review.
 
 ## Required Outputs
 
@@ -55,6 +67,14 @@ You are a module/node migration fix subagent. Apply narrowly scoped fixes from a
     }
   ],
   "changed_files": [],
+  "mcp_diagnostics": [
+    {
+      "tool": "get_file_problems | build_project | get_symbol_info | rename_refactoring | reformat_file",
+      "file": "",
+      "status": "clean | warnings | errors | unavailable | not_run",
+      "problems": []
+    }
+  ],
   "requires_re_review": true,
   "blocking_gaps": []
 }

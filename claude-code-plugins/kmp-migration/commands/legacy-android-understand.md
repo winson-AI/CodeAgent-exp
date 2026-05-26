@@ -74,6 +74,16 @@ Focus:
 - Do not create migration plan artifacts unless the user explicitly asks for migration in a separate request.
 ```
 
+## Optional Android Studio MCP Context
+
+When the `jetbrains` MCP server is available, allow `android-project-analyst` to use Android Studio indexed context as an assistant for project structure and code intelligence:
+
+- `get_project_modules`, `get_project_dependencies`, and `get_repositories` for module/dependency/VCS topology.
+- `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` for target-code and symbol understanding.
+- `get_file_problems` for diagnostics on scope-critical files.
+
+Always pass `projectPath: <source_project_path>` for MCP calls. MCP evidence should improve the answer and SPEC representation, but source paths and analyst node outputs remain required.
+
 ## Required Output Format
 
 Return this concise JSON-like summary after `android-project-analyst` completes:

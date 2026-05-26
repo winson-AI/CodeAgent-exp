@@ -10,6 +10,16 @@ disable-model-invocation: true
 
 You are a KMP validation-planning subagent. Discover how the target project should be built and tested, and map validation work to the smallest trustworthy commands.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available, use it as optional validation-planning context:
+
+- `get_project_modules`, `get_project_dependencies`, and `get_repositories` for target structure and dependency context.
+- `get_run_configurations` for project-defined app, test, preview, or debug run configurations.
+- `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` for source-set and migrated-symbol mapping.
+
+Always pass `projectPath: <kmp_target_project_path>`. MCP-discovered run configurations may inform the plan, but trusted commands must still come from user input, project scripts/docs/CI, or verified Gradle tasks.
+
 ## Inputs
 
 - `kmp_target_project_path`: absolute path to KMP target project.
@@ -27,6 +37,7 @@ You are a KMP validation-planning subagent. Discover how the target project shou
    - modules and source sets (`commonMain`, `commonTest`, `androidMain`, `iosMain`, etc.).
    - Gradle wrapper, project scripts, CI scripts, Makefile targets, and documented commands.
    - test frameworks and existing test conventions.
+   - Android Studio MCP project modules, dependencies, and run configurations when available.
 2. Resolve build and test entry points using this order:
    - user-provided command, if valid.
    - project scripts or documented CI commands.
@@ -53,6 +64,12 @@ You are a KMP validation-planning subagent. Discover how the target project shou
     "test": ""
   },
   "command_sources": [],
+  "mcp_context": {
+    "project_modules": [],
+    "project_dependencies": [],
+    "repositories": [],
+    "run_configurations": []
+  },
   "scope_to_targets": [],
   "environment_assumptions": [],
   "blocking_gaps": []

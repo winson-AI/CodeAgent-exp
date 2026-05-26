@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.16`
+Version: `0.1.17`
 
 ## Agents
 
@@ -215,6 +215,16 @@ The plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android 
 ```
 
 Before using it, enable Android Studio's MCP server from **Settings | Tools | MCP Server**. If your Android Studio MCP server uses a custom port, update the URL in `.mcp.json`.
+
+Agent workflows use this MCP server opportunistically:
+
+- Legacy and target understanding may use `get_project_modules`, `get_project_dependencies`, `get_repositories`, `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` as indexed project-structure and code-intelligence context.
+- Migration code-generation nodes record `get_file_problems` diagnostics for changed files when the server is available.
+- Bug-fix and remediation nodes may use `get_file_problems`, `get_symbol_info`, `rename_refactoring`, and `reformat_file` for IDE-assisted fixes.
+- After all target migration changes, and after build-fix passes, workflows may use `build_project` as an IDE diagnostic hook before required Gradle/build validation gates.
+- Validation planning may use `get_run_configurations`, and scoped validation/fix flows may use `execute_run_configuration` when a discovered run config directly matches the task.
+
+MCP diagnostics are advisory unless they identify concrete errors in changed files. Gradle build/check gates and `kmp-test-validator` remain authoritative.
 
 ## Skills
 

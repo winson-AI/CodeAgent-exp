@@ -106,6 +106,28 @@ Return this concise JSON-like summary and write matching artifacts under `output
 9. After each fix pass, rerun the smallest command that exposed the failure. Then rerun the broader build/check or affected use-case command. Do not claim success from static inspection alone.
 10. Stop after three fix passes if the same failure repeats without new evidence. Report the blocker, last command output, and the next required input.
 
+## Optional Android Studio MCP Strategy
+
+When the `jetbrains` MCP server is available, use it as optional assistance for diagnosis and safe edits. Always pass `projectPath: <kmp_target_project_path>`.
+
+Use MCP hook points:
+
+- Project structure and code intelligence:
+  - `get_project_modules`, `get_project_dependencies`, and `get_repositories` to understand the target before editing.
+  - `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` to locate the owner of failing code and understand symbol declarations.
+- Diagnostics:
+  - Run `get_file_problems` on files named in the failure output or in `allowed_files` before editing.
+  - Run `get_file_problems` again on changed files after every fix pass.
+- IDE-safe edits:
+  - Prefer `rename_refactoring` for semantic symbol renames.
+  - Use `reformat_file` for changed Kotlin/Compose files when available.
+- Build and run hooks:
+  - Run `build_project` after fixing a compile/build issue, and after any fix pass that changes build-critical files. This supplements the required Gradle reruns.
+  - Use `get_run_configurations` to discover project-defined test/app/preview run configs.
+  - Use `execute_run_configuration` only when a discovered run config directly matches the failed use case or requested validation.
+
+If MCP is unavailable, stale, or connected to the wrong IDE project, continue with command/log evidence and record the MCP gap in the report.
+
 ## External Command Strategy
 
 Run commands from `kmp_target_project_path`. Prefer the project Gradle wrapper (`./gradlew`) when present. Use user-provided commands first, then documented project/CI commands, then discovered Gradle tasks.
@@ -155,6 +177,7 @@ Write `fix_issue_kmp_report.md` with:
 - root cause analysis.
 - exact files changed.
 - commands run before and after the fix.
+- Android Studio MCP diagnostics, refactor/format/build hooks used or skipped.
 - remaining failures or blockers.
 - final status and rerun recommendations.
 

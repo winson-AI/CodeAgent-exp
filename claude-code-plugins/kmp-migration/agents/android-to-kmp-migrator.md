@@ -27,6 +27,31 @@ These contracts are inherited from the original monolithic migrator and remain b
 - **Minimal dependency-change contract**: target build configuration is read-only by default. Build changes require the dedicated dependency-resolution node and must be justified as strictly necessary.
 - **Single-project invariant**: migrated sub-modules are organizational areas inside the target KMP project. They must not receive their own root Gradle files, settings files, or wrappers.
 
+## Optional Android Studio MCP Assistance
+
+When the `jetbrains` MCP server is available from Android Studio or another JetBrains IDE, use it as optional migration assistance and as structured context for node outputs. MCP results can improve project understanding, code intelligence, diagnostics, run configuration discovery, and IDE-safe edits, but they do not replace the migration gates in this controller.
+
+Use these MCP hook points:
+
+- Legacy and target understanding:
+  - `get_project_modules`, `get_project_dependencies`, and `get_repositories` to enrich module topology, dependency snapshots, VCS roots, and output representations.
+  - `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info` to locate target conventions, reusable symbols, source-set boundaries, run entry points, and existing feature code.
+- Code generation diagnostics:
+  - After any node generates or edits Kotlin, Compose, Gradle, or resource-adjacent code, run `get_file_problems` for changed files when the MCP server is available. Record problems in node output and route errors to review/fix before downstream gates consume the slice.
+- IDE-safe edits:
+  - Prefer `rename_refactoring` for symbol renames and `reformat_file` for formatting changed Kotlin/Compose files when available.
+  - Do not use broad text replacement for semantic symbol renames when IDE refactoring can do it safely.
+- Build and run hooks:
+  - Use `get_run_configurations` to discover project-defined app/test/preview run configs and pass relevant findings to validation planning.
+  - Use `execute_run_configuration` only when a discovered run configuration directly matches the migration or bug-fix scope.
+  - Use `build_project` as an optional IDE build diagnostic after all target migration changes are complete, and after a build-fix pass, before or alongside the required Gradle/incremental build gates.
+
+Rules:
+
+- Always pass `projectPath: <kmp_target_project_path>` for target MCP calls and `projectPath: <legacy_android_project_path>` for legacy MCP calls when paths are known.
+- MCP diagnostics are advisory unless they expose a concrete compile/inspection error in changed files. Required Gradle build/check gates and `kmp-test-validator` remain authoritative.
+- If MCP is unavailable, stale, or connected to the wrong IDE project, continue with file-system and Gradle evidence and record the MCP gap in the relevant node output.
+
 ## Trigger Boundary
 
 Invoke this agent only when all of the following are true:
@@ -156,6 +181,12 @@ design_path: <path>
 plan_path: <path>
 verification_path: <path>
 user_constraints: <constraints from request>
+optional_mcp_context:
+  legacy_project_modules: <from jetbrains.get_project_modules when available>
+  target_project_modules: <from jetbrains.get_project_modules when available>
+  target_dependencies: <from jetbrains.get_project_dependencies when available>
+  run_configurations: <from jetbrains.get_run_configurations when available>
+  known_mcp_gaps: <unavailable/stale/wrong-project notes>
 ```
 
 The brief must not contain invented conclusions. It is routing context only.
@@ -205,6 +236,8 @@ Required return shape:
 ```
 
 If output files are missing, empty, or `status` is not `completed`, re-run the node with the same contract and include the failure reason.
+
+When Android Studio MCP is available, require this node to include MCP-assisted project structure and code-intelligence evidence in its target output representation. At minimum, pass through module/dependency/run-configuration evidence and any symbol/search evidence used to identify the relevant target module.
 
 ### Step 6: Migration Alignment
 
@@ -278,6 +311,8 @@ The node returns changed files and a UI coverage map. If it cannot implement a U
 
 After UI implementation, run the module/node review and fix loop for each changed UI/module slice before dispatching dataflow/logic implementation.
 
+When Android Studio MCP is available, run `get_file_problems` on changed UI files after the node returns. Route reported errors to `Module/node migration fix` before dataflow/logic implementation consumes the UI slice. Use `reformat_file` for changed UI files when target formatting conventions are available through the IDE.
+
 ### Step 11: Dataflow Logic Implementation
 
 Dispatch `Dataflow logic implementation` after UI implementation. It must implement state holders, data models, repository/use-case/API integration, navigation side effects, lifecycle behavior, and business logic using:
@@ -293,6 +328,8 @@ No TODO placeholders are valid migration output.
 
 After dataflow/logic implementation, run the module/node review and fix loop for each changed logic/data/API/module slice before dispatching guard/parity/render/build checks.
 
+When Android Studio MCP is available, run `get_file_problems` on changed dataflow, logic, API, DI, navigation, and model files after the node returns. Prefer `rename_refactoring` for semantic symbol rename fixes and `reformat_file` for touched source files. Route reported errors to the owning node or `Module/node migration fix`.
+
 ### Step 12: Guard, Parity, Render, and Incremental Build Checks
 
 Dispatch these verification nodes after implementation nodes and before PRD completion check:
@@ -305,6 +342,8 @@ Dispatch these verification nodes after implementation nodes and before PRD comp
 They must route failures to the responsible node. These checks do not replace `kmp-test-validator`.
 
 If any verification node returns `failed`, re-dispatch the responsible migration node with the failure report. If a node returns `blocked`, stop unless the user provides the missing input or narrows validation requirements.
+
+After all target migration changes are complete and before PRD completion check, run `build_project` through Android Studio MCP when available. Treat it as a fast IDE diagnostic hook whose problems are routed to responsible nodes; it supplements but does not replace `Incremental build check` or final validation.
 
 ### Step 13: PRD Completion Check
 
@@ -322,6 +361,8 @@ Dispatch `PRD completion check` after implementation and verification nodes. It 
 - changed files from all implementation nodes
 
 If gaps exist, the controller must re-dispatch the relevant node (`Migration alignment`, `Dependency resolution`, `Theme design-system mapping`, `Resource migration`, `Navigation migration`, `Platform API replacement`, `State model mapping`, `UI mockup implementation`, `Dataflow logic implementation`, `Module/node migration review`, `Module/node migration fix`, `Source set placement guard`, `API contract parity`, `UI render fidelity check`, or `Incremental build check`) with the gap report. Repeat until the completion check returns `ready_for_validation` or a genuine blocker remains.
+
+If completion gaps include IDE diagnostics from `get_file_problems` or `build_project`, attach the exact MCP problem list, file paths, and owning node mapping to the rerun request.
 
 ### Step 14: Migration Report
 

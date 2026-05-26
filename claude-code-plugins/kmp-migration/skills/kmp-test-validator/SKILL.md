@@ -52,6 +52,17 @@ Do not use it for generic KMP project testing, KMP-only feature development, non
 9. Refresh `Validation workspace state` after every node group and before final reporting.
 10. Run `Validation report`.
 
+## Optional Android Studio MCP Context
+
+When the `jetbrains` MCP server is available, the controller may pass indexed IDE context to validation nodes:
+
+- project modules, dependencies, VCS roots, and run configurations from `get_project_modules`, `get_project_dependencies`, `get_repositories`, and `get_run_configurations`.
+- file and symbol ownership from `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info`.
+- diagnostics from `get_file_problems` for changed or failing files.
+- IDE build diagnostics from `build_project` after remediation or before rerunning build gates.
+
+This MCP context is advisory. Required build/preview/test commands and final validation reports remain the source of truth.
+
 ## Shared Return Contract
 
 Every node must return a compact JSON-compatible payload with:

@@ -53,6 +53,19 @@ Unless the user or controller provides an explicit `output_dir`, write migration
 12. Run `Migration report` when completion check returns `ready_for_validation`.
 13. The controller invokes `kmp-test-validator` only after migration report returns `ready_for_validation`.
 
+## Optional Android Studio MCP Context
+
+When the `jetbrains` MCP server is available, the controller may pass indexed IDE context to migration nodes:
+
+- project structure and dependency context from `get_project_modules`, `get_project_dependencies`, and `get_repositories`.
+- code intelligence from `find_files_by_glob`, `search_in_files_by_regex`, and `get_symbol_info`.
+- diagnostics from `get_file_problems` after code-generating nodes change files.
+- IDE build diagnostics from `build_project` after all target migration changes are complete or after build-fix passes.
+- run configuration context from `get_run_configurations` and scoped execution through `execute_run_configuration` when a run config directly matches the migration or validation scope.
+- IDE-safe edits through `rename_refactoring` and `reformat_file` during generation and bug-fix nodes.
+
+MCP context is optional and advisory. It should improve output representation and fix routing, but Gradle build/check gates, module review, completion check, and KMP validation remain required.
+
 ## Subagent Contracts
 
 The controller must pass each node a complete contract. Each node must return the declared artifacts, or the controller re-runs that node with the missing-output reason.
