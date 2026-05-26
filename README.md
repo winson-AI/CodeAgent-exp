@@ -6,7 +6,7 @@ A cross-CLI plugin repository for AI-powered development workflows. The current 
 
 | Toolkit | Description | Claude Code | Codex | Gemini CLI |
 |--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP migration workflow covering source analysis, runnable KMP generation, fidelity validation, and agent memory/skill maintenance for Claude Code. | 0.1.8 | 0.1.2 | 0.1.2 |
+| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.15 | 0.1.2 | 0.1.2 |
 
 ## Current Agent and Skill Content
 
@@ -32,7 +32,16 @@ The Codex and Gemini distributions currently ship 3 KMP-focused skills:
 | `android-to-kmp-migrator` | `codex-plugins/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` | `gemini-extensions/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` |
 | `kmp-test-validator` | `codex-plugins/kmp-migration/skills/kmp-test-validator/SKILL.md` | `gemini-extensions/kmp-migration/skills/kmp-test-validator/SKILL.md` |
 
-Claude Code also contains controller node skill specs under `claude-code-plugins/kmp-migration/skills/android-project-analyst/`, `claude-code-plugins/kmp-migration/skills/android-to-kmp-migrator/`, and `claude-code-plugins/kmp-migration/skills/kmp-test-validator/`, plus placeholder directories for future `commands/`, `hooks/`, and `templates/` content.
+Claude Code also contains controller node skill specs under `claude-code-plugins/kmp-migration/skills/android-project-analyst/`, `claude-code-plugins/kmp-migration/skills/android-to-kmp-migrator/`, and `claude-code-plugins/kmp-migration/skills/kmp-test-validator/`.
+
+### Claude Code Commands and Hooks
+
+The Claude Code plugin includes two slash commands:
+
+- `/legacy-android-understand`: invokes `android-project-analyst` in exploration mode for whole-project, module, feature, question, or target-code understanding.
+- `/fix-issue-kmp`: fixes known KMP compile issues or migrated use-case failures with focused edits and rerun evidence.
+
+It also includes a `PreToolUse` hook that blocks write/edit tool calls targeting `.env` files. The hook configuration lives in `claude-code-plugins/kmp-migration/hooks/hooks.json`, and its command script lives in `claude-code-plugins/kmp-migration/scripts/pre-edit-protect.sh`.
 
 ## Install Guidance
 
@@ -101,7 +110,7 @@ When changing plugin behavior, keep these versions aligned:
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
 
-Current Claude Code release: `0.1.8`. Codex and Gemini remain at `0.1.2`.
+Current Claude Code release: `0.1.15`. Codex and Gemini remain at `0.1.2`.
 
 ## Project Structure
 

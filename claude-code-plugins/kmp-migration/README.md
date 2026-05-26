@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.12`
+Version: `0.1.15`
 
 ## Agents
 
@@ -74,6 +74,27 @@ Analyze this Android project with android-project-analyst in exploration mode:
 Focus on the checkout feature and write SPEC docs under ~/.d2c_agents/understand/checkout/SPEC.
 ```
 
+### Legacy Android Understand Command
+
+Use `/legacy-android-understand` as a slash-command entry point for `android-project-analyst` exploration mode. It accepts a whole project, module/feature/screen scope, a question to answer after analysis, or target code paths to trace.
+
+```text
+/legacy-android-understand
+
+source_project_path: <absolute path to Legacy Android project>
+analysis_scope: <whole project | module | feature | screen | target code>
+question: <optional question to answer after analysis>
+module: <optional Gradle module, package, or module name>
+feature: <optional feature or user flow>
+screen: <optional Activity, Fragment, or Compose screen>
+target_code:
+- <optional file/class/package path to analyze>
+output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+language: English
+```
+
+The command forces `mode: exploration`, dispatches `android-project-analyst`, writes `prd.md`, `design.md`, and `verification.md` under `<output_dir>/SPEC`, then returns the answer or scoped code understanding backed by generated evidence.
+
 ### Migration Mode Prompt Template
 
 Use `android-to-kmp-migrator` when you want to migrate Android behavior into a KMP or Compose Multiplatform target. If Legacy Android SPEC artifacts are missing or incomplete, the migrator will invoke `android-project-analyst` in migration mode first.
@@ -140,6 +161,44 @@ validation_requirements: <build targets, use cases, preview expectations, accept
 language: English
 ```
 
+### Fix Issue Command
+
+Use `/fix-issue-kmp` when a KMP/CMP target has a known compile failure or a migrated use-case failure that needs a focused fix plus rerun evidence.
+
+```text
+/fix-issue-kmp
+
+kmp_target_project_path: <absolute path to KMP target project>
+issue_type: <compile | use_case>
+issue_summary: <known compiler, build, test, preview, or use-case failure>
+failing_command: <optional exact command that currently fails>
+failure_log_path: <optional path to full failure log>
+legacy_android_project_path: <optional path when use-case behavior needs Android evidence>
+spec_dir: <optional path to SPEC directory>
+migration_report_path: <optional path to migration report>
+allowed_files:
+- <optional file path this fix may edit>
+user_provided_commands:
+  build: <optional build command>
+  test: <optional use-case or regression command>
+  renderability: <optional Compose preview/renderability command>
+output_dir: optional artifact root; default ~/.d2c_agents/fix-issue-kmp/TIMESTAMP/
+language: English
+```
+
+The command writes `fix_issue_kmp_report.md` and `fix_issue_kmp_report.json`, captures command logs, classifies failures, applies only targeted target-code fixes, and reruns the smallest failing command before broader build/check or use-case gates.
+
+## Hooks and Guardrails
+
+### `.env` Edit Protection
+
+The plugin ships a `PreToolUse` command hook that blocks write/edit tools from modifying `.env` and `.env.*` files.
+
+- Hook config: `hooks/hooks.json`
+- Hook script: `scripts/pre-edit-protect.sh`
+- Matched tools: `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`
+- Behavior: returns exit code `2` when the target path is a protected `.env` file.
+
 ## Skills
 
 ### `skills/android-project-analyst`
@@ -193,7 +252,12 @@ Node skill specs used by the `kmp-test-validator` controller:
 ## Structure
 
 - `agents/`: Subagent definitions.
-- `commands/`: Reserved for future custom slash commands.
+- `commands/`: Slash commands, including `/legacy-android-understand` for Android exploration and `/fix-issue-kmp` for targeted KMP compile or migrated use-case fixes.
 - `skills/`: Claude Code skills and controller node skill specs.
-- `hooks/`: Reserved for future tool-layer enforcement.
+- `hooks/`: Tool-layer enforcement, including a `PreToolUse` guard that blocks edits to `.env` files.
+- `scripts/`: Hook and utility scripts, including `pre-edit-protect.sh`.
+- `monitors/`: Plugin monitor configuration.
 - `templates/`: Reserved for future migration templates.
+- `.mcp.json`: Plugin MCP configuration.
+- `.lsp.json`: Plugin LSP configuration.
+- `settings.json`: Plugin settings.
