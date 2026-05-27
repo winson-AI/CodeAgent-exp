@@ -1,0 +1,17 @@
+{
+  "description": "Protect .env files from plugin-enabled write/edit tool calls.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-edit-protect.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

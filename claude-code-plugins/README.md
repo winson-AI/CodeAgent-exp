@@ -1,6 +1,6 @@
 # KMP Migration Toolkit for Claude Code
 
-A collection of specialized agents for knowledge workers migrating Android projects to Kotlin Multiplatform (KMP). Part of the `cli-plugins` ecosystem.
+A collection of specialized agents, commands, and guardrails for knowledge workers migrating Android projects to Kotlin Multiplatform (KMP). Part of the `cli-plugins` ecosystem.
 
 ## Install
 
@@ -22,7 +22,7 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, and skill maintenance. | 0.1.2 |
+| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, Android Studio MCP-assisted project/code intelligence, and `.env` edit protection. | 0.1.17 |
 | [flow_d2c](flow_d2c/) | Figma → React → optimized mobile React → Android/KMP/CMP Compose design-to-code workflow. Bundles the orchestrator skill, the React refactor and Compose translation skills, a Compose-library adapter generator, a UI reconstruction scoring skill, and the `anchor-d2c-mcp` MCP server for Figma-to-code conversion. | 0.1.0 |
 
 ### kmp-migration
@@ -34,7 +34,14 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
   - `kmp-test-validator`: High-fidelity validation against Android behavior and provided test cases.
   - `memory-curator`: Agent memory audit, cleanup recommendations, and recovery state records.
   - `skill-maintenance-advisor`: Periodic advice for creating or updating reusable skills from conversation context.
-- Standard placeholder structure for commands, skills, hooks, and templates.
+- 2 slash commands:
+  - `/legacy-android-understand`: Invoke `android-project-analyst` in exploration mode for project, module, feature, question, or target-code understanding.
+  - `/fix-issue-kmp`: Fix known KMP compile issues or migrated use-case failures with targeted edits, command logs, and rerun evidence.
+- 1 hook:
+  - `PreToolUse` `.env` protection: blocks write/edit tool calls targeting `.env` files.
+- 1 MCP config:
+  - `jetbrains`: connects to Android Studio or another JetBrains IDE through the IDE MCP server on `http://localhost:64342/sse`; agents use it optionally for project structure, code intelligence, diagnostics, build hooks, run configs, and IDE-safe edits.
+- Supporting scripts and configuration for plugin hooks, MCP/LSP integration, monitors, and settings.
 
 Full docs: [kmp-migration/README.md](kmp-migration/README.md)
 
@@ -73,6 +80,11 @@ claude-code-plugins/
 │   ├── commands/                 # Slash commands
 │   ├── agents/                   # Specialized subagents
 │   ├── hooks/                    # Tool-layer enforcement
+│   ├── scripts/                  # Hook and utility scripts
+│   ├── monitors/                 # Monitor configuration
+│   ├── .mcp.json                 # Plugin MCP configuration
+│   ├── .lsp.json                 # Plugin LSP configuration
+│   ├── settings.json             # Plugin settings
 │   ├── templates/                # Migration templates
 │   └── README.md                 # Plugin-specific docs
 ├── flow_d2c/                     # Plugin: Figma → React → Compose D2C workflow

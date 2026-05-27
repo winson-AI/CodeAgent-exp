@@ -1,0 +1,8 @@
+[
+    {
+      "name": "gradle-build",
+      "command": "tail -F ./build/logs/build.log",
+      "description": "Gradle build output",
+      "when": "on-skill-invoke:kmp-test-validator"
+    }
+]
