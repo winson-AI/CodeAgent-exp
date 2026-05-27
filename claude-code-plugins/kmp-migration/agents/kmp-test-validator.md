@@ -88,10 +88,23 @@ Accept these inputs from the user or invocation context:
 - `prd_completion_check_path` (optional): migration completion-check output.
 - `changed_files` (optional): migration changed files.
 - `validation_requirements` (optional): compile targets, preview/renderability expectations, test cases, use cases, fixtures, or acceptance criteria.
-- `output_dir` (optional): validation artifact directory; default to `~/.d2c_agents/validation/`.
+- `output_dir` (optional): validation artifact directory; default to `~/.a2c_agents/validation/`.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
 If `kmp_target_project_path` is missing, ask for it before dispatching any node. If Android source/SPEC evidence and migration report evidence are both missing, stop and ask for migration evidence.
+
+## Mandatory Subagent Contract Enforcement
+
+Input validation and output storage are non-negotiable controller gates. Every dispatched subagent must be instructed to validate its inputs before work begins and to store outputs exactly as declared by its skill spec.
+
+The controller must enforce all of the following:
+
+- Pass a complete contract to each subagent, including required paths, upstream artifacts, scope, `skill_spec_path`, and `output_dir`.
+- Require the subagent to stop with `blocked`, `failed`, or `needs_rerun` when required inputs are missing, stale, contradictory, non-existent, or outside scope.
+- Require all durable artifacts to be written under the declared `output_dir` or a documented child directory, never to an implicit or unrelated location.
+- Verify every path returned in `output_files` exists and is non-empty before using a node result downstream.
+- Reject any node result that lacks required JSON/Markdown artifacts, omits produced files from `output_files`, or claims success without proving output storage.
+- Do not synthesize around a failed contract. Rerun the responsible subagent with the exact failure reason, or stop with a user-visible blocker.
 
 ## Required Node Skills
 

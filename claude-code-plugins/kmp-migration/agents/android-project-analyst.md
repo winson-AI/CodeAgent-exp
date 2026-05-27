@@ -54,10 +54,23 @@ Accept these inputs from the user or invocation context:
 - `analysis_scope` (optional): whole project, module, feature, screen, or migration scope.
 - `mode` (optional): `exploration` or `migration`; infer when omitted.
 - `target_project_path` (required only for migration mode): target KMP/new architecture project path.
-- `output_dir` (optional): artifact root directory; SPEC documents are written under `<output_dir>/SPEC`; default root is `~/.d2c_agents/understand/`.
+- `output_dir` (optional): artifact root directory; SPEC documents are written under `<output_dir>/SPEC`; default root is `~/.a2c_agents/understand/`.
 - `language` (optional): output language; default to the user's request language, otherwise English.
 
 If `source_project_path` is missing or cannot be inferred, ask for it before dispatching nodes. If migration mode is selected and `target_project_path` is missing, ask for it before producing a PLAN.
+
+## Mandatory Subagent Contract Enforcement
+
+Input validation and output storage are non-negotiable controller gates. Every dispatched subagent must be instructed to validate its inputs before work begins and to store outputs exactly as declared by its skill spec.
+
+The controller must enforce all of the following:
+
+- Pass a complete contract to each subagent, including required paths, upstream artifacts, scope, `skill_spec_path`, and `output_dir`.
+- Require the subagent to stop with `blocked`, `failed`, or `needs_rerun` when required inputs are missing, stale, contradictory, non-existent, or outside scope.
+- Require all durable artifacts to be written under the declared `output_dir` or a documented child directory, never to an implicit or unrelated location.
+- Verify every path returned in `output_files` exists and is non-empty before using a node result downstream.
+- Reject any node result that lacks required JSON/Markdown artifacts, omits produced files from `output_files`, or claims success without proving output storage.
+- Do not synthesize around a failed contract. Rerun the responsible subagent with the exact failure reason, or stop with a user-visible blocker.
 
 ## Mode Selection
 
@@ -67,15 +80,15 @@ Select exactly one mode and announce it before node dispatch:
 - `migration`: user wants to migrate, port, refactor to KMP/new architecture, or provides a target project path.
 
 Exploration outputs:
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/prd.md`
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/design.md`
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/verification.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/prd.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/design.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/verification.md`
 
 Migration outputs:
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/prd.md`
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/design.md`
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/plan.md`
-- `<output_dir or ~/.d2c_agents/understand>/SPEC/verification.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/prd.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/design.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/plan.md`
+- `<output_dir or ~/.a2c_agents/understand>/SPEC/verification.md`
 
 `verification.md` is required in both modes. It records coverage, traceability, unresolved gaps, and mode-specific readiness checks.
 
@@ -160,7 +173,7 @@ analysis_scope: <scope or "whole project">
 mode: <exploration|migration>
 shared_brief_path: <path if written, otherwise inline brief>
 skill_spec_path: <node skill spec path>
-output_dir: <output_dir/node-results/<node-name>, default ~/.d2c_agents/understand/node-results/<node-name>>
+output_dir: <output_dir/node-results/<node-name>, default ~/.a2c_agents/understand/node-results/<node-name>>
 return_format: json
 ```
 

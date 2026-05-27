@@ -10,7 +10,20 @@ This directory stores node skill specs used by the `android-to-kmp-migrator` con
 
 ## Default Output Directory
 
-Unless the user or controller provides an explicit `output_dir`, write migration and node artifacts under `~/.d2c_agents/migration/`.
+Unless the user or controller provides an explicit `output_dir`, write migration and node artifacts under `~/.a2c_agents/migration/`.
+
+## Mandatory Node Contract Enforcement
+
+Every node subagent must treat input validation and output storage as hard gates, not guidance. The controller must reject, rerun, or block on any node result that does not prove strict adherence.
+
+Required enforcement for every node:
+
+- The node must read its own skill spec and controller contract before doing task-specific work.
+- The node must validate required inputs, path existence, upstream artifact freshness, scope boundaries, and output directory readiness before analysis, implementation, command execution, or reporting.
+- Missing, stale, contradictory, or out-of-scope inputs must become `blocking_gaps` or `rerun_requests`; the node must not guess or continue silently.
+- All durable artifacts must be written under the provided `output_dir` or a documented child directory. Required JSON/Markdown files must use the exact filenames declared by the skill spec.
+- The returned `output_files` list must contain every required artifact and the controller must verify those files exist and are non-empty before consuming them.
+- A node may not return `completed`, `passed`, `ready_for_implementation`, or `ready_for_validation` unless its input validation passed and its required outputs were written successfully.
 
 ## Node Skills
 
@@ -70,7 +83,7 @@ MCP context is optional and advisory. It should improve output representation an
 
 The controller must pass each node a complete contract. Each node must return the declared artifacts, or the controller re-runs that node with the missing-output reason.
 
-All `output_dir` fields in the node contracts below inherit the migration stage default `~/.d2c_agents/migration/` unless the user or controller provides a node-specific directory.
+All `output_dir` fields in the node contracts below inherit the migration stage default `~/.a2c_agents/migration/` unless the user or controller provides a node-specific directory.
 
 ### `Migration workspace state`
 

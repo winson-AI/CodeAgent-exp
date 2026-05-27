@@ -21,15 +21,29 @@ Audits and optimizes agent memory stores. Recommends which memories to retain, a
 ### `skill-maintenance-advisor`
 Reviews conversation context at regular turn intervals and recommends creating or updating reusable skills when useful patterns appear.
 
+## Skill Map Architecture
+
+The diagram below organizes the skills in this plugin by invocation path, required inputs, controller/node skill flow, and output artifacts.
+
+![KMP migration skill map architecture](assets/kmp-skill-map-architecture.svg)
+
+- `android-project-analyst`: invoked directly or through `/legacy-android-understand`; requires a legacy Android project path and analysis scope; produces SPEC artifacts and node evidence.
+- `android-to-kmp-migrator`: invoked for Android-to-KMP migration; requires Android source, KMP target, migration scope, optional SPEC, and validation requirements; produces changed KMP files and a migration report.
+- `kmp-test-validator`: invoked after a migration report is ready or by an explicit migrated-behavior validation request; requires Android/SPEC evidence, KMP target, migration report, changed files, commands, and test cases; produces validation reports, fix evidence, and final status.
+
+## Strict Sub-Agent Contracts
+
+Every controller and node skill in this plugin treats input validation and output storage as mandatory gates. Sub-agents must read their skill spec, validate required inputs and upstream artifacts, resolve `output_dir`, write the exact required JSON/Markdown outputs under that directory, and return verified artifact paths in `output_files`. Missing, stale, contradictory, or out-of-scope inputs must stop the node with blockers or rerun requests; sub-agents must not guess, silently continue, or claim readiness without stored artifacts.
+
 ## Usage
 
 After installation, the agents are available in your Claude Code environment. You can trigger them by name or by describing the task.
 
 Default artifact roots:
 
-- Understand/explore artifacts: `~/.d2c_agents/understand/`
-- Migration artifacts: `~/.d2c_agents/migration/`
-- Validation artifacts: `~/.d2c_agents/validation/`
+- Understand/explore artifacts: `~/.a2c_agents/understand/`
+- Migration artifacts: `~/.a2c_agents/migration/`
+- Validation artifacts: `~/.a2c_agents/validation/`
 
 SPEC documents are written under `<output_dir>/SPEC`.
 
@@ -43,7 +57,7 @@ Use the android-project-analyst agent in exploration mode.
 source_project_path: <absolute path to Android project>
 analysis_scope: <whole project | module | feature | screen>
 mode: exploration
-output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+output_dir: <optional artifact root; default ~/.a2c_agents/understand/>
 language: English
 
 Goal:
@@ -59,7 +73,7 @@ Use android-project-analyst in exploration mode.
 source_project_path: /Users/me/projects/legacy-android
 analysis_scope: checkout feature
 mode: exploration
-output_dir: ~/.d2c_agents/understand/checkout
+output_dir: ~/.a2c_agents/understand/checkout
 language: English
 
 Please analyze the checkout feature and produce evidence-backed SPEC docs.
@@ -71,7 +85,7 @@ Natural-language example:
 Analyze this Android project with android-project-analyst in exploration mode:
 /Users/me/projects/legacy-android
 
-Focus on the checkout feature and write SPEC docs under ~/.d2c_agents/understand/checkout/SPEC.
+Focus on the checkout feature and write SPEC docs under ~/.a2c_agents/understand/checkout/SPEC.
 ```
 
 ### Legacy Android Understand Command
@@ -89,7 +103,7 @@ feature: <optional feature or user flow>
 screen: <optional Activity, Fragment, or Compose screen>
 target_code:
 - <optional file/class/package path to analyze>
-output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+output_dir: <optional artifact root; default ~/.a2c_agents/understand/>
 language: English
 ```
 
@@ -106,7 +120,7 @@ legacy_android_project_path: <absolute path to Android project>
 kmp_target_project_path: <absolute path to KMP target project>
 migration_scope: <whole project | module | feature | screen | task>
 spec_dir: <optional path to existing SPEC directory>
-output_dir: <optional artifact root; default ~/.d2c_agents/migration/>
+output_dir: <optional artifact root; default ~/.a2c_agents/migration/>
 validation_requirements: <optional build targets, use cases, preview expectations, acceptance criteria>
 language: English
 
@@ -124,8 +138,8 @@ Use android-to-kmp-migrator.
 legacy_android_project_path: /Users/me/projects/legacy-android
 kmp_target_project_path: /Users/me/projects/app-kmp
 migration_scope: checkout feature
-spec_dir: ~/.d2c_agents/understand/checkout/SPEC
-output_dir: ~/.d2c_agents/migration/checkout
+spec_dir: ~/.a2c_agents/understand/checkout/SPEC
+output_dir: ~/.a2c_agents/migration/checkout
 validation_requirements:
 - Run the smallest available KMP build/check task.
 - Verify checkout happy path, empty cart, payment error, and retry behavior.
@@ -139,8 +153,8 @@ Natural-language example:
 Migrate the checkout feature from /Users/me/projects/legacy-android into
 /Users/me/projects/app-kmp using android-to-kmp-migrator.
 
-Use existing SPEC from ~/.d2c_agents/understand/checkout/SPEC, write migration
-artifacts to ~/.d2c_agents/migration/checkout, and validate build,
+Use existing SPEC from ~/.a2c_agents/understand/checkout/SPEC, write migration
+artifacts to ~/.a2c_agents/migration/checkout, and validate build,
 renderability, and checkout use cases after migration.
 ```
 
@@ -156,7 +170,7 @@ legacy_android_project_path: <absolute path to Android project>
 migration_scope: <whole project | module | feature | screen | task>
 spec_dir: <path to SPEC directory>
 migration_report_path: <path to migration_report.md or migration_report.json>
-output_dir: <optional artifact root; default ~/.d2c_agents/validation/>
+output_dir: <optional artifact root; default ~/.a2c_agents/validation/>
 validation_requirements: <build targets, use cases, preview expectations, acceptance criteria>
 language: English
 ```
@@ -182,7 +196,7 @@ user_provided_commands:
   build: <optional build command>
   test: <optional use-case or regression command>
   renderability: <optional Compose preview/renderability command>
-output_dir: optional artifact root; default ~/.d2c_agents/fix-issue-kmp/TIMESTAMP/
+output_dir: optional artifact root; default ~/.a2c_agents/fix-issue-kmp/TIMESTAMP/
 language: English
 ```
 

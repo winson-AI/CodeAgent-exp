@@ -37,7 +37,20 @@ You are a migration completion-check subagent. Verify that the target implementa
 - `ui_render_fidelity_check_path`: output from `UI render fidelity check`.
 - `incremental_build_check_path`: output from `Incremental build check`.
 - `changed_files`: changed files from implementation nodes.
-- `output_dir`: directory where this node must write outputs; default to `~/.d2c_agents/migration/`.
+- `output_dir`: directory where this node must write outputs; default to `~/.a2c_agents/migration/`.
+
+## Mandatory Input Validation And Output Storage
+
+Before performing any node-specific work, this sub-agent must strictly validate its contract. These rules are mandatory and override any temptation to continue with partial context.
+
+1. Read this skill spec and the controller-provided contract completely before acting.
+2. Verify every required input is present, correctly typed, and scoped to this node's responsibility.
+3. Resolve path inputs to absolute paths when possible; verify required source, target, SPEC, upstream artifact, changed-file, and command/log paths exist when the contract says they must exist.
+4. Treat missing, empty, stale, contradictory, or out-of-scope inputs as blockers or rerun requests. Do not guess, fabricate, silently broaden scope, or proceed on unsupported assumptions.
+5. Resolve `output_dir` before writing. Create it if needed, and write all node artifacts, logs, downloaded resources, and temporary evidence that must be preserved under that directory or a documented child directory.
+6. Write exactly the required output files named in this spec. Required JSON and Markdown reports must be non-empty, internally consistent, and must list every produced artifact in `output_files`.
+7. Do not store required artifacts outside `output_dir`, do not omit mandatory files, and do not report `completed`, `passed`, or `ready_*` until output files exist and have been verified.
+8. If any validation or storage rule cannot be satisfied, stop and return `blocked`, `failed`, or `needs_rerun` with precise `blocking_gaps` or `rerun_requests`.
 
 ## Specific Task
 
