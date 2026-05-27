@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.17`
+Version: `0.1.19`
 
 ## Agents
 
@@ -213,6 +213,16 @@ The plugin ships a `PreToolUse` command hook that blocks write/edit tools from m
 - Matched tools: `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`
 - Behavior: returns exit code `2` when the target path is a protected `.env` file.
 
+## Rule Contracts
+
+The plugin includes agent-facing rules under `rules/`. These rules are contracts for controllers, stages, node skills, commands, fixes, and validation workflows:
+
+- `stage-node-io-contract.md`: input checker first, durable output save before success, and exact handoff fields.
+- `workflow-stage-contracts.md`: required gates for analyst, migrator, validator, and fix workflows.
+- `agent-only-output-contract.md`: structured downstream-agent artifacts instead of human-oriented prose.
+
+Controllers reference these rules before dispatching or validating stage/node work.
+
 ## MCP Configuration
 
 The plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android Studio and other JetBrains IDEs:
@@ -295,6 +305,7 @@ Node skill specs used by the `kmp-test-validator` controller:
 - `agents/`: Subagent definitions.
 - `commands/`: Slash commands, including `/legacy-android-understand` for Android exploration and `/fix-issue-kmp` for targeted KMP compile or migrated use-case fixes.
 - `skills/`: Claude Code skills and controller node skill specs.
+- `rules/`: Agent-facing stage/node contracts for input validation, output saving, workflow gates, and agent-only artifacts.
 - `hooks/`: Tool-layer enforcement, including a `PreToolUse` guard that blocks edits to `.env` files.
 - `scripts/`: Hook and utility scripts, including `pre-edit-protect.sh`.
 - `monitors/`: Plugin monitor configuration.

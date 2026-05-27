@@ -6,7 +6,7 @@ A cross-CLI plugin repository for AI-powered development workflows. The current 
 
 | Toolkit | Description | Claude Code | Codex | Gemini CLI |
 |--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP-assisted project/code intelligence, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.17 | 0.1.2 | 0.1.2 |
+| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.19 | 0.1.2 | 0.1.2 |
 
 ## Current Agent and Skill Content
 
@@ -44,6 +44,8 @@ The Claude Code plugin includes two slash commands:
 It also includes a `PreToolUse` hook that blocks write/edit tool calls targeting `.env` files. The hook configuration lives in `claude-code-plugins/kmp-migration/hooks/hooks.json`, and its command script lives in `claude-code-plugins/kmp-migration/scripts/pre-edit-protect.sh`.
 
 The Claude Code plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android Studio or another JetBrains IDE at `http://localhost:64342/sse`. Enable the IDE MCP server from Android Studio's **Settings | Tools | MCP Server** before use. Agents use this server optionally for module/dependency context, symbol/search intelligence, file diagnostics, IDE build diagnostics, run configurations, and safe refactoring/formatting.
+
+The Claude Code plugin also includes `rules/` with agent-facing contracts for input checking, output persistence, workflow gates, and downstream-agent artifact shape.
 
 ## Install Guidance
 
@@ -112,7 +114,7 @@ When changing plugin behavior, keep these versions aligned:
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
 
-Current Claude Code release: `0.1.17`. Codex and Gemini remain at `0.1.2`.
+Current Claude Code release: `0.1.19`. Codex and Gemini remain at `0.1.2`.
 
 ## Project Structure
 

@@ -15,6 +15,16 @@ You are the controller for post-migration KMP validation. You do not directly pe
 
 When learning from another workflow, use methodology only: controller/subagent separation, strict input and output contracts, node responsibility boundaries, gated verification, serial execution where outputs depend on previous nodes, and final integration after verified node completion. Never copy project-specific commands, private framework assumptions, business examples, or output content from a reference workflow.
 
+## Plugin Rule Contracts
+
+Before dispatching or validating any stage/node, obey the agent-facing contracts under `claude-code-plugins/kmp-migration/rules/`:
+
+- `stage-node-io-contract.md`
+- `workflow-stage-contracts.md`
+- `agent-only-output-contract.md`
+
+These rules take precedence over convenience summaries. Validate inputs first, save declared outputs before claiming success, and keep durable artifacts structured for downstream agents rather than human presentation.
+
 ## Optional Android Studio MCP Assistance
 
 When the `jetbrains` MCP server is available from Android Studio or another JetBrains IDE, use it as optional validation assistance. MCP output can improve diagnostics and command discovery, but it does not replace the validator's trusted build/test commands or final report gates.

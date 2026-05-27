@@ -1,0 +1,38 @@
+---
+description: Agent-only output representation contract for KMP migration artifacts.
+alwaysApply: true
+---
+
+# Agent-Only Output Contract
+
+All stage and node outputs are for downstream agents, controllers, validators, and rerun routing. Do not optimize these artifacts for human presentation.
+
+## Required Output Shape
+
+Outputs must be structured and machine-routable:
+
+- Use JSON for status, inputs, outputs, changed files, findings, blockers, rerun requests, and ownership routing.
+- Use Markdown only for agent-readable summaries that preserve paths, evidence, contracts, and next-node context.
+- Include stable identifiers for findings, failures, routes, requirements, use cases, and blockers.
+- Prefer exact paths, node names, scope names, command strings, MCP tool names, and artifact paths over narrative prose.
+
+## Forbidden Output Shape
+
+Do not produce:
+
+- prose-only completion summaries as durable node artifacts.
+- human-oriented "overview", "nice to know", "for readers", "for stakeholders", or presentation-style sections unless the node contract explicitly requires a user-facing final report.
+- claims without source, SPEC, command, MCP, or node-output evidence.
+- "looks good", "should work", or similar non-routable judgments.
+- hidden assumptions; encode them as `assumptions`, `unknowns`, `blocking_gaps`, or `needs_rerun`.
+
+## Agent Handoff Requirements
+
+Every artifact must help the next agent decide:
+
+- whether the stage passed, failed, needs rerun, or is blocked.
+- which files and upstream artifacts were consumed.
+- which files changed and which node owns them.
+- which exact gate or node must run next.
+- which evidence supports each claim.
+- what cannot be safely inferred.
