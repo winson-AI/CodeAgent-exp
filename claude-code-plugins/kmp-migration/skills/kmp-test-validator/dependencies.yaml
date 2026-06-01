@@ -1,0 +1,17 @@
+# dependencies.yaml — Swarm Skill startup dependency check
+#
+# Leader reads this file in SKILL.md Workflow Step 0 (pre-flight) and reports missing items.
+# Populated from Stage 2 auto-matching (local CLI scan): rg, git found locally; the target project's
+# own Gradle wrapper drives build/preview/test commands (kmp-validation-plan resolves them and returns
+# blocked rather than inventing one). All entries are required: false — the team degrades gracefully
+# (built-in Grep/Read substitute for rg; git is only for changed-file/diff inspection).
+
+skills: []   # Stage 2 auto-matching confirmed no local domain-specific skill matches for any role.
+
+tools:
+  - name: rg
+    required: false
+    purpose: Fast source search across the Android source and KMP target for fidelity audit, planning, decomposition, and report nodes; built-in Grep/Read substitute if unavailable.
+  - name: git
+    required: false
+    purpose: Inspect changed-file sets and diffs in the KMP target for workspace-state, fidelity, execution, remediation, and report nodes.

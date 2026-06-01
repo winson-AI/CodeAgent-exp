@@ -71,7 +71,7 @@ Allowed:
 
 - Verify migration-validation intent and required paths.
 - Prepare a shared validation brief.
-- Dispatch node skills under `claude-code-plugins/kmp-migration/skills/kmp-test-validator/`.
+- Dispatch the node role specs under `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/` (a Swarm Skill; see that skill's `SKILL.md`, `workflow.md`, and `bind.md` for the staged topology, gates, and constraints). Before dispatching each node, paste its `## Inline Persona for Teammate` section into the dispatch prompt.
 - Validate node return JSON and output files.
 - Re-dispatch nodes when outputs are missing, stale, incomplete, or contradicted by later checks.
 - Route fixable validation failures to the remediation node and require gate/test reruns.
@@ -122,15 +122,15 @@ Each node is a subagent task. The subagent must first read the referenced skill 
 
 | Control area | Control node | Skill spec | Purpose |
 |---|---|---|---|
-| State tracking | `Validation workspace state` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/validation-workspace-state.md` | Maintain validation status, output files, changed-file ownership, rerun history, blockers, and stale inputs. |
-| Input gate | `Validation input contract` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/validation-input-contract.md` | Verify this is a migration validation scenario and normalize paths, SPEC, reports, changed files, and validation inputs. |
-| Fidelity | `Android KMP fidelity audit` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/android-kmp-fidelity-audit.md` | Compare Android source/SPEC and migrated KMP across UI, logic, data flow, and control flow. |
-| Planning | `KMP validation plan` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/kmp-validation-plan.md` | Discover KMP structure, trusted build/test entry points, source sets, frameworks, and validation mapping. |
-| Gate | `Build preview gate` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/build-preview-gate.md` | Run compile/build and Compose preview or renderability gates before behavioral tests. |
-| Tests | `Test case decomposition` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/test-case-decomposition.md` | Turn user tests, SPEC acceptance criteria, and migration report inputs into atomic cases. |
-| Tests | `Test execution` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/test-execution.md` | Execute or create minimal project-convention tests and capture evidence. |
-| Fix | `Validation remediation` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/validation-remediation.md` | Apply focused target fixes for confirmed validation failures and request reruns. |
-| Reporting | `Validation report` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/validation-report.md` | Synthesize fidelity, build, preview, test, remediation, blockers, and final validation status. |
+| State tracking | `Validation workspace state` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/validation-workspace-state.md` | Maintain validation status, output files, changed-file ownership, rerun history, blockers, and stale inputs. |
+| Input gate | `Validation input contract` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/validation-input-contract.md` | Verify this is a migration validation scenario and normalize paths, SPEC, reports, changed files, and validation inputs. |
+| Fidelity | `Android KMP fidelity audit` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/android-kmp-fidelity-audit.md` | Compare Android source/SPEC and migrated KMP across UI, logic, data flow, and control flow. |
+| Planning | `KMP validation plan` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/kmp-validation-plan.md` | Discover KMP structure, trusted build/test entry points, source sets, frameworks, and validation mapping. |
+| Gate | `Build preview gate` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/build-preview-gate.md` | Run compile/build and Compose preview or renderability gates before behavioral tests. |
+| Tests | `Test case decomposition` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/test-case-decomposition.md` | Turn user tests, SPEC acceptance criteria, and migration report inputs into atomic cases. |
+| Tests | `Test execution` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/test-execution.md` | Execute or create minimal project-convention tests and capture evidence. |
+| Fix | `Validation remediation` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/validation-remediation.md` | Apply focused target fixes for confirmed validation failures and request reruns. |
+| Reporting | `Validation report` | `claude-code-plugins/kmp-migration/skills/kmp-test-validator/roles/validation-report.md` | Synthesize fidelity, build, preview, test, remediation, blockers, and final validation status. |
 
 ## Workflow
 

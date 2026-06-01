@@ -121,17 +121,17 @@ Every SPEC document must be evidence-backed. If a claim cannot be traced to a no
 
 ## Control Nodes
 
-Each node is a subagent task. The subagent must first read the referenced node skill spec and then execute only that skill's responsibilities.
+Each node is a subagent task and a declared role in the `android-project-analyst` Swarm Skill (`claude-code-plugins/kmp-migration/skills/android-project-analyst/SKILL.md`). The subagent must first read the referenced role spec, paste its `## Inline Persona for Teammate` into the dispatch prompt, and then execute only that role's bounded responsibilities. See `skills/android-project-analyst/workflow.md` for the staged dispatch topology and gates, and `bind.md` for resource/behavioral constraints.
 
-| Control node | Skill spec | Purpose |
+| Control node | Role spec | Purpose |
 |---|---|---|
-| `UI understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/ui-understand.md` | Map screens, UI technologies, layouts/composables, navigation, and UI module boundaries. |
-| `Architecture pattern` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/architecture-pattern.md` | Identify MVC/MVP/MVVM/MVI/Clean Architecture, legacy hybrids, module layering, and dependency boundaries. |
-| `Android ecosystem` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/android-ecosystem.md` | Catalog Gradle, SDK, Jetpack, DI, persistence, background work, resources, and third-party dependencies. |
-| `API list` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/api-list.md` | Catalog network APIs, service contracts, request/response models, data sources, and consumers. |
-| `Resource understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/resource-understand.md` | Map local and online image/icon/media resources to source paths, usages, screens, APIs, downloaded analysis copies, and migration implications. |
-| `Data flow` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/data-flow.md` | Trace data sources, repositories, reactive streams, transformations, cache/error paths, and UI state propagation. |
-| `Logic understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/logic-understand.md` | Trace business logic, control flow, state management, lifecycle behavior, and user action outcomes using upstream node outputs. |
+| `UI understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/ui-understand.md` | Map screens, UI technologies, layouts/composables, navigation, and UI module boundaries. |
+| `Architecture pattern` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/architecture-pattern.md` | Identify MVC/MVP/MVVM/MVI/Clean Architecture, legacy hybrids, module layering, and dependency boundaries. |
+| `Android ecosystem` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/android-ecosystem.md` | Catalog Gradle, SDK, Jetpack, DI, persistence, background work, resources, and third-party dependencies. |
+| `API list` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/api-list.md` | Catalog network APIs, service contracts, request/response models, data sources, and consumers. |
+| `Resource understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/resource-understand.md` | Map local and online image/icon/media resources to source paths, usages, screens, APIs, downloaded analysis copies, and migration implications. |
+| `Data flow` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/data-flow.md` | Trace data sources, repositories, reactive streams, transformations, cache/error paths, and UI state propagation. |
+| `Logic understand` | `claude-code-plugins/kmp-migration/skills/android-project-analyst/roles/logic-understand.md` | Trace business logic, control flow, state management, lifecycle behavior, and user action outcomes using upstream node outputs. |
 
 ## Workflow
 

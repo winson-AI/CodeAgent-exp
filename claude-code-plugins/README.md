@@ -22,7 +22,7 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, and `.env` edit protection. | 0.1.19 |
+| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, and `.env` edit protection. | 0.1.21 |
 | [flow_d2c](flow_d2c/) | Figma → React → optimized mobile React → Android/KMP/CMP Compose design-to-code workflow. Bundles the orchestrator skill, the React refactor and Compose translation skills, a Compose-library adapter generator, a UI reconstruction scoring skill, and the `anchor-d2c-mcp` MCP server for Figma-to-code conversion. | 0.1.0 |
 
 ### kmp-migration

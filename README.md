@@ -6,7 +6,7 @@ A cross-CLI plugin repository for AI-powered development workflows. The current 
 
 | Toolkit | Description | Claude Code | Codex | Gemini CLI |
 |--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.19 | 0.1.2 | 0.1.2 |
+| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.21 | 0.1.2 | 0.1.2 |
 
 ## Current Agent and Skill Content
 
@@ -114,7 +114,7 @@ When changing plugin behavior, keep these versions aligned:
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
 
-Current Claude Code release: `0.1.19`. Codex and Gemini remain at `0.1.2`.
+Current Claude Code release: `0.1.21`. Codex and Gemini remain at `0.1.2`.
 
 ## Project Structure
 
