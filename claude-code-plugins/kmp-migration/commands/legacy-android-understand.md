@@ -43,7 +43,7 @@ screen: CheckoutActivity | CartFragment | ProfileScreen
 target_code:
   - app/src/main/java/com/example/checkout/CheckoutViewModel.kt
   - feature/profile/src/main/java/com/example/profile/ProfileRepository.kt
-output_dir: ~/.d2c_agents/understand/<scope-name>
+output_dir: ~/.a2c_agents/understand/<scope-name>
 language: English
 ```
 
@@ -64,7 +64,7 @@ Use the android-project-analyst agent in exploration mode.
 source_project_path: <absolute path to Android project>
 analysis_scope: <whole project | module | feature | screen | target code description>
 mode: exploration
-output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+output_dir: <optional artifact root; default ~/.a2c_agents/understand/>
 language: <language or English>
 
 Focus:

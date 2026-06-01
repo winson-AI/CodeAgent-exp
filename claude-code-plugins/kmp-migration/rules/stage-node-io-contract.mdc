@@ -1,0 +1,42 @@
+---
+description: Agent-only input validation and output persistence contract for every KMP migration stage and node.
+alwaysApply: true
+---
+
+# Stage And Node I/O Contract
+
+This rule applies to every controller stage, node skill, command workflow, review, fix, validation, report, and rerun in the KMP migration plugin.
+
+## Non-Negotiable Order
+
+1. Run the input checker first.
+2. Stop before analysis when required inputs are missing, stale, contradictory, out of scope, unreadable, or scoped to the wrong project.
+3. Do the stage or node work only after inputs are valid.
+4. Save declared outputs to the required `output_dir`.
+5. Verify saved outputs exist and are non-empty.
+6. Return only after `output_files`, `changed_files`, `blocking_gaps`, `stale_upstream_inputs`, and `rerun_requests` are accurate.
+
+## Input Checker Requirements
+
+Each stage or node must validate:
+
+- required paths exist or are explicitly supplied as prior artifacts.
+- upstream artifacts are fresh enough for this stage.
+- `migration_scope` or `analysis_scope` matches the node responsibility.
+- required SPEC, report, review, or failure inputs are present before consuming them.
+- `allowed_files` is respected by any fix or remediation node.
+- optional MCP evidence is treated as auxiliary and never substitutes for required source/SPEC evidence.
+
+Invalid inputs must return `blocked`, `failed`, or `needs_rerun` with machine-routable reasons. Do not continue with best-effort guesses.
+
+## Output Save Requirements
+
+Success requires durable artifacts:
+
+- Write every required JSON/Markdown artifact under the declared `output_dir` or documented child directory.
+- List every artifact path in `output_files`.
+- List every modified target file in `changed_files`.
+- Include exact rerun requests when downstream stages must repeat.
+- Include blockers instead of hiding missing evidence.
+
+No stage or node may claim `completed`, `passed`, `fixed`, or `ready_for_validation` until its declared outputs are saved and verifiable.

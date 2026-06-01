@@ -1,0 +1,42 @@
+---
+description: Agent-only stage contracts for Android analysis, migration, validation, and fix workflows.
+alwaysApply: true
+---
+
+# Workflow Stage Contracts
+
+These contracts are for agents and subagents. They define stage gates, not user-facing documentation.
+
+## Android Project Analyst
+
+- Verify the Android trigger and source path before node dispatch.
+- Dispatch and verify all required analyst nodes: UI, architecture, ecosystem, API, resource, data flow, and logic.
+- Save migration-mode SPEC as `prd.md`, `design.md`, `plan.md`, and `verification.md`.
+- Save exploration-mode SPEC as `prd.md`, `design.md`, and `verification.md`.
+- `verification.md` must include node inventory, coverage, traceability, consistency checks, readiness, and blockers.
+
+## Android To KMP Migrator
+
+- Verify `android-project-analyst` completion before migration nodes start.
+- Do not replace missing analyst artifacts with direct controller analysis.
+- Run migration nodes in dependency order: workspace state, SPEC delta, target understanding, alignment, dependency resolution, theme/resource/navigation/platform/state, UI, logic, review/fix, guard/parity/render/build, completion, report.
+- Each node that changes files must be reviewed before downstream nodes consume its output.
+- Build and validation gates must run after implementation; optional MCP diagnostics supplement but never replace required gates.
+- Final migration output requires `migration_report.md` and `migration_report.json`.
+
+## KMP Test Validator
+
+- Verify validation input contract before fidelity, build, preview, tests, or remediation.
+- Run fidelity audit before trusting target test results.
+- Run build/preview gate before behavioral test execution.
+- Run remediation only for confirmed target KMP failures and only within allowed files.
+- Rerun required build/preview/test gates after remediation.
+- Final validation requires `validation_report.md` and `validation_report.json`.
+
+## Fix Issue Command
+
+- Baseline the failing command or failing use case first.
+- Fix only confirmed target issues.
+- Use IDE-safe refactor/format hooks when available and scoped.
+- Rerun the smallest failing gate, then the broader required gate.
+- Save `fix_issue_kmp_report.md` and `fix_issue_kmp_report.json`.

@@ -2,7 +2,7 @@
 
 Specialized agents for migrating Android projects to Kotlin Multiplatform (KMP).
 
-Version: `0.1.17`
+Version: `0.1.21`
 
 ## Agents
 
@@ -21,15 +21,31 @@ Audits and optimizes agent memory stores. Recommends which memories to retain, a
 ### `skill-maintenance-advisor`
 Reviews conversation context at regular turn intervals and recommends creating or updating reusable skills when useful patterns appear.
 
+## Skill Map Architecture
+
+The diagram below organizes the skills in this plugin by invocation path, required inputs, controller/node skill flow, and output artifacts.
+
+![KMP migration skill map architecture](assets/kmp-skill-map-architecture.svg)
+
+- `android-project-analyst`: invoked directly or through `/legacy-android-understand`; requires a legacy Android project path and analysis scope; produces SPEC artifacts and node evidence.
+- `android-to-kmp-migrator`: invoked for Android-to-KMP migration; requires Android source, KMP target, migration scope, optional SPEC, and validation requirements; produces changed KMP files and a migration report.
+- `kmp-test-validator`: invoked after a migration report is ready or by an explicit migrated-behavior validation request; requires Android/SPEC evidence, KMP target, migration report, changed files, commands, and test cases; produces validation reports, fix evidence, and final status.
+
+## Strict Sub-Agent Contracts
+
+Every controller and node skill in this plugin treats input validation and output storage as mandatory gates. Sub-agents must read their skill spec, validate required inputs and upstream artifacts, resolve `output_dir`, write the exact required JSON/Markdown outputs under that directory, and return verified artifact paths in `output_files`. Missing, stale, contradictory, or out-of-scope inputs must stop the node with blockers or rerun requests; sub-agents must not guess, silently continue, or claim readiness without stored artifacts.
+
+`android-project-analyst` uses a convert-mode skill contract: raw Legacy Android source plus optional Android Studio MCP context is converted into bounded node outputs, then into SPEC artifacts with traceable evidence for downstream migration, onboarding, and validation agents.
+
 ## Usage
 
 After installation, the agents are available in your Claude Code environment. You can trigger them by name or by describing the task.
 
 Default artifact roots:
 
-- Understand/explore artifacts: `~/.d2c_agents/understand/`
-- Migration artifacts: `~/.d2c_agents/migration/`
-- Validation artifacts: `~/.d2c_agents/validation/`
+- Understand/explore artifacts: `~/.a2c_agents/understand/`
+- Migration artifacts: `~/.a2c_agents/migration/`
+- Validation artifacts: `~/.a2c_agents/validation/`
 
 SPEC documents are written under `<output_dir>/SPEC`.
 
@@ -43,7 +59,7 @@ Use the android-project-analyst agent in exploration mode.
 source_project_path: <absolute path to Android project>
 analysis_scope: <whole project | module | feature | screen>
 mode: exploration
-output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+output_dir: <optional artifact root; default ~/.a2c_agents/understand/>
 language: English
 
 Goal:
@@ -59,7 +75,7 @@ Use android-project-analyst in exploration mode.
 source_project_path: /Users/me/projects/legacy-android
 analysis_scope: checkout feature
 mode: exploration
-output_dir: ~/.d2c_agents/understand/checkout
+output_dir: ~/.a2c_agents/understand/checkout
 language: English
 
 Please analyze the checkout feature and produce evidence-backed SPEC docs.
@@ -71,7 +87,7 @@ Natural-language example:
 Analyze this Android project with android-project-analyst in exploration mode:
 /Users/me/projects/legacy-android
 
-Focus on the checkout feature and write SPEC docs under ~/.d2c_agents/understand/checkout/SPEC.
+Focus on the checkout feature and write SPEC docs under ~/.a2c_agents/understand/checkout/SPEC.
 ```
 
 ### Legacy Android Understand Command
@@ -89,7 +105,7 @@ feature: <optional feature or user flow>
 screen: <optional Activity, Fragment, or Compose screen>
 target_code:
 - <optional file/class/package path to analyze>
-output_dir: <optional artifact root; default ~/.d2c_agents/understand/>
+output_dir: <optional artifact root; default ~/.a2c_agents/understand/>
 language: English
 ```
 
@@ -106,7 +122,7 @@ legacy_android_project_path: <absolute path to Android project>
 kmp_target_project_path: <absolute path to KMP target project>
 migration_scope: <whole project | module | feature | screen | task>
 spec_dir: <optional path to existing SPEC directory>
-output_dir: <optional artifact root; default ~/.d2c_agents/migration/>
+output_dir: <optional artifact root; default ~/.a2c_agents/migration/>
 validation_requirements: <optional build targets, use cases, preview expectations, acceptance criteria>
 language: English
 
@@ -124,8 +140,8 @@ Use android-to-kmp-migrator.
 legacy_android_project_path: /Users/me/projects/legacy-android
 kmp_target_project_path: /Users/me/projects/app-kmp
 migration_scope: checkout feature
-spec_dir: ~/.d2c_agents/understand/checkout/SPEC
-output_dir: ~/.d2c_agents/migration/checkout
+spec_dir: ~/.a2c_agents/understand/checkout/SPEC
+output_dir: ~/.a2c_agents/migration/checkout
 validation_requirements:
 - Run the smallest available KMP build/check task.
 - Verify checkout happy path, empty cart, payment error, and retry behavior.
@@ -139,8 +155,8 @@ Natural-language example:
 Migrate the checkout feature from /Users/me/projects/legacy-android into
 /Users/me/projects/app-kmp using android-to-kmp-migrator.
 
-Use existing SPEC from ~/.d2c_agents/understand/checkout/SPEC, write migration
-artifacts to ~/.d2c_agents/migration/checkout, and validate build,
+Use existing SPEC from ~/.a2c_agents/understand/checkout/SPEC, write migration
+artifacts to ~/.a2c_agents/migration/checkout, and validate build,
 renderability, and checkout use cases after migration.
 ```
 
@@ -156,7 +172,7 @@ legacy_android_project_path: <absolute path to Android project>
 migration_scope: <whole project | module | feature | screen | task>
 spec_dir: <path to SPEC directory>
 migration_report_path: <path to migration_report.md or migration_report.json>
-output_dir: <optional artifact root; default ~/.d2c_agents/validation/>
+output_dir: <optional artifact root; default ~/.a2c_agents/validation/>
 validation_requirements: <build targets, use cases, preview expectations, acceptance criteria>
 language: English
 ```
@@ -182,7 +198,7 @@ user_provided_commands:
   build: <optional build command>
   test: <optional use-case or regression command>
   renderability: <optional Compose preview/renderability command>
-output_dir: optional artifact root; default ~/.d2c_agents/fix-issue-kmp/TIMESTAMP/
+output_dir: optional artifact root; default ~/.a2c_agents/fix-issue-kmp/TIMESTAMP/
 language: English
 ```
 
@@ -198,6 +214,16 @@ The plugin ships a `PreToolUse` command hook that blocks write/edit tools from m
 - Hook script: `scripts/pre-edit-protect.sh`
 - Matched tools: `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`
 - Behavior: returns exit code `2` when the target path is a protected `.env` file.
+
+## Rule Contracts
+
+The plugin includes agent-facing rules under `rules/`. These rules are contracts for controllers, stages, node skills, commands, fixes, and validation workflows:
+
+- `stage-node-io-contract.md`: input checker first, durable output save before success, and exact handoff fields.
+- `workflow-stage-contracts.md`: required gates for analyst, migrator, validator, and fix workflows.
+- `agent-only-output-contract.md`: structured downstream-agent artifacts instead of human-oriented prose.
+
+Controllers reference these rules before dispatching or validating stage/node work.
 
 ## MCP Configuration
 
@@ -229,58 +255,59 @@ MCP diagnostics are advisory unless they identify concrete errors in changed fil
 ## Skills
 
 ### `skills/android-project-analyst`
-Node skill specs used by the `android-project-analyst` controller:
+A **Swarm Skill** (Mixed B+C pattern) used by the `android-project-analyst` controller. `SKILL.md` is the team registry; `workflow.md` holds the staged dispatch topology and gates; `bind.md` holds resource/behavioral constraints; `dependencies.yaml` lists startup tools. The seven node roles live under `roles/`:
 
-- `ui-understand.md`: screen inventory, UI technology mapping, navigation, and UI module boundaries.
-- `architecture-pattern.md`: MVC/MVP/MVVM/MVI/Clean Architecture detection, module layering, and legacy hybrid risks.
-- `android-ecosystem.md`: Gradle, SDK, Jetpack, DI, persistence, background work, resources, and dependency constraints.
-- `api-list.md`: network API and data-source catalog with consumers, models, and unknowns.
-- `resource-understand.md`: local and online image/icon/media resources, usage mapping, downloaded analysis copies, placeholders, and migration implications.
-- `data-flow.md`: data sources, repositories, reactive streams, transformations, caches, and UI state propagation.
-- `logic-understand.md`: business logic, control flow, state management, lifecycle behavior, user actions, and side effects.
+- `roles/ui-understand.md`: owns UI entry points, screen inventory, UI technology, hierarchy, navigation, shared UI components, and UI module boundaries.
+- `roles/architecture-pattern.md`: owns topology, architecture style, layer roles, dependency direction, boundary violations, and legacy hybrid risks.
+- `roles/android-ecosystem.md`: owns Gradle/SDK/build configuration, Jetpack and third-party dependencies, DI, persistence, background work, platform services, generated tooling, and Android-only constraints.
+- `roles/api-list.md`: owns network stack, API declarations, request/response models, consumers, local data sources, cache/error/pagination behavior, and unknown API gaps.
+- `roles/resource-understand.md`: owns local resources, online image/icon/media sources, safe downloaded analysis copies, usage mapping, placeholders, production classification, and migration implications.
+- `roles/data-flow.md`: owns data movement through repositories, data sources, mappers, reactive streams, caches, write-back paths, and UI state propagation.
+- `roles/logic-understand.md`: owns user-action flows, lifecycle flows, state-holder behavior, business rules, side effects, state machines, navigation effects, and cross-module control interactions.
 
 ### `skills/android-to-kmp-migrator`
-Node skill specs used by the `android-to-kmp-migrator` controller:
+A **Swarm Skill** (specialization pipeline C + parallel fan-outs B + review→fix loops) used by the `android-to-kmp-migrator` controller. `SKILL.md` is the team registry; `workflow.md` holds the staged dispatch topology, gates, and failure routing; `bind.md` holds resource/behavioral constraints (dependency gate, single-project invariant, `max_review_fix_cycles`); `dependencies.yaml` lists startup tools. The twenty node roles live under `roles/`:
 
-- `target-project-understand.md`: relevant target sub-module detection plus current UI design, architecture, logic flow, API list, and reuse context.
-- `legacy-spec-delta-review.md`: SPEC/raw-source coverage check with contradiction and blocker routing.
-- `migration-alignment.md`: Legacy Android SPEC/raw understanding alignment with target project context and resource mapping.
-- `dependency-resolution.md`: minimal-change dependency gate, baseline capability mapping, and justified build-config exceptions.
-- `theme-design-system-mapping.md`: visual token and design-system mapping before UI implementation.
-- `resource-migration.md`: local and online resource migration into KMP target conventions.
-- `navigation-migration.md`: route, parameter, back behavior, deep link, and navigation scaffolding migration.
-- `platform-api-replacement.md`: Android-only API replacement through target-safe abstractions or expect/actual.
-- `state-model-mapping.md`: state holder and model mapping before dataflow/logic implementation.
-- `ui-mockup-implementation.md`: UI layout, component, theme/resource, and binding surface implementation.
-- `dataflow-logic-implementation.md`: architecture, data flow, API integration, navigation effects, lifecycle behavior, and business logic implementation.
-- `module-node-migration-review.md`: per-module or per-node review for contract compliance, source parity, target conventions, scope, and handoff readiness.
-- `module-node-migration-fix.md`: focused fixes from module/node review findings, followed by mandatory re-review.
-- `migration-workspace-state.md`: node status, changed-file ownership, stale output, rerun history, and blocker ledger.
-- `source-set-placement-guard.md`: KMP source-set placement and Android-only API boundary checks.
-- `api-contract-parity.md`: migrated API contract comparison against Legacy Android API/data evidence.
-- `ui-render-fidelity-check.md`: render path, visual-state, resource, and theme usage checks before final validation.
-- `incremental-build-check.md`: smallest known target build/check gate with failure routing.
-- `prd-completion-check.md`: PRD/raw task completion verification and re-dispatch gap reporting.
-- `migration-report.md`: final migration report with mappings, changed files, coverage, limitations, manual steps, and validation inputs.
+- `roles/target-project-understand.md`: relevant target sub-module detection plus current UI design, architecture, logic flow, API list, and reuse context.
+- `roles/legacy-spec-delta-review.md`: SPEC/raw-source coverage check with contradiction and blocker routing.
+- `roles/migration-alignment.md`: Legacy Android SPEC/raw understanding alignment with target project context and resource mapping.
+- `roles/dependency-resolution.md`: minimal-change dependency gate, baseline capability mapping, and justified build-config exceptions.
+- `roles/theme-design-system-mapping.md`: visual token and design-system mapping before UI implementation.
+- `roles/resource-migration.md`: local and online resource migration into KMP target conventions.
+- `roles/navigation-migration.md`: route, parameter, back behavior, deep link, and navigation scaffolding migration.
+- `roles/platform-api-replacement.md`: Android-only API replacement through target-safe abstractions or expect/actual.
+- `roles/state-model-mapping.md`: state holder and model mapping before dataflow/logic implementation.
+- `roles/ui-mockup-implementation.md`: UI layout, component, theme/resource, and binding surface implementation.
+- `roles/dataflow-logic-implementation.md`: architecture, data flow, API integration, navigation effects, lifecycle behavior, and business logic implementation.
+- `roles/module-node-migration-review.md`: per-module or per-node review for contract compliance, source parity, target conventions, scope, and handoff readiness.
+- `roles/module-node-migration-fix.md`: focused fixes from module/node review findings, followed by mandatory re-review.
+- `roles/migration-workspace-state.md`: node status, changed-file ownership, stale output, rerun history, and blocker ledger.
+- `roles/source-set-placement-guard.md`: KMP source-set placement and Android-only API boundary checks.
+- `roles/api-contract-parity.md`: migrated API contract comparison against Legacy Android API/data evidence.
+- `roles/ui-render-fidelity-check.md`: render path, visual-state, resource, and theme usage checks before final validation.
+- `roles/incremental-build-check.md`: smallest known target build/check gate with failure routing.
+- `roles/prd-completion-check.md`: PRD/raw task completion verification and re-dispatch gap reporting.
+- `roles/migration-report.md`: final migration report with mappings, changed files, coverage, limitations, manual steps, and validation inputs.
 
 ### `skills/kmp-test-validator`
-Node skill specs used by the `kmp-test-validator` controller:
+A **Swarm Skill** (specialization pipeline C + remediation loop) used by the `kmp-test-validator` controller. `SKILL.md` is the team registry; `workflow.md` holds the staged dispatch topology and gates; `bind.md` holds resource/behavioral constraints (migration-trigger boundary, `max_remediation_cycles`, "never invent a command"); `dependencies.yaml` lists startup tools. The nine node roles live under `roles/`:
 
-- `validation-workspace-state.md`: validation node status, changed-file ownership, stale input, rerun history, and blocker ledger.
-- `validation-input-contract.md`: migration-validation trigger verification and normalized validation brief.
-- `android-kmp-fidelity-audit.md`: Android/KMP comparison across UI, logic, data flow, and control flow.
-- `kmp-validation-plan.md`: target KMP structure, source sets, test frameworks, and trusted command discovery.
-- `build-preview-gate.md`: compile/build and Compose preview or renderability validation before behavioral tests.
-- `test-case-decomposition.md`: atomic test/use-case inventory from user input, SPEC, and migration report validation inputs.
-- `test-execution.md`: project-convention test execution and evidence capture.
-- `validation-remediation.md`: focused KMP fixes for confirmed validation failures, followed by required reruns.
-- `validation-report.md`: final fidelity, build, preview, test, remediation, blocker, and status report.
+- `roles/validation-workspace-state.md`: validation node status, changed-file ownership, stale input, rerun history, and blocker ledger.
+- `roles/validation-input-contract.md`: migration-validation trigger verification and normalized validation brief.
+- `roles/android-kmp-fidelity-audit.md`: Android/KMP comparison across UI, logic, data flow, and control flow.
+- `roles/kmp-validation-plan.md`: target KMP structure, source sets, test frameworks, and trusted command discovery.
+- `roles/build-preview-gate.md`: compile/build and Compose preview or renderability validation before behavioral tests.
+- `roles/test-case-decomposition.md`: atomic test/use-case inventory from user input, SPEC, and migration report validation inputs.
+- `roles/test-execution.md`: project-convention test execution and evidence capture.
+- `roles/validation-remediation.md`: focused KMP fixes for confirmed validation failures, followed by required reruns.
+- `roles/validation-report.md`: final fidelity, build, preview, test, remediation, blocker, and status report.
 
 ## Structure
 
 - `agents/`: Subagent definitions.
 - `commands/`: Slash commands, including `/legacy-android-understand` for Android exploration and `/fix-issue-kmp` for targeted KMP compile or migrated use-case fixes.
 - `skills/`: Claude Code skills and controller node skill specs.
+- `rules/`: Agent-facing stage/node contracts for input validation, output saving, workflow gates, and agent-only artifacts.
 - `hooks/`: Tool-layer enforcement, including a `PreToolUse` guard that blocks edits to `.env` files.
 - `scripts/`: Hook and utility scripts, including `pre-edit-protect.sh`.
 - `monitors/`: Plugin monitor configuration.

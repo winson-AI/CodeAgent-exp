@@ -1,0 +1,16 @@
+# dependencies.yaml — Swarm Skill startup dependency check
+#
+# Leader reads this file in SKILL.md Workflow Step 0 (pre-flight) and reports missing items.
+# Populated from Stage 2 auto-matching (local CLI scan): rg, curl found locally.
+# All entries are required: false — the team degrades gracefully (built-in Grep/Read
+# substitute for rg; resource downloads become download_gaps without curl).
+
+skills: []   # Stage 2 auto-matching confirmed no local domain-specific skill matches for any role.
+
+tools:
+  - name: rg
+    required: false
+    purpose: Fast source search across the Android project for every analysis node; built-in Grep/Read substitute if unavailable.
+  - name: curl
+    required: false
+    purpose: Used only by resource-understand to download concrete online resource URLs for analysis; without it, those URLs are recorded as download_gaps instead.

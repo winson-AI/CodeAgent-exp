@@ -57,13 +57,13 @@ user_provided_commands:
   build: ./gradlew :shared:compileKotlinMetadata
   test: ./gradlew :shared:check
   renderability: ./gradlew :composeApp:connectedDebugAndroidTest
-output_dir: ~/.d2c_agents/fix-issue-kmp/<issue-name>
+output_dir: ~/.a2c_agents/fix-issue-kmp/<issue-name>
 language: English
 ```
 
 ## Required Output Format
 
-Return this concise JSON-like summary and write matching artifacts under `output_dir` when supplied, otherwise under `~/.d2c_agents/fix-issue-kmp/<timestamp>/`.
+Return this concise JSON-like summary and write matching artifacts under `output_dir` when supplied, otherwise under `~/.a2c_agents/fix-issue-kmp/<timestamp>/`.
 
 ```json
 {
