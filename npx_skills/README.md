@@ -13,7 +13,7 @@ During `npm install`, the package runs `postinstall` and installs the bundled sk
 To install the CLI but skip automatic skill installation:
 
 ```bash
-KMP_SKILLS_SKIP_POSTINSTALL=1 npm install -g @code-migration/wow-migrator
+WOW_MIGRATOR_SKIP_POSTINSTALL=1 npm install -g @code-migration/wow-migrator
 ```
 
 ## What Gets Installed
@@ -39,8 +39,6 @@ wow-migrator uninstall --target all --yes
 wow-migrator list
 wow-migrator config
 ```
-
-The package also installs `kmp-skills` as a backwards-compatible command alias.
 
 ## Install By Platform
 
@@ -75,7 +73,7 @@ wow-migrator config
 The config file is stored at:
 
 ```text
-~/.kmp-skills/config.json
+~/.wow-migrator/config.json
 ```
 
 Edit it to add custom tools, aliases, commands, or skills directories:

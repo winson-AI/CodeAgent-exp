@@ -8,10 +8,10 @@ import { fileURLToPath } from 'node:url';
 import readline from 'node:readline/promises';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CONFIG_DIR = path.join(os.homedir(), '.kmp-skills');
+const CONFIG_DIR = path.join(os.homedir(), '.wow-migrator');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 const isWindows = process.platform === 'win32';
-const CLI_NAME = path.basename(process.argv[1] ?? 'kmp-skills').replace(/\.js$/, '') || 'kmp-skills';
+const CLI_NAME = path.basename(process.argv[1] ?? 'wow-migrator').replace(/\.js$/, '') || 'wow-migrator';
 
 function expandHome(input) {
   if (!input) return input;
@@ -325,8 +325,8 @@ function selectTools(tools, detections, flags) {
       const supported = tools
         .map((tool) => `${tool.name} (${(tool.aliases ?? []).join(', ')})`)
         .join('; ');
-      console.warn(`[kmp-skills] Unknown platform target(s): ${unknown.join(', ')}`);
-      console.warn(`[kmp-skills] Supported platforms: ${supported}`);
+      console.warn(`[wow-migrator] Unknown platform target(s): ${unknown.join(', ')}`);
+      console.warn(`[wow-migrator] Supported platforms: ${supported}`);
     }
     return selected;
   }
@@ -347,13 +347,13 @@ async function confirm(message) {
 }
 
 async function installCommand(flags) {
-  if (process.env.KMP_SKILLS_SKIP_POSTINSTALL === '1' && flags.postinstall) return;
+  if (process.env.WOW_MIGRATOR_SKIP_POSTINSTALL === '1' && flags.postinstall) return;
 
   const skillsRoot = await findSkillsRoot();
   if (!skillsRoot) {
     const message = 'No bundled KMP skills found. Run `npm run sync:skills` before publishing this package.';
     if (flags.postinstall) {
-      console.warn(`[kmp-skills] ${message}`);
+      console.warn(`[wow-migrator] ${message}`);
       return;
     }
     throw new Error(message);
@@ -366,7 +366,7 @@ async function installCommand(flags) {
 
   const selectedTools = selectTools(tools, detections, flags);
   if (selectedTools.length === 0) {
-    console.log('[kmp-skills] No supported AI tools detected. Edit config with `kmp-skills config`.');
+    console.log('[wow-migrator] No supported AI tools detected. Edit config with `wow-migrator config`.');
     return;
   }
 
@@ -379,7 +379,7 @@ async function installCommand(flags) {
   for (const tool of selectedTools) {
     const targetRoot = await installToTool(tool, skillsRoot, skillNames, flags.dryRun);
     const detected = detections.get(tool.name)?.installed ? 'detected' : 'custom';
-    console.log(`[kmp-skills] ${flags.dryRun ? 'Would install' : 'Installed'} ${skillNames.length} skills -> ${tool.name} (${detected}) ${prettyPath(targetRoot)}`);
+    console.log(`[wow-migrator] ${flags.dryRun ? 'Would install' : 'Installed'} ${skillNames.length} skills -> ${tool.name} (${detected}) ${prettyPath(targetRoot)}`);
   }
 }
 
@@ -400,7 +400,7 @@ async function uninstallCommand(flags) {
 
   for (const tool of selectedTools) {
     const removed = await uninstallFromTool(tool, skillNames, flags.dryRun);
-    console.log(`[kmp-skills] ${flags.dryRun ? 'Would remove' : 'Removed'} ${removed} skills from ${tool.name}`);
+    console.log(`[wow-migrator] ${flags.dryRun ? 'Would remove' : 'Removed'} ${removed} skills from ${tool.name}`);
   }
 }
 
@@ -431,7 +431,7 @@ Platforms:
   openclaw, claude, opencode, codex, cursor, gemini, jiuwen, all
 
 Environment:
-  KMP_SKILLS_SKIP_POSTINSTALL=1  Skip npm postinstall auto-install.
+  WOW_MIGRATOR_SKIP_POSTINSTALL=1  Skip npm postinstall auto-install.
 `);
 }
 
@@ -450,6 +450,6 @@ async function main() {
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`[kmp-skills] ${message}`);
+  console.error(`[wow-migrator] ${message}`);
   process.exitCode = 1;
 });

@@ -112,7 +112,7 @@ wow-migrator install --platform cursor,codex --yes
 wow-migrator list
 ```
 
-Set `KMP_SKILLS_SKIP_POSTINSTALL=1` during `npm install` to skip automatic postinstall skill installation. The package also exposes `kmp-skills` as a backwards-compatible command alias.
+Set `WOW_MIGRATOR_SKIP_POSTINSTALL=1` during `npm install` to skip automatic postinstall skill installation.
 
 ## Usage Examples
 
