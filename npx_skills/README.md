@@ -36,24 +36,44 @@ Set `KMP_SKILLS_SKIP_POSTINSTALL=1` to skip the automatic install.
 ## Commands
 
 ```bash
-kmp-skills install --yes
-kmp-skills install --target "Claude Code,Codex"
-kmp-skills uninstall --target all --yes
-kmp-skills list
-kmp-skills config
+wow-migrator install --yes
+wow-migrator install --platform claude --yes
+wow-migrator install --platform cursor,codex --yes
+wow-migrator install --target "Claude Code,Codex"
+wow-migrator uninstall --target all --yes
+wow-migrator list
+wow-migrator config
+```
+
+The package also installs `kmp-skills` as a backwards-compatible command alias.
+
+The `--platform`, `--target`, and `--tool` flags are aliases. Each accepts a
+single platform, a comma-separated list, or `all`.
+
+From this package directory, the same installs are available as npm scripts:
+
+```bash
+npm run install:claude
+npm run install:cursor
+npm run install:codex
+npm run install:gemini
+npm run install:opencode
+npm run install:openclaw
+npm run install:jiuwen
+npm run install:all
 ```
 
 ## Supported Targets
 
-| Tool | Detection | Skills directory |
-| --- | --- | --- |
-| OpenClaw | `~/.openclaw` or `openclaw` | `~/.openclaw/skills` |
-| Claude Code | `~/.claude` or `claude` | `~/.claude/skills` |
-| OpenCode | `~/.config/opencode` or `opencode` | `~/.config/opencode/skills` |
-| Codex | `~/.codex` or `codex` | `~/.codex/skills` |
-| Cursor | `~/.cursor` or `cursor` | `~/.cursor/skills` |
-| Gemini | `~/.gemini` or `gemini` | `~/.gemini/skills` |
-| JiuwenSwarm | `~/.jiuwenswarm` or Jiuwen CLI commands | `~/.jiuwenswarm/agent/workspace/skills` |
+| Platform | Aliases | Detection | Skills directory |
+| --- | --- | --- | --- |
+| OpenClaw | `openclaw`, `open-claw` | `~/.openclaw` or `openclaw` | `~/.openclaw/skills` |
+| Claude Code | `claude`, `claude-code`, `claudecode` | `~/.claude` or `claude` | `~/.claude/skills` |
+| OpenCode | `opencode`, `open-code` | `~/.config/opencode` or `opencode` | `~/.config/opencode/skills` |
+| Codex | `codex`, `openai-codex` | `~/.codex` or `codex` | `~/.codex/skills` |
+| Cursor | `cursor` | `~/.cursor` or `cursor` | `~/.cursor/skills` |
+| Gemini | `gemini`, `gemini-cli` | `~/.gemini` or `gemini` | `~/.gemini/skills` |
+| JiuwenSwarm | `jiuwen`, `jiuwenswarm`, `jiuwen-swarm`, `jiuwenclaw` | `~/.jiuwenswarm` or Jiuwen CLI commands | `~/.jiuwenswarm/agent/workspace/skills` |
 
 ## Configuration
 
@@ -70,6 +90,7 @@ Edit it to add custom tools or paths. The shape is:
   "tools": [
     {
       "name": "Claude Code",
+      "aliases": ["claude", "claude-code"],
       "markerDir": "~/.claude",
       "commands": ["claude"],
       "skillsDir": "~/.claude/skills"

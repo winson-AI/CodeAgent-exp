@@ -11,6 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG_DIR = path.join(os.homedir(), '.kmp-skills');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 const isWindows = process.platform === 'win32';
+const CLI_NAME = path.basename(process.argv[1] ?? 'kmp-skills').replace(/\.js$/, '') || 'kmp-skills';
 
 function expandHome(input) {
   if (!input) return input;
@@ -107,42 +108,49 @@ function defaultTools() {
   return [
     {
       name: 'OpenClaw',
+      aliases: ['openclaw', 'open-claw'],
       markerDir: '~/.openclaw',
       commands: ['openclaw'],
       skillsDir: '~/.openclaw/skills'
     },
     {
       name: 'Claude Code',
+      aliases: ['claude', 'claude-code', 'claudecode'],
       markerDir: '~/.claude',
       commands: ['claude'],
       skillsDir: '~/.claude/skills'
     },
     {
       name: 'OpenCode',
+      aliases: ['opencode', 'open-code'],
       markerDir: '~/.config/opencode',
       commands: ['opencode'],
       skillsDir: '~/.config/opencode/skills'
     },
     {
       name: 'Codex',
+      aliases: ['codex', 'openai-codex'],
       markerDir: '~/.codex',
       commands: ['codex'],
       skillsDir: '~/.codex/skills'
     },
     {
       name: 'Cursor',
+      aliases: ['cursor'],
       markerDir: '~/.cursor',
       commands: ['cursor'],
       skillsDir: '~/.cursor/skills'
     },
     {
       name: 'Gemini',
+      aliases: ['gemini', 'gemini-cli'],
       markerDir: '~/.gemini',
       commands: ['gemini'],
       skillsDir: '~/.gemini/skills'
     },
     {
       name: 'JiuwenSwarm',
+      aliases: ['jiuwen', 'jiuwenswarm', 'jiuwen-swarm', 'jiuwenclaw'],
       markerDir: '~/.jiuwenswarm',
       commands: defaultJiuwenCommands(),
       skillsDir: '~/.jiuwenswarm/agent/workspace/skills'
@@ -156,6 +164,7 @@ function normalizeTool(raw) {
   if (!skillsDir) return null;
   return {
     name: String(raw.name),
+    aliases: Array.isArray(raw.aliases) ? raw.aliases.map(String).filter(Boolean) : [],
     markerDir: raw.markerDir ? String(raw.markerDir) : '',
     commands: Array.isArray(raw.commands) ? raw.commands.map(String).filter(Boolean) : [],
     skillsDir: String(skillsDir)
@@ -181,7 +190,11 @@ async function loadConfig(options = {}) {
       : [];
   const userTools = sourceTools.map(normalizeTool).filter(Boolean);
   const merged = new Map(defaultTools().map((tool) => [tool.name, tool]));
-  for (const tool of userTools) merged.set(tool.name, tool);
+  for (const tool of userTools) {
+    const existing = merged.get(tool.name);
+    const aliases = [...new Set([...(existing?.aliases ?? []), ...(tool.aliases ?? [])])];
+    merged.set(tool.name, existing ? { ...existing, ...tool, aliases } : tool);
+  }
   return { tools: [...merged.values()] };
 }
 
@@ -269,10 +282,21 @@ function parseArgs(argv) {
     if (arg === '--yes' || arg === '-y') flags.yes = true;
     else if (arg === '--postinstall') flags.postinstall = true;
     else if (arg === '--dry-run') flags.dryRun = true;
-    else if (arg === '--target' || arg === '--targets') {
+    else if (
+      arg === '--target' ||
+      arg === '--targets' ||
+      arg === '--platform' ||
+      arg === '--platforms' ||
+      arg === '--tool' ||
+      arg === '--tools'
+    ) {
       flags.targets = argv[++index]?.split(',').map((item) => item.trim()).filter(Boolean) ?? [];
     } else if (arg.startsWith('--target=')) {
       flags.targets = arg.slice('--target='.length).split(',').map((item) => item.trim()).filter(Boolean);
+    } else if (arg.startsWith('--platform=')) {
+      flags.targets = arg.slice('--platform='.length).split(',').map((item) => item.trim()).filter(Boolean);
+    } else if (arg.startsWith('--tool=')) {
+      flags.targets = arg.slice('--tool='.length).split(',').map((item) => item.trim()).filter(Boolean);
     } else {
       positional.push(arg);
     }
@@ -280,11 +304,31 @@ function parseArgs(argv) {
   return { command: positional[0] ?? 'install', flags };
 }
 
+function normalizeTargetId(value) {
+  return String(value).toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function targetIdsForTool(tool) {
+  return [tool.name, ...(tool.aliases ?? []), ...(tool.commands ?? [])]
+    .map(normalizeTargetId)
+    .filter(Boolean);
+}
+
 function selectTools(tools, detections, flags) {
   if (flags.targets?.length) {
-    const wanted = new Set(flags.targets.map((target) => target.toLowerCase()));
+    const wanted = new Set(flags.targets.map(normalizeTargetId));
     if (wanted.has('all')) return tools;
-    return tools.filter((tool) => wanted.has(tool.name.toLowerCase()));
+    const selected = tools.filter((tool) => targetIdsForTool(tool).some((id) => wanted.has(id)));
+    const matched = new Set(selected.flatMap(targetIdsForTool));
+    const unknown = [...wanted].filter((id) => !matched.has(id));
+    if (unknown.length > 0) {
+      const supported = tools
+        .map((tool) => `${tool.name} (${(tool.aliases ?? []).join(', ')})`)
+        .join('; ');
+      console.warn(`[kmp-skills] Unknown platform target(s): ${unknown.join(', ')}`);
+      console.warn(`[kmp-skills] Supported platforms: ${supported}`);
+    }
+    return selected;
   }
   if (flags.yes || flags.postinstall) {
     return tools.filter((tool) => detections.get(tool.name)?.installed);
@@ -374,13 +418,17 @@ async function configCommand() {
 }
 
 function printHelp() {
-  console.log(`kmp-skills
+  console.log(`${CLI_NAME}
 
 Usage:
-  kmp-skills install [--yes] [--target Claude Code,Codex] [--dry-run]
-  kmp-skills uninstall [--yes] [--target all] [--dry-run]
-  kmp-skills list
-  kmp-skills config
+  ${CLI_NAME} install [--yes] [--platform claude,cursor] [--dry-run]
+  ${CLI_NAME} install [--yes] [--target "Claude Code,Codex"] [--dry-run]
+  ${CLI_NAME} uninstall [--yes] [--platform all] [--dry-run]
+  ${CLI_NAME} list
+  ${CLI_NAME} config
+
+Platforms:
+  openclaw, claude, opencode, codex, cursor, gemini, jiuwen, all
 
 Environment:
   KMP_SKILLS_SKIP_POSTINSTALL=1  Skip npm postinstall auto-install.

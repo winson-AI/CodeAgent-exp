@@ -21,6 +21,7 @@
     "url": "https://github.com/winson-AI/cli-plugins.git"
   },
   "bin": {
+    "wow-migrator": "bin/kmp-skills.js",
     "kmp-skills": "bin/kmp-skills.js"
   },
   "files": [
@@ -31,6 +32,14 @@
   ],
   "scripts": {
     "install:skills": "node ./bin/kmp-skills.js install",
+    "install:all": "node ./bin/kmp-skills.js install --target all --yes",
+    "install:openclaw": "node ./bin/kmp-skills.js install --platform openclaw --yes",
+    "install:claude": "node ./bin/kmp-skills.js install --platform claude --yes",
+    "install:opencode": "node ./bin/kmp-skills.js install --platform opencode --yes",
+    "install:codex": "node ./bin/kmp-skills.js install --platform codex --yes",
+    "install:cursor": "node ./bin/kmp-skills.js install --platform cursor --yes",
+    "install:gemini": "node ./bin/kmp-skills.js install --platform gemini --yes",
+    "install:jiuwen": "node ./bin/kmp-skills.js install --platform jiuwen --yes",
     "uninstall:skills": "node ./bin/kmp-skills.js uninstall",
     "config": "node ./bin/kmp-skills.js config",
     "list": "node ./bin/kmp-skills.js list",
