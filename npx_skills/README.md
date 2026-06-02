@@ -1,39 +1,34 @@
-# KMP Skills Installer
+# WOW Migrator
 
-Install the KMP migration skills into common AI coding tools through `npm install`.
+Install Android to Kotlin Multiplatform migration skills into AI coding tools through npm.
 
-## Install From This Repo
-
-The package is not published to the npm registry yet. Install it from the local package directory:
-
-```bash
-npm install -g /Users/winson/CodeBase/Online/cli-plugins/npx_skills
-```
-
-Or, from the repository root:
-
-```bash
-npm install -g ./npx_skills
-```
-
-To install from a tarball:
-
-```bash
-cd /Users/winson/CodeBase/Online/cli-plugins/npx_skills
-npm pack
-npm install -g ./code-migration-wow-migrator-0.1.0.tgz
-```
-
-After publishing this package to npm, the registry install command will be:
+## Install
 
 ```bash
 npm install -g @code-migration/wow-migrator
 ```
 
-The package runs `postinstall` and installs bundled skills into detected tools.
-Set `KMP_SKILLS_SKIP_POSTINSTALL=1` to skip the automatic install.
+During `npm install`, the package runs `postinstall` and installs the bundled skills into every supported tool it detects on the machine.
 
-## Commands
+To install the CLI but skip automatic skill installation:
+
+```bash
+KMP_SKILLS_SKIP_POSTINSTALL=1 npm install -g @code-migration/wow-migrator
+```
+
+## What Gets Installed
+
+The package bundles these skills:
+
+- `android-project-analyst`
+- `android-to-kmp-migrator`
+- `kmp-test-validator`
+
+They are copied into each target tool's `skills` directory. Re-running install is idempotent: the bundled skill directories are replaced with the package version.
+
+## CLI Commands
+
+The primary CLI command is `wow-migrator`.
 
 ```bash
 wow-migrator install --yes
@@ -47,23 +42,17 @@ wow-migrator config
 
 The package also installs `kmp-skills` as a backwards-compatible command alias.
 
-The `--platform`, `--target`, and `--tool` flags are aliases. Each accepts a
-single platform, a comma-separated list, or `all`.
+## Install By Platform
 
-From this package directory, the same installs are available as npm scripts:
+Use `--platform`, `--target`, or `--tool`. They are aliases and accept a single platform, a comma-separated list, or `all`.
 
 ```bash
-npm run install:claude
-npm run install:cursor
-npm run install:codex
-npm run install:gemini
-npm run install:opencode
-npm run install:openclaw
-npm run install:jiuwen
-npm run install:all
+wow-migrator install --platform claude --yes
+wow-migrator install --platform cursor,codex --yes
+wow-migrator install --platform all --yes
 ```
 
-## Supported Targets
+Supported platforms:
 
 | Platform | Aliases | Detection | Skills directory |
 | --- | --- | --- | --- |
@@ -77,13 +66,19 @@ npm run install:all
 
 ## Configuration
 
-The installer creates:
+View or create the config file:
+
+```bash
+wow-migrator config
+```
+
+The config file is stored at:
 
 ```text
 ~/.kmp-skills/config.json
 ```
 
-Edit it to add custom tools or paths. The shape is:
+Edit it to add custom tools, aliases, commands, or skills directories:
 
 ```json
 {
@@ -99,36 +94,23 @@ Edit it to add custom tools or paths. The shape is:
 }
 ```
 
-## Publishing From This Repo
+## Other Functions
 
-Before packing or publishing, sync the current plugin skills into this package:
+List bundled skills:
 
 ```bash
-cd npx_skills
-npm run sync:skills
-npm pack
+wow-migrator list
 ```
 
-`prepare` and `prepack` also run the sync script when the monorepo source is available.
-
-Publish with the existing `code-migration` npm org scope:
+Remove bundled skills from selected platforms:
 
 ```bash
-npm publish --access public
+wow-migrator uninstall --platform claude,cursor --yes
+wow-migrator uninstall --platform all --yes
 ```
 
-If npm returns `E404 Scope not found`, confirm that the npm org exists and the
-current npm user has publish access:
+Preview an install without writing files:
 
 ```bash
-npm whoami
-npm org ls code-migration
-```
-
-For this package, `npm org ls code-migration` should list your user with owner
-or publish-capable access. After that, publish and install with:
-
-```bash
-npm publish --access public
-npm install -g @code-migration/wow-migrator
+wow-migrator install --platform all --dry-run --yes
 ```
