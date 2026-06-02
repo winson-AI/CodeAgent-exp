@@ -1,0 +1,48 @@
+{
+  "name": "@code-migration/wow-migrator",
+  "version": "0.1.0",
+  "description": "Install KMP migration skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm via npm install.",
+  "keywords": [
+    "android",
+    "kmp",
+    "kotlin-multiplatform",
+    "skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini",
+    "opencode"
+  ],
+  "license": "MIT",
+  "author": "winson-AI",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/winson-AI/cli-plugins.git"
+  },
+  "bin": {
+    "kmp-skills": "bin/kmp-skills.js"
+  },
+  "files": [
+    "bin",
+    "scripts",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "install:skills": "node ./bin/kmp-skills.js install",
+    "uninstall:skills": "node ./bin/kmp-skills.js uninstall",
+    "config": "node ./bin/kmp-skills.js config",
+    "list": "node ./bin/kmp-skills.js list",
+    "sync:skills": "node ./scripts/sync-skills.js",
+    "prepare": "node ./scripts/sync-skills.js --if-present",
+    "prepack": "node ./scripts/sync-skills.js",
+    "postinstall": "node ./bin/kmp-skills.js install --yes --postinstall"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
