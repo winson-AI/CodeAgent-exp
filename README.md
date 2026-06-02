@@ -1,67 +1,72 @@
 # Multi-CLI Plugins Ecosystem
 
-A cross-CLI plugin repository for AI-powered development workflows. The current release focuses on Android-to-Kotlin Multiplatform (KMP) migration and provides matching distributions for Claude Code, Codex, and Gemini CLI.
+A cross-CLI repository for AI-powered development workflows. It currently ships Android-to-Kotlin Multiplatform (KMP) migration tooling across several coding agents, plus a Claude Code design-to-code workflow for Figma-to-Compose work.
 
-## Available Plugins and Extensions
+## Repository Overview
 
-| Toolkit | Description | Claude Code | Codex | Gemini CLI |
-|--------|-------------|-------------|-------|------------|
-| **[kmp-migration](claude-code-plugins/kmp-migration/)** | End-to-end Android-to-KMP workflow covering source analysis, exploration commands, runnable KMP generation, fidelity validation, targeted KMP fixes, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, `.env` edit protection, and agent memory/skill maintenance for Claude Code. | 0.1.21 | 0.1.2 | 0.1.2 |
+| Path | Contents |
+| --- | --- |
+| `claude-code-plugins/` | Claude Code plugin marketplace with `kmp-migration` and `flow_d2c`. |
+| `codex-plugins/` | Codex plugin distribution for the KMP migration skills. |
+| `gemini-extensions/` | Gemini CLI extension distribution for the KMP migration skills. |
+| `npx_skills/` | npm package `@code-migration/wow-migrator` for installing KMP skills into multiple AI coding tools. |
+| `CONTRIBUTING.md` | Contribution and plugin-creation guidelines. |
 
-## Current Agent and Skill Content
+## Available Tooling
 
-### Claude Code Agents
+| Toolkit | Path | Current Version | Purpose |
+| --- | --- | --- | --- |
+| `kmp-migration` for Claude Code | `claude-code-plugins/kmp-migration/` | `0.1.21` | End-to-end Android-to-KMP workflow covering Android project analysis, SPEC generation, runnable KMP migration, KMP validation, targeted KMP fixes, JetBrains MCP-assisted code intelligence, workflow contracts, `.env` edit protection, and agent memory/skill maintenance. |
+| `flow_d2c` for Claude Code | `claude-code-plugins/flow_d2c/` | `0.1.0` | Figma to React to optimized mobile React to Android/KMP/CMP Compose workflow with UI reconstruction scoring, Compose adapter bundle generation, and the `anchor-d2c-mcp` Figma-to-code MCP server. |
+| `codex-kmp-migration` | `codex-plugins/kmp-migration/` | `0.1.2` | Codex skill distribution for Android project analysis, Android-to-KMP migration, and migrated KMP validation. |
+| `kmp-migration` for Gemini CLI | `gemini-extensions/kmp-migration/` | `0.1.2` | Gemini extension containing the same three KMP-focused skills plus `GEMINI.md` context and a local MCP entry point. |
+| `@code-migration/wow-migrator` | `npx_skills/` | `0.1.0` | npm installer that copies the bundled KMP skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm skill directories. |
 
-The Claude Code plugin ships 5 specialized agents in `claude-code-plugins/kmp-migration/agents/`:
+## KMP Migration Content
 
-| Agent | Purpose |
-|-------|---------|
-| `android-project-analyst` | Deep Android project analysis for architecture, XML/Compose UI, resources, data/control flow, onboarding docs, and SPEC output (`PRD`, `DESIGN`, `PLAN`, `verification.md`). |
-| `android-to-kmp-migrator` | Controller-only Android-to-KMP migration agent that verifies migration intent, dispatches workspace-state, SPEC-delta, target-understanding, resource/theme/navigation/platform/state, UI, dataflow/logic, module/node review-fix, guard/parity/fidelity/build-check, completion-check, and migration-report node skills, and requires KMP validation gates. |
-| `kmp-test-validator` | Controller-only post-migration KMP validation agent that verifies migration context, dispatches fidelity audit, validation planning, build/preview, test decomposition/execution, remediation, workspace-state, and reporting node skills. |
-| `memory-curator` | Audits and optimizes agent memory stores, including retention/archive/delete recommendations and state recovery records. |
-| `skill-maintenance-advisor` | Periodically reviews conversation context and recommends creating or updating reusable skills. |
+The KMP migration toolkit is shared across Claude Code, Codex, Gemini, and the npm skill installer. Its primary skills and agents are:
 
-### Codex and Gemini Skills
+| Agent or Skill | Purpose |
+| --- | --- |
+| `android-project-analyst` | Analyzes legacy Android projects for architecture, XML/Compose UI, resources, APIs, data flow, control flow, and SPEC output. |
+| `android-to-kmp-migrator` | Migrates Android behavior into a KMP/CMP target with source understanding, target understanding, resource/theme/navigation/platform/state mapping, UI and logic implementation, review/fix loops, build gates, and migration reporting. |
+| `kmp-test-validator` | Validates migrated KMP output against Android source behavior, SPEC evidence, migration reports, build/preview gates, and supplied test cases. |
 
-The Codex and Gemini distributions currently ship 3 KMP-focused skills:
+The Claude Code KMP plugin additionally ships:
 
-| Skill | Codex Path | Gemini Path |
-|-------|------------|-------------|
-| `android-project-analyst` | `codex-plugins/kmp-migration/skills/android-project-analyst/SKILL.md` | `gemini-extensions/kmp-migration/skills/android-project-analyst/SKILL.md` |
-| `android-to-kmp-migrator` | `codex-plugins/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` | `gemini-extensions/kmp-migration/skills/android-to-kmp-migrator/SKILL.md` |
-| `kmp-test-validator` | `codex-plugins/kmp-migration/skills/kmp-test-validator/SKILL.md` | `gemini-extensions/kmp-migration/skills/kmp-test-validator/SKILL.md` |
+- Agents: `android-project-analyst`, `android-to-kmp-migrator`, `kmp-test-validator`, `memory-curator`, and `skill-maintenance-advisor`.
+- Slash commands: `/legacy-android-understand` and `/fix-issue-kmp`.
+- Hook protection: a `PreToolUse` hook that blocks writes to `.env` files.
+- MCP configuration: a JetBrains IDE MCP server entry at `http://localhost:64342/sse` for optional Android Studio project/code intelligence.
+- Rules: stage/node input contracts, durable output requirements, workflow gates, and machine-routable agent artifact contracts.
 
-Claude Code also contains controller node skill specs under `claude-code-plugins/kmp-migration/skills/android-project-analyst/`, `claude-code-plugins/kmp-migration/skills/android-to-kmp-migrator/`, and `claude-code-plugins/kmp-migration/skills/kmp-test-validator/`.
+## Design-To-Code Content
 
-### Claude Code Commands and Hooks
+`flow_d2c` is a Claude Code plugin for converting Figma designs into Compose implementations. It contains:
 
-The Claude Code plugin includes two slash commands:
-
-- `/legacy-android-understand`: invokes `android-project-analyst` in exploration mode for whole-project, module, feature, question, or target-code understanding.
-- `/fix-issue-kmp`: fixes known KMP compile issues or migrated use-case failures with focused edits and rerun evidence.
-
-It also includes a `PreToolUse` hook that blocks write/edit tool calls targeting `.env` files. The hook configuration lives in `claude-code-plugins/kmp-migration/hooks/hooks.json`, and its command script lives in `claude-code-plugins/kmp-migration/scripts/pre-edit-protect.sh`.
-
-The Claude Code plugin includes `.mcp.json` with a `jetbrains` MCP server entry for Android Studio or another JetBrains IDE at `http://localhost:64342/sse`. Enable the IDE MCP server from Android Studio's **Settings | Tools | MCP Server** before use. Agents use this server optionally for module/dependency context, symbol/search intelligence, file diagnostics, IDE build diagnostics, run configurations, and safe refactoring/formatting.
-
-The Claude Code plugin also includes `rules/` with agent-facing contracts for input checking, output persistence, workflow gates, and downstream-agent artifact shape.
+- `flow_figma_compose_wf`: top-level Figma to React to Compose workflow orchestrator.
+- `mobile-react-refactor`: refactors generated React into a mobile-responsive, interaction-aware React flow.
+- `react-to-compose-ui`: translates optimized React into Android/KMP/CMP Compose and can integrate into an existing target repo.
+- `compose-adapter-generator`: creates draft Compose-library adapter bundles for later integration.
+- `ui-reconstruction-score`: compares design screenshots with implementation screenshots and reports fidelity issues.
+- `tools/anchor-d2c-mcp`: MCP server exposing Figma-to-code conversion and screenshot-fetching tools.
 
 ## Install Guidance
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/winson/cli-plugins.git
+git clone https://github.com/winson-AI/cli-plugins.git
 cd cli-plugins
 ```
 
 ### Claude Code
 
-Load the plugin directly during development:
+Load a plugin directly during development:
 
 ```bash
 claude --plugin-dir claude-code-plugins/kmp-migration
+claude --plugin-dir claude-code-plugins/flow_d2c
 ```
 
 Or add the local marketplace after Claude Code starts:
@@ -69,6 +74,7 @@ Or add the local marketplace after Claude Code starts:
 ```bash
 /plugin marketplace add claude-code-plugins
 /plugin install kmp-migration
+/plugin install flow_d2c
 ```
 
 ### Codex
@@ -90,41 +96,62 @@ gemini extensions install .
 gemini extensions list
 ```
 
-## Usage
+### npm Skill Installer
 
-- Claude Code: invoke the agents by name or describe the Android/KMP task naturally.
-- Codex: install `codex-kmp-migration`; the three `SKILL.md` definitions are detected as skills.
-- Gemini CLI: install the extension; `GEMINI.md` and the bundled skills provide the migration context.
+Install the skill installer globally:
 
-Example tasks:
+```bash
+npm install -g @code-migration/wow-migrator
+```
+
+Then install the bundled KMP skills into detected tools:
+
+```bash
+wow-migrator install --yes
+wow-migrator install --platform cursor,codex --yes
+wow-migrator list
+```
+
+Set `KMP_SKILLS_SKIP_POSTINSTALL=1` during `npm install` to skip automatic postinstall skill installation. The package also exposes `kmp-skills` as a backwards-compatible command alias.
+
+## Usage Examples
 
 ```text
-Analyze this Android project and generate PRD, DESIGN, and PLAN specs.
+Analyze this Android project and generate PRD, DESIGN, and verification specs.
 Migrate this Android feature module to Kotlin Multiplatform.
-Validate this KMP project against the Android source behavior and test cases.
+Validate this migrated KMP project against the Android source behavior and test cases.
+Convert this Figma flow into Compose and integrate it into the existing KMP app.
 ```
 
 ## Versioning
 
-When changing plugin behavior, keep these versions aligned:
+When changing plugin behavior, keep these manifests aligned with the related distribution:
 
 - `claude-code-plugins/.claude-plugin/marketplace.json`
 - `claude-code-plugins/kmp-migration/.claude-plugin/plugin.json`
+- `claude-code-plugins/flow_d2c/.claude-plugin/plugin.json`
 - `codex-plugins/kmp-migration/.codex-plugin/plugin.json`
 - `gemini-extensions/kmp-migration/gemini-extension.json`
 - `gemini-extensions/kmp-migration/package.json`
+- `npx_skills/package.json`
 
-Current Claude Code release: `0.1.21`. Codex and Gemini remain at `0.1.2`.
+Current versions: Claude Code `kmp-migration` is `0.1.21`, Claude Code `flow_d2c` is `0.1.0`, Codex and Gemini KMP distributions are `0.1.2`, and the npm skill installer is `0.1.0`.
 
 ## Project Structure
 
 ```text
 cli-plugins/
-├── claude-code-plugins/    # Claude Code marketplace and plugin
-├── codex-plugins/          # Codex marketplace and plugin
-├── gemini-extensions/      # Gemini CLI extension
-├── CONTRIBUTING.md         # Contribution guidelines
-└── README.md               # This file
+├── claude-code-plugins/
+│   ├── .claude-plugin/          # Claude Code marketplace registry
+│   ├── kmp-migration/           # Android-to-KMP Claude Code plugin
+│   └── flow_d2c/                # Figma-to-Compose Claude Code plugin
+├── codex-plugins/
+│   └── kmp-migration/           # Codex KMP migration plugin
+├── gemini-extensions/
+│   └── kmp-migration/           # Gemini CLI KMP migration extension
+├── npx_skills/                  # npm skill installer package
+├── CONTRIBUTING.md              # Contribution guidelines
+└── README.md                    # This file
 ```
 
 ## Contributing
