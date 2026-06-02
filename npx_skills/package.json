@@ -1,6 +1,6 @@
 {
   "name": "@code-migration/wow-migrator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Install KMP migration skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm via npm install.",
   "keywords": [
     "android",
@@ -18,7 +18,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/winson-AI/cli-plugins.git"
+    "url": "git+https://github.com/winson-AI/cli-plugins.git"
   },
   "bin": {
     "wow-migrator": "bin/wow-migrator.js"
