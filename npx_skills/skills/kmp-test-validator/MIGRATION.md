@@ -11,7 +11,7 @@ Converted from a single controller-support skill (a flat SKILL.md node registry 
 
 The registry separated controller from nodes and encoded the dispatch order, but it did not encode the team as a first-class artifact: no per-role anti-convergence mottos, no `Forbidden`/`Mandatory` boundary blocks the validator could check, no pasteable `Inline Persona` (each of the 9 dispatches re-derived its contract by hand), no Mermaid topology making the pipeline + remediation loop explicit, and no resource/behavioral guardrails (token/wall-clock budgets, `max_remediation_cycles`, degraded modes). The fidelity-before-tests gate, build-before-tests gate, "Android/SPEC is ground truth", and "never invent a command" invariants lived only in prose.
 
-## Decomposition
+## Original 0.2 Decomposition
 
 - **Pattern: C (specialization pipeline) + remediation loop.**
   - Gate: `validation-input-contract` (refuse non-migration scenarios).
@@ -38,6 +38,21 @@ The registry separated controller from nodes and encoded the dispatch order, but
 | Trigger boundary + controller validation rules | `bind.md` § Behavioral Constraints + SKILL.md § Shared Rules |
 | Optional Android Studio MCP context | SKILL.md § Optional Android Studio MCP Context + per-role Inline Persona MCP inputs |
 
-## Team-vs-single delta
+## Original Team-vs-single Delta
 
-The conversion preserves every source contract while adding: explicit pipeline + remediation-loop topology with verifiable gates, per-role anti-overlap boundaries that name siblings, self-contained pasteable personas (no re-derivation per dispatch across 9 nodes), resource/token/wall-clock budgets plus a `max_remediation_cycles` bound, failure-routing rules, and concrete degraded modes for missing commands, unsupported previews, and missing MCP. The same-name controller subagent in `kmp-migration/agents/kmp-test-validator.md` is unchanged in behavior; its node table now points at `roles/<id>.md`.
+The 0.2 conversion preserved every source contract while adding: explicit pipeline + remediation-loop topology with verifiable gates, per-role anti-overlap boundaries that name siblings, self-contained pasteable personas (no re-derivation per dispatch across 9 nodes), resource/token/wall-clock budgets plus a `max_remediation_cycles` bound, failure-routing rules, and concrete degraded modes for missing commands, unsupported previews, and missing MCP.
+
+## Role Reduction Refactor (0.3)
+
+The current active validator reduces 9 roles to 6. See [ROLE_REDUCTION.md](ROLE_REDUCTION.md).
+
+| Old role(s) | Active role |
+|---|---|
+| `validation-workspace-state` | `validation-workspace-state` |
+| `validation-input-contract`, `android-kmp-fidelity-audit` | `validation-intake-fidelity` |
+| `kmp-validation-plan`, `build-preview-gate` | `validation-plan-gate` |
+| `test-case-decomposition`, `test-execution` | `validation-test-runner` |
+| `validation-remediation` | `validation-remediation` |
+| `validation-report` | `validation-report` |
+
+The reduction keeps the important gates intact: migration trigger/fidelity trust gate, build-before-tests gate, scoped remediation with mandatory reruns, and report-only final verdict.

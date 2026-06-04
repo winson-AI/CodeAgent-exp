@@ -1,0 +1,26 @@
+# dependencies.yaml - Migration Task Adapter startup dependency check
+#
+# All tools are optional. The adapter can still route and report with file-system
+# evidence, but degraded checks must be recorded in stage inspections.
+
+skills:
+  - name: android-project-analyst
+    required: false
+    purpose: Downstream workflow for only-understand UI, logic, architecture, overview, and pre-migration SPEC generation.
+  - name: android-to-kmp-migrator
+    required: false
+    purpose: Downstream workflow for Android-to-KMP migration after analyst evidence is fresh.
+  - name: kmp-test-validator
+    required: false
+    purpose: Downstream workflow for post-migration validation when migration report evidence is ready.
+
+tools:
+  - name: rg
+    required: false
+    purpose: Optional path and evidence discovery for task routing; built-in search/read tools may substitute.
+  - name: git
+    required: false
+    purpose: Optional changed-file and freshness detection for workspace-state discipline inspections.
+  - name: curl
+    required: false
+    purpose: Optional availability check because downstream presentation/resource workflows may need safe media downloads.

@@ -1,40 +1,71 @@
-# Workflow: Legacy Android source → verified node artifacts → SPEC package
+# Workflow: Legacy Android source → module artifacts → global representation → SPEC package
 
-This Swarm Skill is **Mixed B+C**: a parallel decomposition (Stage A foundation nodes) feeding a specialization pipeline with hard handoff gates (Stage B resource/data-flow, Stage C logic), integrated by the Leader (`android-project-analyst` controller) into the SPEC package. Each node owns a disjoint analysis slice; the Leader never does node work and never invents claims that no node traced to source.
+This Swarm Skill is **module-first Mixed B+C with workspace-state tracking**: the Leader first partitions the Legacy Android project into bounded analysis modules, maintains a ledger of module/node artifacts and stale inputs, then runs the clustered node schedule inside each module before combining the verified module representations into one global project representation and SPEC package. Each node owns a bounded module slice; the Leader never does node work and never invents claims that no node traced to source.
 
 ## Overview
 
 ```mermaid
 graph TD
-  L0[Leader: Step 0 dependency pre-flight] --> L1[Leader: Step 1 trigger + mode + shared brief]
+  L0[Leader: Step 0 dependency pre-flight] --> L1[Leader: Step 1 trigger + output root lock]
   L1 --> G0{Android evidence + valid scope?}
   G0 -- No --> STOP[Stop: explain failed check / recommend Explore]
-  G0 -- Yes --> S1{Input scale OK?}
-  S1 -- "Over-scale (see bind.md)" --> DEG[Degraded mode<br/>narrow scope / fewer nodes]
-  S1 -- Yes --> F1[ui-understand]
-  S1 -- Yes --> F2[architecture-pattern]
-  S1 -- Yes --> F3[android-ecosystem]
-  S1 -- Yes --> F4[api-list]
+  G0 -- Yes --> WS0[analysis-workspace-state]
+  WS0 --> M0[Leader: Step 3 module inventory]
+  M0 --> WSM[Refresh analysis-workspace-state]
+  WSM --> S1{Module schedule valid?}
+  S1 -- "Over-scale (see bind.md)" --> DEG["Degraded mode: narrow module scope"]
+  S1 -- Yes --> LOOP[For each module_id in module_order]
+  LOOP --> MB[Leader: write module brief]
+  MB --> F1[presentation-resource]
+  MB --> F2[project-architecture]
+  MB --> F3[data-contract-flow]
   F1 --> GA{Foundation outputs verified?}
   F2 --> GA
   F3 --> GA
-  F4 --> GA
-  GA -- "missing/empty/!=completed" --> RR1[Re-dispatch failed node<br/>with failure reason]
+  GA -- "missing/empty/!=completed" --> RR1[Re-dispatch failed foundation node]
   RR1 --> GA
-  GA -- Yes --> D1[resource-understand]
-  GA -- Yes --> D2[data-flow]
-  D1 --> GB{Dependent outputs verified?}
-  D2 --> GB
-  GB -- fail --> RR2[Re-dispatch failed node]
+  GA -- Yes --> WSA[Refresh analysis-workspace-state]
+  WSA --> B1[behavior-logic]
+  B1 --> GB{Behavior output verified?}
+  GB -- fail --> RR2[Re-dispatch behavior-logic]
   RR2 --> GB
-  GB -- Yes --> C1[logic-understand]
-  C1 --> GC{Logic output verified?}
-  GC -- fail --> RR3[Re-dispatch logic-understand]
-  RR3 --> GC
-  GC -- Yes --> INT[Leader: Step 5 reconcile + coverage/evidence matrix]
-  DEG --> INT
-  INT --> OUT[Leader: Step 6 write SPEC + verification verdict]
+  GB -- Yes --> MR[Leader: Step 5 write module representation]
+  MR --> WSR[Refresh analysis-workspace-state]
+  WSR --> NEXT{More modules?}
+  NEXT -- Yes --> LOOP
+  NEXT -- No --> GR[Leader: Step 6 global representation]
+  DEG --> GR
+  GR --> WSG[Refresh analysis-workspace-state]
+  WSG --> OUT[Leader: Step 8 write SPEC + verification verdict]
 ```
+
+## Strict Output Paths
+
+The Leader MUST lock one `output_root` before dispatch and MUST reject or rerun any node that writes outside its assigned directory. Defaults:
+
+- `output_root`: `<output_dir or ~/.a2c_agents/understand>/android-project-analyst`
+- `workspace_state_dir`: `<output_root>/workspace-state`
+- `module_index_dir`: `<output_root>/module-index`
+- `module_root`: `<output_root>/modules/<module_id>`
+- `module_node_dir`: `<module_root>/node-results/<node_id>`
+- `module_representation_dir`: `<module_root>/representation`
+- `global_dir`: `<output_root>/global`
+- `spec_dir`: `<output_root>/SPEC`
+
+Required durable artifacts:
+
+| Schedule point | Required artifacts |
+|---|---|
+| Output root lock | `<output_root>/run_manifest.json` |
+| Workspace state | `<workspace_state_dir>/analysis_workspace_state.json`, `<workspace_state_dir>/analysis_workspace_state.md` |
+| Module inventory | `<module_index_dir>/module_inventory.json`, `<module_index_dir>/module_inventory.md` |
+| Per module brief | `<module_root>/module_brief.json` |
+| Per module node outputs | `<module_node_dir>/<node_artifact>.json`, `<module_node_dir>/<node_artifact>.md` |
+| Per module representation | `<module_representation_dir>/module_representation.json`, `<module_representation_dir>/module_representation.md` |
+| Global representation | `<global_dir>/global_representation.json`, `<global_dir>/global_representation.md` |
+| SPEC package | `<spec_dir>/prd.md`, `<spec_dir>/design.md`, `<spec_dir>/verification.md`, plus `<spec_dir>/plan.md` in migration mode |
+
+No node may choose its own output path. `presentation-resource` may write downloaded resources only under `<module_root>/node-results/presentation-resource/downloaded_resources/`.
 
 ## Detailed Steps
 
@@ -42,60 +73,78 @@ graph TD
 
 - **Executor**: Leader (`android-project-analyst` controller)
 - **Input**: [dependencies.yaml](dependencies.yaml)
-- **Action**: verify each `tools[]` entry (`rg`, `curl`) is available; built-in Grep/Read substitute when `rg` is absent. Resource downloads degrade to `download_gaps` when `curl` is absent.
+- **Action**: verify each `tools[]` entry (`rg`, `curl`, `git`) is available; built-in Grep/Read substitute when `rg` is absent. Presentation/resource downloads degrade to `download_gaps` when `curl` is absent. Stale-input detection degrades to artifact-path/status comparison when `git` is absent.
 - **Output**: pre-flight note to the user
 - **Quality gate**: all deps are `required: false` → the run proceeds even if missing; user is informed of any degraded mode. The Leader does NOT auto-skip nodes.
 
-### Step 1 — Trigger verification + mode selection + shared brief
+### Step 1 — Trigger verification + mode selection + output root lock
 
 - **Executor**: Leader
 - **Input**: `source_project_path`, optional `analysis_scope` / `mode` / `target_project_path` / `output_dir` / `language`, optional `jetbrains` MCP context
-- **Action**: verify the target is an Android project (`AndroidManifest.xml`, `settings.gradle(.kts)`, `build.gradle(.kts)`, or a `com.android.*` module) and that the request needs structured analysis, not a one-off lookup. Select `exploration` or `migration`. Build a minimal shared brief (confirmed paths, scope, output root, Android evidence, module/build files, optional MCP evidence, known constraints).
-- **Output**: announced mode banner + shared brief; default `output_dir` = `~/.a2c_agents/understand/` (SPEC under `<output_dir>/SPEC`, node artifacts under `<output_dir>/node-results/<node>`)
+- **Action**: verify the target is an Android project (`AndroidManifest.xml`, `settings.gradle(.kts)`, `build.gradle(.kts)`, or a `com.android.*` module) and that the request needs structured analysis, not a one-off lookup. Select `exploration` or `migration`. Lock `output_root`, `module_index_dir`, `global_dir`, and `spec_dir`. Write `run_manifest.json` with source path, mode, target path, scope, schedule version, allowed path roots, and timestamp.
+- **Output**: announced mode banner + `run_manifest.json`; default `output_root` = `~/.a2c_agents/understand/android-project-analyst`
 - **Serial / Parallel**: serial (precedes all dispatch)
-- **Quality gate**: Android evidence present AND scope valid → proceed; otherwise STOP and explain the failed check (recommend a generic exploration agent for simple lookups). Migration mode without `target_project_path` → ask before producing `plan.md`.
+- **Quality gate**: Android evidence present AND scope valid AND `run_manifest.json` exists/non-empty → proceed; otherwise STOP and explain the failed check. Migration mode without `target_project_path` → ask before producing `plan.md`.
 
-### Step 2 — Stage A: dispatch foundation nodes (parallel, B-pattern)
+### Step 2 — Workspace state ledger
 
-- **Executor**: `ui-understand`, `architecture-pattern`, `android-ecosystem`, `api-list`
-- **Input**: per-node contract `{ source_project_path, analysis_scope, mode, shared_brief, skill_spec_path (roles/<id>.md), output_dir: <output_dir>/node-results/<node>, return_format: json }`; `api-list` may also receive `ui_entry_points`
-- **Action**: each node validates inputs, performs its bounded slice, writes its JSON+MD artifacts, and returns the controller JSON shape
-- **Output**: `ui_understanding.*`, `architecture_pattern.*`, `android_ecosystem.*`, `api_list.*`
-- **Serial / Parallel**: parallel — all four run together (slices are dispatch-time fixed, not negotiated)
-- **Quality gate**: each return must be `status: "completed"` with `output_files` that exist and are non-empty. On missing/empty/non-`completed` output → re-dispatch that node with the same contract plus the failure reason (retry policy in [bind.md](bind.md) § Failure Handling). Do NOT synthesize around a failed node.
+- **Executor**: `analysis-workspace-state`
+- **Input**: output root, run manifest, current controller step, known module/node/artifact outputs, source change/timestamp evidence, rerun reports, blockers
+- **Action**: initialize and refresh the analysis ledger. Track module status, node output inventory, artifact inventory, stale upstream inputs, rerun history, blockers, and next safe controller actions.
+- **Output**: `analysis_workspace_state.json`, `analysis_workspace_state.md`
+- **Serial / Parallel**: serial; refreshed after module inventory, Stage A, Stage B, module representation, global representation, and SPEC.
+- **Quality gate**: downstream stages do not consume artifacts marked stale; rerun the responsible module/node or mark the affected module `blocked`.
 
-### Step 3 — Stage B: dispatch resource + data-flow nodes (gated handoff, C-pattern)
-
-- **Executor**: `resource-understand`, `data-flow`
-- **Input**: Stage A verified output paths. `resource-understand` receives optional `ui_understanding_path` / `api_list_path` / `android_ecosystem_path`; `data-flow` receives required `api_list_path` + optional `architecture_pattern_path` / `android_ecosystem_path` / `ui_understanding_path`
-- **Action**: `resource-understand` maps local + online resources and safely downloads concrete URLs into `<output_dir>/node-results/resource-understand/downloaded_resources/`; `data-flow` traces sources→repositories→streams→UI state, aligning API IDs to `api_list`
-- **Output**: `resource_understanding.*`, `data_flow.*`
-- **Serial / Parallel**: starts only after Stage A gate passes; the two nodes may run in parallel with each other
-- **Quality gate**: same return-shape + output-file checks as Step 2. If a node needs upstream data that is missing/stale, it returns `needs_rerun`/`blocked` rather than rebuilding another node's catalog.
-
-### Step 4 — Stage C: dispatch logic node (final pipeline stage)
-
-- **Executor**: `logic-understand`
-- **Input**: required `ui_understanding_path`, `architecture_pattern_path`, `android_ecosystem_path`, `api_list_path`, `data_flow_path`
-- **Action**: synthesize user-action / lifecycle / state-machine / business-rule behavior, referencing (not rebuilding) upstream catalogs
-- **Output**: `logic_understanding.*`
-- **Serial / Parallel**: serial — runs last, after Stage B gate passes
-- **Quality gate**: return-shape + output-file checks; every major UI module from `ui_understanding_path` has logic coverage or an explicit reason for none.
-
-### Step 5 — Integrate: reconcile verified outputs
+### Step 3 — Module inventory and schedule
 
 - **Executor**: Leader
-- **Input**: all verified node JSON/MD outputs
-- **Action**: integrate ONLY from verified outputs. Prefer evidence with exact source paths. Mark cross-node conflicts that affect architecture/data-flow/ecosystem/migration as `Needs confirmation`. Build a **coverage matrix** (screen/module → UI → architecture role → APIs/data sources → resource usage → data flows → logic flows → ecosystem constraints) and an **evidence index** (claim → node output → source paths → confidence `verified|inferred|assumed|unknown`).
-- **Output**: reconciled coverage matrix + evidence index (in-memory, feeds Step 6)
+- **Input**: source path, analysis scope, Android evidence, module/build files, optional MCP module context
+- **Action**: partition the project into explicit `analysis_modules`. Prefer Gradle modules and feature packages; when one Gradle module contains multiple independent features, split by package/route/feature boundary. Each module entry MUST include `module_id` (stable slug), `module_type` (`app | feature | ui | logic | data | platform | shared | test | unknown`), `source_roots`, `ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `depends_on`, and `module_output_root`. Include UI-only and logic-only modules when they exist; if a module has no UI or no logic, record `none` with evidence.
+- **Output**: `module_inventory.json`, `module_inventory.md`
+- **Serial / Parallel**: serial (precedes all module dispatch)
+- **Quality gate**: module inventory exists/non-empty, every in-scope source root is assigned to one module or `out_of_scope`, and `module_order` is deterministic.
+
+### Step 4 — Stage A per module: dispatch clustered foundation nodes (parallel, B-pattern)
+
+- **Executor**: `presentation-resource`, `project-architecture`, `data-contract-flow`
+- **Input**: per-node contract `{ source_project_path, module_id, module_scope, analysis_scope, mode, module_brief_path, skill_spec_path (roles/<id>.md), output_dir: <output_root>/modules/<module_id>/node-results/<node_id>, return_format: json }`; `data-contract-flow` may also receive `presentation_hints` when known.
+- **Action**: each node validates inputs, performs its bounded clustered slice, writes its JSON+MD artifacts, and returns the controller JSON shape.
+- **Output**: `presentation_resource.*`, `project_architecture.*`, `data_contract_flow.*`
+- **Serial / Parallel**: parallel within one module — all three run together for the same `module_id`. Do not start the next module until the current module representation is written unless the user explicitly allows concurrent modules.
+- **Quality gate**: each return must be `status: "completed"` with `output_files` that exist and are non-empty. Refresh `analysis-workspace-state` after the group; on missing/empty/non-`completed`/stale output → re-dispatch that node with the same contract plus the failure reason (retry policy in [bind.md](bind.md) § Failure Handling). Do NOT synthesize around a failed node.
+
+### Step 5 — Stage B per module: dispatch behavior logic node (gated handoff, C-pattern)
+
+- **Executor**: `behavior-logic`
+- **Input**: required `module_id`, `module_scope`, `presentation_resource_path`, `project_architecture_path`, `data_contract_flow_path`, and latest `analysis_workspace_state_path`
+- **Action**: synthesize user-action / lifecycle / state-machine / business-rule behavior, referencing (not rebuilding) upstream catalogs.
+- **Output**: `behavior_logic.*`
+- **Serial / Parallel**: serial within the module — runs after that module's Stage A gate passes.
+- **Quality gate**: latest workspace state must not mark Stage A inputs stale; return-shape + output-file checks; every major UI/logic scope from the module brief has behavior coverage or an explicit reason for none.
+
+### Step 6 — Module representation
+
+- **Executor**: Leader
+- **Input**: verified node JSON/MD outputs for one `module_id`
+- **Action**: integrate ONLY from verified outputs for that module. Write a module representation that covers both UI and logic when present: module purpose, UI surface, resources, architecture/ecosystem, data contracts/flows, behavior logic, dependencies, risks, gaps, evidence index, and readiness.
+- **Output**: `module_representation.json`, `module_representation.md`
 - **Serial / Parallel**: serial
-- **Quality gate**: no unknowns hidden — every unresolved item lands in SPEC risks/assumptions or `Needs confirmation`.
+- **Quality gate**: no unknowns hidden; every module representation points to its node artifacts and source evidence. Refresh workspace state after writing. Do not proceed to global integration until every scheduled module is represented or explicitly marked blocked/out of scope.
 
-### Step 6 — Final: write SPEC package + emit completion report
+### Step 7 — Global representation
 
 - **Executor**: Leader
-- **Input**: coverage matrix + evidence index from Step 5
-- **Action**: write SPEC artifacts under `<output_dir>/SPEC`. **Exploration** mode → `prd.md`, `design.md`, `verification.md`. **Migration** mode → adds `plan.md`. SPEC must synthesize, not paste node summaries; every important claim maps to node output + source path or is marked assumption/gap. `design.md` sections include a Mermaid diagram, structured table, or evidence mapping; architecture/UI-navigation/data-flow/cross-module sections include diagrams when evidence exists.
+- **Input**: all verified module representations
+- **Action**: combine module representations into a total full-project global representation. Preserve module boundaries first, then synthesize cross-module architecture, navigation, data dependencies, shared resources, shared logic, platform constraints, conflicts, and global readiness. Do not read raw source to fill gaps at this stage; rerun the responsible module/node instead.
+- **Output**: `global_representation.json`, `global_representation.md`
+- **Serial / Parallel**: serial
+- **Quality gate**: latest workspace state must not mark required module representations stale; every global claim maps to a module representation and source-path evidence, or is marked `assumed`, `unknown`, or `blocked`.
+
+### Step 8 — Final: write SPEC package + emit completion report
+
+- **Executor**: Leader
+- **Input**: `global_representation.json`, `global_representation.md`, module inventory, module representations, latest `analysis_workspace_state.json`
+- **Action**: write SPEC artifacts under `<output_root>/SPEC`. **Exploration** mode → `prd.md`, `design.md`, `verification.md`. **Migration** mode → adds `plan.md`. SPEC must synthesize, not paste node summaries; every important claim maps to module/global representation evidence and source paths or is marked assumption/gap. `design.md` sections include a Mermaid diagram, structured table, or evidence mapping; presentation/navigation, project architecture, data-contract/flow, and cross-module sections include diagrams when evidence exists.
 - **Output**: SPEC files + the completion report below
 
 #### Final Report Format
@@ -106,15 +155,12 @@ graph TD
   "mode": "exploration | migration",
   "source_project_path": "...",
   "target_project_path": "... or null",
-  "node_outputs": {
-    "ui_understand": ["..."],
-    "architecture_pattern": ["..."],
-    "android_ecosystem": ["..."],
-    "api_list": ["..."],
-    "resource_understand": ["..."],
-    "data_flow": ["..."],
-    "logic_understand": ["..."]
-  },
+  "output_root": "...",
+  "workspace_state": ["..."],
+  "module_inventory": ["..."],
+  "module_representations": ["..."],
+  "global_representation": ["..."],
+  "node_outputs_by_module": {},
   "spec_outputs": ["..."],
   "readiness": "ready | ready_with_assumptions | blocked",
   "blocking_gaps": []
@@ -124,9 +170,11 @@ graph TD
 ## Acceptance Criteria
 
 - All dispatched nodes returned outputs matching their role `## Output Schema` (no malformed returns); any `[ROLE MISSING]` is recorded per [bind.md](bind.md).
-- All required node artifacts exist and are non-empty; all required SPEC artifacts for the selected mode exist and are non-empty.
-- **Coverage check (B-pattern)**: every Stage A slice is accounted for — screens from `ui-understand` are represented in `design.md` or marked out of scope; APIs from `api-list` appear or are marked unknown; local/online resources from `resource-understand` appear or are marked unknown.
-- **Gate check (C-pattern)**: Stage B ran only after Stage A verification; Stage C ran only after Stage B verification; every kicked-back node is recorded.
-- Data-flow and logic-flow names align across `design.md`, `plan.md`, and `verification.md`.
+- All required node artifacts exist and are non-empty; latest `analysis-workspace-state` has no stale required inputs; all required SPEC artifacts for the selected mode exist and are non-empty.
+- **Path check**: every artifact path is under `output_root`; every node artifact is under `<output_root>/modules/<module_id>/node-results/<node_id>/`; SPEC is under `<output_root>/SPEC`.
+- **Module-first check**: every scheduled module has a module brief, node outputs, and module representation before global representation is written.
+- **Coverage check (B-pattern)**: every per-module Stage A slice is accounted for — screens/resources from `presentation-resource`, topology/platform constraints from `project-architecture`, and APIs/data flows from `data-contract-flow` appear in module/global representations or are marked out of scope/unknown.
+- **Gate check (C-pattern)**: per-module behavior analysis ran only after that module's Stage A verification; every kicked-back node is recorded.
+- Data-flow and behavior-flow names align across `design.md`, `plan.md`, and `verification.md`.
 - `verification.md` carries a readiness verdict (`ready | ready_with_assumptions | blocked`); if `blocked`, the final response lists blockers and exact missing evidence.
 - No artifact claims certainty for unknown or dynamic code paths.

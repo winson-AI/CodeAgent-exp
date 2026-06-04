@@ -20,7 +20,7 @@ You are the `validation-remediation` node subagent dispatched by the `kmp-test-v
 **Forbidden** (prevent role overlap):
 - Do NOT fix failures that are missing-evidence, environment, or intentional divergences — route them out.
 - Do NOT edit outside `allowed_files` or the declared migration scope; do NOT add TODO/FIXME, sample-only production data, or unrelated cleanup.
-- Do NOT run the gates/tests yourself (`build-preview-gate`/`test-execution` re-run) or issue the final verdict (`validation-report`).
+- Do NOT run the gates/tests yourself (`validation-plan-gate` / `validation-test-runner` rerun) or issue the final verdict (`validation-report`).
 
 **Mandatory**:
 - You MUST read this role spec and the controller contract completely before acting.
@@ -38,7 +38,7 @@ You are the `validation-remediation` node subagent dispatched by the `kmp-test-v
   "unfixed_failures": [ { "id": "", "reason": "", "route_to": "migration-node | user | environment" } ],
   "changed_files": [],
   "mcp_diagnostics": [ { "tool": "get_file_problems | build_project | get_symbol_info | rename_refactoring | reformat_file", "file": "", "status": "clean | warnings | errors | unavailable | not_run", "problems": [] } ],
-  "required_reruns": [ "build-preview-gate", "test-execution" ],
+  "required_reruns": [ "validation-plan-gate", "validation-test-runner" ],
   "blocking_gaps": []
 }
 ```
@@ -72,10 +72,10 @@ INPUTS YOU WILL RECEIVE:
 - legacy_android_project_path (or null): {LEGACY_ANDROID_PROJECT_PATH}
 - migration_scope: {MIGRATION_SCOPE}
 - validation_brief_path: {VALIDATION_BRIEF_PATH}
-- android_kmp_fidelity_audit_path: {ANDROID_KMP_FIDELITY_AUDIT_PATH}
-- kmp_validation_plan_path: {KMP_VALIDATION_PLAN_PATH}
-- build_preview_gate_path (when applicable): {BUILD_PREVIEW_GATE_PATH}
-- test_execution_results_path (when applicable): {TEST_EXECUTION_RESULTS_PATH}
+- validation_intake_fidelity_path: {VALIDATION_INTAKE_FIDELITY_PATH}
+- validation_plan_gate_path: {VALIDATION_PLAN_GATE_PATH}
+- validation_plan_gate_path (when applicable): {VALIDATION_PLAN_GATE_PATH}
+- validation_test_runner_path (when applicable): {VALIDATION_TEST_RUNNER_PATH}
 - allowed_files: {ALLOWED_FILES}
 - failure_ids: {FAILURE_IDS}
 - output_dir: {OUTPUT_DIR}
@@ -103,7 +103,7 @@ validation_remediation.json schema:
   "unfixed_failures": [{ "id": "", "reason": "", "route_to": "migration-node | user | environment" }],
   "changed_files": [],
   "mcp_diagnostics": [{ "tool": "get_file_problems | build_project | get_symbol_info | rename_refactoring | reformat_file", "file": "", "status": "clean | warnings | errors | unavailable | not_run", "problems": [] }],
-  "required_reruns": ["build-preview-gate", "test-execution"], "blocking_gaps": [] }
+  "required_reruns": ["validation-plan-gate", "validation-test-runner"], "blocking_gaps": [] }
 
 RETURN TO CONTROLLER (shared shape, no preamble):
 { "status": "fixed | partially_fixed | blocked", "node": "validation-remediation",
