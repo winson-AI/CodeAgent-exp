@@ -46,6 +46,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `dependency_platform_gate.json`: machine-routable gate artifact containing capability map, minimal-change dependency decisions, build-config changes, platform capabilities, Android-only API replacement strategy, expect/actual/source-set placement, changed files, implementation constraints, and blockers.
+- `dependency_platform_gate.md`: agent-readable gate handoff containing dependency/platform decisions, build-change rationale, source-set/platform-boundary notes, changed-file summary, downstream constraints, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -56,8 +61,8 @@ You protect the target build and common source sets. Map module capabilities to 
 INPUTS: migration_module_id, module_scope, migration_analysis_planning_path, target paths, allowed_files, allowed_source_sets, output_root, output_dir.
 
 OUTPUTS:
-- dependency_platform_gate.json
-- dependency_platform_gate.md
+- dependency_platform_gate.json (machine gate: capabilities, dependency/build decisions, platform boundaries, changed files, constraints)
+- dependency_platform_gate.md (agent handoff: rationale, source-set/platform notes, downstream constraints, blockers)
 
 Return status ready_for_implementation or blocked. Include changed_files and blockers.
 ```

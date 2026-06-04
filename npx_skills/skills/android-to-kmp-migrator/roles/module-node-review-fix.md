@@ -55,6 +55,13 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `module_node_review.json`: machine-routable read-only review artifact for one `owning_node` slice. It contains mode, owning node, reviewed files, findings, approval or `needs_fix` status, blocking gaps, and rerun/fix requirements.
+- `module_node_review.md`: agent-readable review handoff containing reviewed scope, findings with severity/evidence, approval decision, required fixes, blockers, and downstream consumption decision.
+- `module_node_fix.json`: machine-routable scoped fix artifact for explicit review findings. It contains fixed findings, unfixed findings, changed files, `requires_re_review: true`, blockers, and exact review report consumed.
+- `module_node_fix.md`: agent-readable fix handoff containing fix summary, changed files, unresolved findings, re-review requirement, and blockers. It must not self-approve the fix.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -67,8 +74,8 @@ Fix mode: consume one review report; fix only assigned must_fix findings inside 
 INPUTS: mode, migration_module_id, module_scope, owning_node, owning_node_output_path, changed_files, review_report_path for fix mode, allowed_files, workspace state, output_dir.
 
 OUTPUTS:
-- review mode: module_node_review.json/md
-- fix mode: module_node_fix.json/md
+- review mode: module_node_review.json/md (read-only reviewed files, findings, approval/needs-fix decision, blockers)
+- fix mode: module_node_fix.json/md (fixed/unfixed findings, changed files, requires_re_review=true, blockers)
 
 Return JSON only.
 ```

@@ -49,7 +49,7 @@ The team is a **reduced serial pipeline with a remediation loop**. Role overlap 
 ## Protocol Summary
 
 0. **Pre-flight** — check optional dependencies from [dependencies.yaml](dependencies.yaml).
-1. **Workspace state** — initialize `validation-workspace-state`.
+1. **Output root + workspace state** — lock validation output root parallel to migration, then initialize `validation-workspace-state`.
 2. **Intake/fidelity trust gate** — run `validation-intake-fidelity`; block non-migration validation and test-trust blockers.
 3. **Plan/build gate** — run `validation-plan-gate`; commands must be trusted, and build/preview must pass before behavioral tests.
 4. **Test workflow** — run `validation-test-runner` when validation cases exist.
@@ -77,12 +77,63 @@ The team is a **reduced serial pipeline with a remediation loop**. Role overlap 
 | [roles/](roles/) | Active reduced role specs |
 | [dependencies.yaml](dependencies.yaml) | Optional CLI tools checked at startup |
 
+## Strict Output Schedule
+
+Validation artifacts must be written parallel to migration artifacts, under a `validation` base location. If the migration run uses a default base like `~/.a2c_agents/migration`, the validator uses the sibling base `~/.a2c_agents/validation`. If a `migration_output_root` is provided, derive the validation base by replacing the `migration` path segment with `validation` when possible; otherwise use `<output_dir or ~/.a2c_agents/validation>`.
+
+```text
+output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
+workspace_state_dir = <output_root>/workspace-state
+intake_dir = <output_root>/intake-fidelity
+plan_gate_dir = <output_root>/plan-gate
+test_runner_dir = <output_root>/test-runner
+remediation_dir = <output_root>/remediation
+report_dir = <output_root>/report
+logs_dir = <output_root>/logs
+```
+
+Required artifacts:
+
+- `<output_root>/run_manifest.json`
+- `<workspace_state_dir>/validation_workspace_state.json`
+- `<workspace_state_dir>/validation_workspace_state.md`
+- `<intake_dir>/validation_intake_fidelity.json`
+- `<intake_dir>/validation_intake_fidelity.md`
+- `<plan_gate_dir>/validation_plan_gate.json`
+- `<plan_gate_dir>/validation_plan_gate.md`
+- `<logs_dir>/plan-gate/*` when build/preview commands run
+- `<test_runner_dir>/validation_test_runner.json`
+- `<test_runner_dir>/validation_test_runner.md`
+- `<logs_dir>/test-runner/*` when tests run
+- `<remediation_dir>/<cycle_id>/validation_remediation.json` and `.md` when fixes run
+- `<report_dir>/kmp_validation_report.json`
+- `<report_dir>/kmp_validation_report.md`
+
+No validator artifact may be written inside the migration output root. Migration artifacts are read-only inputs referenced by path.
+
+## Output Artifact Content Matrix
+
+The controller verifies both artifact names and role-aligned content before downstream stages consume any file.
+
+| Stage / owner | Output file(s) | Required content |
+|---|---|---|
+| Output root lock / Leader | `run_manifest.json` | Validation scope, KMP target path, Android source/SPEC paths, migration report path, migration output root, validation output root, allowed roots, dependency-preflight status, timestamp. |
+| Workspace ledger / `validation-workspace-state` | `validation_workspace_state.json`, `validation_workspace_state.md` | Validator node status, output files, changed-file ownership, stale upstream inputs, rerun history, blockers, and next safe action. |
+| Intake/fidelity / `validation-intake-fidelity` | `validation_intake_fidelity.json`, `validation_intake_fidelity.md` | Migration trigger evidence, normalized validation brief, KMP evidence, Android/SPEC-vs-KMP fidelity gaps across UI/logic/data/control flow, test-trust blockers, rerun requests, blockers. |
+| Plan/build gate / `validation-plan-gate` | `validation_plan_gate.json`, `validation_plan_gate.md`, plan-gate logs | Target structure, source sets, test frameworks, trusted command resolution, command sources, build/preview/renderability gate results, log paths, routed failures, blockers. |
+| Test runner / `validation-test-runner` | `validation_test_runner.json`, `validation_test_runner.md`, test logs, optional changed test files | Android/SPEC-anchored test cases, expected vs actual results, commands, log paths, created/reused tests, failure routing, skipped/blocked reasons. |
+| Remediation / `validation-remediation` | `validation_remediation.json`, `validation_remediation.md`, changed target files | Confirmed target KMP failures, Android/SPEC evidence for fixes, fixed/unfixed failures, changed files, diagnostics, required reruns, blockers. |
+| Final verdict / `validation-report` | `kmp_validation_report.json`, `kmp_validation_report.md` | Final `passed | failed | blocked` verdict from verified evidence, fidelity summary, build/preview summary, test statistics, remediation summary, changed files, remaining failures, blockers, report path. |
+
+JSON artifacts are the machine-routable source of truth. Markdown artifacts are agent-readable handoffs that preserve exact paths, commands/logs, changed-file ownership, rerun context, blockers, and downstream routing. Node Markdown must not be a prose-only completion summary.
+
 ## Shared Return Contract
 
 ```json
 {
   "status": "completed | passed | failed | needs_rerun | blocked",
   "node": "node-name",
+  "output_dir": "<exact validator node output dir under output_root>",
   "output_files": [],
   "changed_files": [],
   "stale_upstream_inputs": [],

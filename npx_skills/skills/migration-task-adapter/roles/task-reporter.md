@@ -68,6 +68,11 @@ You are the `task-reporter` node subagent dispatched by the `migration-task-adap
 
 Shared controller return shape: `status`, `node`, `task_id`, `route`, `output_dir`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `task_adapter_report.json`: machine-routable final adapter report containing final status, task id, route, understand focus, source/target paths, output root, downstream workflow summary, stage inspection summary, intermediate asset summary, verified outputs, readiness, rerun requests, blockers, and report path.
+- `task_adapter_report.md`: agent-readable final handoff containing route decision, downstream workflow evidence, stage inspection status, intermediate asset coverage, verified outputs, readiness decision, rerun requests, blockers, and next action. It must not re-run or reinterpret downstream workflows.
+
 ## Status Decision Rules
 
 - `completed`: only-understand route has required analyst outputs, stage inspections pass, intermediate assets are recorded, and no blocking gaps remain.
@@ -117,8 +122,8 @@ HANDLER (how you process):
 7. Emit exact rerun_requests and blocking_gaps.
 
 OUTPUTS (write under output_dir, exact names):
-- task_adapter_report.json
-- task_adapter_report.md
+- task_adapter_report.json (machine final report: status, route, downstream/stage/asset summaries, verified outputs, reruns, blockers)
+- task_adapter_report.md (agent final handoff: evidence-backed route result, readiness, next actions)
 
 RETURN TO CONTROLLER (shared shape, no preamble):
 { "status": "completed | ready_for_validation | needs_rerun | failed | blocked",

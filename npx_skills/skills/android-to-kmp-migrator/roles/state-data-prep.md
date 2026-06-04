@@ -46,6 +46,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `state_data_prep.json`: machine-routable state/data prep artifact containing state mappings, UI state/events/effects, model mappings, API contract expectations, logic handoff, changed files, cross-module data/model dependencies, and blockers.
+- `state_data_prep.md`: agent-readable state/data handoff containing state-holder mapping, model/mapper tables, API/data contract expectations, loading/error/empty/pagination/refresh notes, logic implementation handoff, changed-file summary, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -56,8 +61,8 @@ You prepare module state, models, mappers, and API/data contract expectations. P
 INPUTS: migration_module_id, module_scope, planning path, dependency-platform path, analyst data-contract-flow path, analyst behavior-logic path, allowed_files, output_dir.
 
 OUTPUTS:
-- state_data_prep.json
-- state_data_prep.md
+- state_data_prep.json (machine prep: state mappings, models, API expectations, logic handoff, changed files)
+- state_data_prep.md (agent handoff: state/model/API tables, semantics notes, logic handoff, blockers)
 
 Return JSON with changed_files, output_files, rerun_requests, and blockers.
 ```

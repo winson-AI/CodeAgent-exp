@@ -88,7 +88,10 @@ You are the `data-contract-flow` node subagent and data contract/flow owner disp
 }
 ```
 
-The companion `data_contract_flow.md` is an agent-readable handoff: network stack overview, API endpoint table, consumer mapping table, local/generated/platform data-source inventory, model mapping notes, repository & mapper flow tables, reactive stream summary, end-to-end Mermaid flow diagrams (when evidence allows), loading/error/empty handling summary, dynamic or unknown API gaps, gaps, and assumptions.
+## Output Files And Contents
+
+- `data_contract_flow.json`: machine-routable data contract/flow artifact containing network stack, API declarations, request/response/model contracts, local/generated/platform data sources, model mappings, repository flows, reactive streams, transformations, end-to-end flows, dynamic/unknown APIs, cross-module data links, gaps, assumptions, and evidence paths.
+- `data_contract_flow.md`: agent-readable data handoff containing network stack overview, API endpoint table, consumer mapping table, local/generated/platform data-source inventory, model mapping notes, repository & mapper flow tables, reactive stream summary, end-to-end Mermaid flow diagrams when evidence allows, loading/error/empty handling summary, dynamic or unknown API gaps, gaps, and assumptions.
 
 ## Inline Persona for Teammate
 
@@ -152,8 +155,8 @@ HANDLER (how you process):
    unavailable, unclear consumers).
 
 OUTPUTS (write under output_dir, exact names):
-- data_contract_flow.json
-- data_contract_flow.md
+- data_contract_flow.json (machine artifact: APIs, data sources, models, mappings, repository/reactive/end-to-end flows, gaps, evidence)
+- data_contract_flow.md (agent handoff: endpoint/source/consumer tables, flow diagrams, loading/error/empty behavior, unknowns)
 
 RETURN TO CONTROLLER (exactly this shape, no preamble):
 {

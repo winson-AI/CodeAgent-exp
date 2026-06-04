@@ -43,6 +43,12 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `validation_test_runner.json`: machine-routable test artifact containing Android/SPEC-anchored test cases, execution results, expected vs actual evidence, commands, log files, changed test files, rerun requests, and blockers.
+- `validation_test_runner.md`: agent-readable test handoff containing case decomposition, evidence anchors, execution summary, pass/fail/skip/blocker tables, command/log paths, created/reused tests, failure routing, and blockers.
+- Logs and changed test files: command output logs and any created tests following target project conventions. Every log and changed file must be listed in JSON.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -53,9 +59,9 @@ Decompose validation requirements into atomic Android-anchored cases, then execu
 INPUTS: kmp_target_project_path, migration_scope, validation_intake_fidelity_path, validation_plan_gate_path, migration_report_path, validation_requirements, changed_files, output_dir.
 
 OUTPUTS:
-- validation_test_runner.json
-- validation_test_runner.md
-- logs and changed test files when created
+- validation_test_runner.json (machine test artifact: cases, results, expected/actual, commands/logs, changed tests)
+- validation_test_runner.md (agent handoff: case table, execution summary, failure routing, blockers)
+- logs and changed test files when created (paths referenced in JSON)
 
 Return passed only when all runnable cases pass or are justified skips.
 ```

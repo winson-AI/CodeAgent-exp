@@ -58,6 +58,15 @@ You are the `workspace-state-discipline-inspector` node subagent dispatched by t
 
 Shared controller return shape: `status`, `node`, `task_id`, `route`, `output_dir`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `workspace_state_discipline.json`: machine-routable discipline ledger containing task id, route, output root, current stage id, stage status inventory, artifact inventory, intermediate asset records summary, path compliance, freshness checks, rerun history, blockers, and next actions.
+- `workspace_state_discipline.md`: agent-readable discipline handoff containing stage status table, artifact inventory, path/freshness findings, rerun/blocker history, and next safe action.
+- `<stage_inspection_dir>/<current_stage_id>/stage_inspection.json`: machine-routable stage gate artifact containing checked inputs/outputs, path compliance, freshness checks, intermediate asset coverage, downstream contract checks, rerun requests, blockers, and next allowed stage.
+- `<stage_inspection_dir>/<current_stage_id>/stage_inspection.md`: agent-readable stage inspection handoff with the same checks as evidence tables.
+- `<intermediate_asset_dir>/intermediate_asset_records.json`: machine-routable asset ledger containing every consumed adapter/downstream artifact record, status, freshness basis, consumers, source evidence, and coverage gaps.
+- `<intermediate_asset_dir>/intermediate_asset_records.md`: agent-readable asset handoff listing consumed artifacts, producer, path, status, freshness, consumers, gaps, and blockers.
+
 ## Stage Inspection Schema
 
 ```json
@@ -167,12 +176,12 @@ HANDLER (how you process):
 6. Identify the next safe controller action.
 
 OUTPUTS (write under output_dir and shared dirs, exact names):
-- workspace_state_discipline.json
-- workspace_state_discipline.md
-- <stage_inspection_dir>/<current_stage_id>/stage_inspection.json
-- <stage_inspection_dir>/<current_stage_id>/stage_inspection.md
-- <intermediate_asset_dir>/intermediate_asset_records.json
-- <intermediate_asset_dir>/intermediate_asset_records.md
+- workspace_state_discipline.json (machine discipline ledger: stage/artifact/path/freshness/rerun/blocker state)
+- workspace_state_discipline.md (agent handoff: discipline tables, findings, next safe action)
+- <stage_inspection_dir>/<current_stage_id>/stage_inspection.json (machine stage gate: checked inputs/outputs, compliance, freshness, assets)
+- <stage_inspection_dir>/<current_stage_id>/stage_inspection.md (agent stage inspection handoff)
+- <intermediate_asset_dir>/intermediate_asset_records.json (machine asset ledger for consumed adapter/downstream artifacts)
+- <intermediate_asset_dir>/intermediate_asset_records.md (agent asset handoff with coverage gaps)
 
 RETURN TO CONTROLLER (shared shape, no preamble):
 { "status": "passed | needs_rerun | blocked", "node": "workspace-state-discipline-inspector",

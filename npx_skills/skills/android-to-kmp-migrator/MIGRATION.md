@@ -21,7 +21,7 @@ The registry separated controller from nodes and even encoded the staged dispatc
   - Review→fix loop after any file-changing node: `module-node-migration-review` ↔ `module-node-migration-fix`.
   - Parallel verify (B): `source-set-placement-guard`, `api-contract-parity`, `ui-render-fidelity-check`, `incremental-build-check`.
   - Completion + report: `prd-completion-check` → `migration-report` → `kmp-test-validator` handoff.
-  - Cross-cutting: `migration-workspace-state` ledger refreshed after major completions.
+  - Cross-cutting: `migration-workspace-state` progress ledger refreshed after every major stage, tracking per-module finish rate, plan-vs-code gaps, stale outputs, and rerun hooks.
 - **Disjointness check: PASS.** Each node owns a distinct slice (state ledger vs SPEC delta vs target understanding vs alignment vs dependency gate vs theme vs resource vs navigation vs platform vs state/model vs UI vs logic vs review vs fix vs source-set guard vs API parity vs render vs build vs completion vs report). `module-node-migration-review` and `-fix` are intentionally complementary (read-only judge vs scoped editor) and gated as a loop, not overlapping.
 
 ## Content port map
@@ -65,7 +65,7 @@ The second refactor added a module-first migration schedule and strict output pa
 - Every module-scoped node now receives `migration_module_id`, `module_scope`, exact `output_dir`, and allowed target files/source sets when it may change files.
 - Review mode remains read-only. Fix mode consumes explicit findings, `allowed_files`, `owning_node`, and `migration_module_id`; re-review is a fresh read-only invocation.
 - Verification runs per module first. Global aggregation consumes module representations rather than loose node output lists.
-- `migration-report` may return `ready_for_validation` only when every scheduled module representation and the global representation exists and is non-empty.
+- `completion-report` report mode may return `ready_for_validation` only when every scheduled module representation and the global representation exists and is non-empty.
 
 ### Path compatibility
 
@@ -102,3 +102,28 @@ The third refactor reduces active migrator role definitions from 20 to 10. The f
 - Verification is consolidated but still read-only for source changes and uses explicit check IDs.
 - Completion and report are consolidated but report mode is blocked until readiness mode and module/global representation gates pass.
 - Build-config changes remain owned only by `dependency-platform-gate`.
+
+## Workspace Progress Ledger Refinement
+
+The `migration-workspace-state` role was refined from basic node/stale-output tracking into the controller's progress ledger. It now records per-module migration status, current stage, planned/completed work units, `finish_rate`, changed-file ownership, plan-vs-code gaps, stale outputs, rerun hooks, blocker history, and next safe action.
+
+This preserves the role boundary: `migration-workspace-state` still does not analyze source behavior, implement code, fix code, or issue readiness verdicts. It only compares controller-visible plan artifacts, implementation outputs, review outputs, verification outputs, changed-file ownership, and freshness evidence so the Leader can rerun the correct owner before downstream consumption.
+
+## Output Contract Refinement
+
+The active skill docs now distinguish output filenames from output content responsibilities. `SKILL.md` and `workflow.md` define the full artifact schedule and content matrix, while each role file states the exact JSON/Markdown filenames and the evidence each artifact must contain.
+
+This keeps the reduced-role boundaries explicit:
+
+- `migration_workspace_state.*` records progress ledger state only.
+- `migration_analysis_planning.*` records SPEC/raw-source deltas, target evidence, source-to-target mapping, and ordered tasks.
+- `dependency_platform_gate.*` records dependency, build, platform, and source-set decisions.
+- `presentation_integration.*` records theme/token/resource/media/navigation prep and UI handoff.
+- `state_data_prep.*` records state/model/API contract prep and logic handoff.
+- `ui_implementation.*` records visible UI implementation evidence and binding surfaces.
+- `logic_implementation.*` records behavior/data/API/state implementation evidence.
+- `module_node_review.*` and `module_node_fix.*` record review/fix evidence by mode.
+- `migration_verification.*` records stable check results and routed failures.
+- `completion_readiness.*` and `migration_report.*` record readiness and validation handoff evidence.
+
+The Leader must reject artifacts that have the correct filename but contain another role's work or prose-only summaries without machine-routable evidence.

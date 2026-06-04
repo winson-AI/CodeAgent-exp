@@ -12,7 +12,7 @@ skills:
     purpose: Downstream workflow for Android-to-KMP migration after analyst evidence is fresh.
   - name: kmp-test-validator
     required: false
-    purpose: Downstream workflow for post-migration validation when migration report evidence is ready.
+    purpose: Downstream workflow for post-migration validation when migration report evidence is ready; outputs must be recorded under the validator's parallel validation root.
 
 tools:
   - name: rg

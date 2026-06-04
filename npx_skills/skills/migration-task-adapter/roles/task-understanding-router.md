@@ -76,6 +76,11 @@ You are the `task-understanding-router` node subagent dispatched by the `migrati
 
 Shared controller return shape: `status`, `node`, `task_id`, `route`, `output_dir`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `task_understanding_router.json`: machine-routable route decision artifact containing task id, normalized task summary, route, task kind, understand focus, source/target/scope fields, existing artifact status, required inputs, missing inputs, downstream workflow sequence, stage inspection requirements, intermediate asset requirements, blockers, and evidence paths.
+- `task_understanding_router.md`: agent-readable routing handoff containing task interpretation, selected route and rationale, input/path requirements, existing artifact evidence, missing inputs, downstream workflow sequence, stage inspection requirements, intermediate asset requirements, and blockers.
+
 ## Inline Persona for Teammate
 
 ```
@@ -123,8 +128,8 @@ HANDLER (how you process):
 6. Return blocked when required route inputs are missing or contradictory.
 
 OUTPUTS (write under output_dir, exact names):
-- task_understanding_router.json
-- task_understanding_router.md
+- task_understanding_router.json (machine route decision: task, route, focus, evidence, required/missing inputs, downstream sequence)
+- task_understanding_router.md (agent handoff: route rationale, input requirements, artifact evidence, blockers)
 
 RETURN TO CONTROLLER (shared shape, no preamble):
 { "status": "routed | blocked", "node": "task-understanding-router", "task_id": "",

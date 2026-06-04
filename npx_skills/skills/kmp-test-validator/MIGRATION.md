@@ -56,3 +56,29 @@ The current active validator reduces 9 roles to 6. See [ROLE_REDUCTION.md](ROLE_
 | `validation-report` | `validation-report` |
 
 The reduction keeps the important gates intact: migration trigger/fidelity trust gate, build-before-tests gate, scoped remediation with mandatory reruns, and report-only final verdict.
+
+## Validation Output Location Refinement
+
+Validator outputs now use a strict validation root parallel to migration outputs:
+
+```text
+validation_base = <output_dir or ~/.a2c_agents/validation>
+output_root = <validation_base>/kmp-test-validator
+```
+
+When a migration output root is supplied, it remains a read-only input. The validator writes to a sibling `validation` base location rather than writing inside the migration output root.
+
+## Output Contract Refinement
+
+The active validator docs now distinguish output filenames from output content responsibilities. `SKILL.md` and `workflow.md` define the validation artifact schedule and content matrix, while each role file states the exact JSON/Markdown filenames and the evidence each artifact must contain.
+
+Role ownership remains explicit:
+
+- `validation_workspace_state.*` records validator ledger state only.
+- `validation_intake_fidelity.*` records migration trigger evidence, validation brief, fidelity gaps, and test-trust blockers.
+- `validation_plan_gate.*` records trusted commands, build/preview results, log paths, and failure routing.
+- `validation_test_runner.*` records Android/SPEC-anchored cases, execution results, logs, and changed test files.
+- `validation_remediation.*` records confirmed target fixes, changed files, diagnostics, and required reruns.
+- `kmp_validation_report.*` records the final evidence-backed validation verdict.
+
+The Leader must reject artifacts that have the correct filename but contain another role's work, generic KMP testing output, or prose-only summaries without machine-routable evidence.

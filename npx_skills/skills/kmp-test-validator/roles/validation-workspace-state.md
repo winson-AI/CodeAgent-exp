@@ -46,6 +46,11 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
 
 Shared controller return shape (all nodes): `status`, `node`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `validation_workspace_state.json`: machine-routable validation ledger containing current controller step, validator node status, output file inventory, changed-file ownership, stale upstream inputs, rerun history, blockers, and next safe actions.
+- `validation_workspace_state.md`: agent-readable ledger handoff containing node status table, stale-input table, changed-file ownership summary, rerun/blocker history, and next safe controller action.
+
 ## Inline Persona for Teammate
 
 ```
@@ -87,8 +92,8 @@ HANDLER (how you process):
 5. Identify the next safe controller action.
 
 OUTPUTS (write under output_dir, exact names):
-- validation_workspace_state.json (schema below)
-- validation_workspace_state.md
+- validation_workspace_state.json (machine ledger: node status, output inventory, stale inputs, changed-file ownership, reruns, blockers)
+- validation_workspace_state.md (agent handoff: status/stale/rerun/blocker tables and next safe action)
 
 validation_workspace_state.json schema:
 { "status": "completed | blocked", "node": "validation-workspace-state", "current_controller_step": "",

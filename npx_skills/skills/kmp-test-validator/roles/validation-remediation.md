@@ -45,6 +45,11 @@ You are the `validation-remediation` node subagent dispatched by the `kmp-test-v
 
 Shared controller return shape (all nodes): `status`, `node`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `validation_remediation.json`: machine-routable remediation artifact containing fixed failures, unfixed failures with route, changed files, diagnostics, required reruns, blockers, and exact failure evidence consumed.
+- `validation_remediation.md`: agent-readable remediation handoff containing confirmed target failures, Android/SPEC evidence checked, fix summary, changed-file list, unfixed failures, required reruns, diagnostics, and blockers.
+
 ## Inline Persona for Teammate
 
 ```
@@ -94,8 +99,8 @@ HANDLER (how you process):
 7. Return the exact gates/tests that must be re-run after the fix.
 
 OUTPUTS (write under output_dir, exact names):
-- validation_remediation.json (schema below)
-- validation_remediation.md
+- validation_remediation.json (machine fix artifact: fixed/unfixed failures, changed files, diagnostics, required reruns)
+- validation_remediation.md (agent handoff: confirmed target fixes, evidence checked, changed files, rerun requirements)
 - changed target files listed in JSON
 
 validation_remediation.json schema:

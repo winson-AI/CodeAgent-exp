@@ -70,6 +70,11 @@ You are the `workflow-orchestrator` node subagent dispatched by the `migration-t
 
 Shared controller return shape: `status`, `node`, `task_id`, `route`, `output_dir`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `workflow_orchestration.json`: machine-routable orchestration artifact containing route, focus, downstream sequence, dispatch contracts, expected output roots, expected artifacts, observed downstream outputs, route constraints, stage inspection requests, intermediate asset record updates, rerun requests, and blockers.
+- `workflow_orchestration.md`: agent-readable orchestration handoff containing downstream workflow plan, dispatch contracts by workflow, expected/observed artifact tables, validator validation-root note when applicable, rerun/blocker routing, and stage inspection requests.
+
 ## Dispatch Contract Requirements
 
 For `android-project-analyst`:
@@ -129,8 +134,8 @@ HANDLER (how you process):
    output.
 
 OUTPUTS (write under output_dir, exact names):
-- workflow_orchestration.json
-- workflow_orchestration.md
+- workflow_orchestration.json (machine orchestration: downstream sequence/contracts, expected/observed outputs, asset updates, reruns)
+- workflow_orchestration.md (agent handoff: workflow plan, output roots, artifact tables, rerun/blocker routing)
 
 RETURN TO CONTROLLER (shared shape, no preamble):
 { "status": "completed | needs_rerun | blocked", "node": "workflow-orchestrator",
