@@ -103,6 +103,24 @@ Required artifacts:
 - `<report_dir>/task_adapter_report.json`
 - `<report_dir>/task_adapter_report.md`
 
+## Output Artifact Content Matrix
+
+The adapter verifies both artifact names and role-aligned content before any downstream stage consumes an artifact.
+
+| Stage / owner | Output file(s) | Required content |
+|---|---|---|
+| Output root lock / Leader | `run_manifest.json` | Task id, raw task summary, requested scope, source/target paths when provided, adapter output root, allowed roots, downstream workflow candidates, dependency-preflight status, schedule version, timestamp. |
+| Task route / `task-understanding-router` | `task_understanding_router.json`, `task_understanding_router.md` | Normalized task, route, task kind, understand focus, source/target/scope fields, existing artifact evidence, required/missing inputs, downstream workflow sequence, stage inspection requirements, intermediate asset requirements, blockers. |
+| Orchestration / `workflow-orchestrator` | `workflow_orchestration.json`, `workflow_orchestration.md` | Downstream workflow sequence, dispatch contracts, expected output roots/artifacts, route constraints, stage inspection requests, observed downstream outputs, intermediate asset updates, rerun requests, blockers. |
+| Workspace discipline / `workspace-state-discipline-inspector` | `workspace_state_discipline.json`, `workspace_state_discipline.md` | Adapter artifact inventory, stage status, path compliance, freshness checks, intermediate asset coverage, rerun history, blockers, next safe actions. No task routing or downstream analysis. |
+| Stage inspections / `workspace-state-discipline-inspector` | `<stage_inspection_dir>/<stage_id>/stage_inspection.json`, `.md` | Checked inputs/outputs, path compliance, freshness checks, intermediate asset coverage, downstream contract checks, stage status, rerun requests, blockers, next allowed stage. |
+| Intermediate assets / `workspace-state-discipline-inspector` | `intermediate_asset_records.json`, `intermediate_asset_records.md` | Stable records for every consumed adapter/downstream artifact: asset id/type, producer, path, status, freshness basis, consumers, source evidence, coverage gaps, blockers. |
+| Final task report / `task-reporter` | `task_adapter_report.json`, `task_adapter_report.md` | Final route/status/readiness, source/target paths, downstream workflow summaries, stage inspection summary, intermediate asset summary, verified outputs, rerun requests, blockers, report path. |
+
+Downstream output roots are external asset paths. The adapter records them but does not write into them: `android-project-analyst` writes to its understand output root, `android-to-kmp-migrator` writes to its migration output root, and `kmp-test-validator` writes to its parallel validation output root.
+
+JSON artifacts are the machine-routable source of truth. Markdown artifacts are agent-readable handoffs that preserve exact paths, route decisions, stage evidence, asset records, rerun context, blockers, and downstream routing. Adapter Markdown must not be prose-only summaries.
+
 ## Shared Return Contract
 
 ```json

@@ -53,6 +53,11 @@ You are the `analysis-workspace-state` node subagent dispatched by the `android-
 
 Shared controller return shape (all nodes): `status`, `node`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `analysis_workspace_state.json`: machine-routable ledger of run mode, current controller step, module statuses, node output statuses, artifact inventory, stale upstream inputs, rerun history, blocking gaps, and next safe actions. It must not include UI, architecture, data-flow, or behavior analysis.
+- `analysis_workspace_state.md`: agent-readable ledger handoff with module status table, node output inventory, artifact readiness table, stale-input table, rerun/blocker history, and next controller action. It must preserve exact artifact paths and owner nodes.
+
 ## Inline Persona for Teammate
 
 ```
@@ -102,8 +107,8 @@ HANDLER (how you process):
 5. Identify the next safe controller action.
 
 OUTPUTS (write under output_dir, exact names):
-- analysis_workspace_state.json (schema below)
-- analysis_workspace_state.md
+- analysis_workspace_state.json (machine ledger: module/node/artifact status, stale inputs, reruns, blockers, next actions)
+- analysis_workspace_state.md (agent-readable ledger: status tables, stale/rerun/blocker evidence, next safe action)
 
 analysis_workspace_state.json schema:
 { "status": "completed | blocked", "node": "analysis-workspace-state", "output_root": "",

@@ -49,6 +49,11 @@ You are the `validation-report` node subagent dispatched by the `kmp-test-valida
 
 Shared controller return shape (all nodes): `status`, `node`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `kmp_validation_report.json`: machine-routable final verdict artifact containing final status, migration scope, KMP target path, fidelity summary, build summary, preview/renderability summary, test statistics, remediation summary, changed files, remaining failures, blockers, and report path.
+- `kmp_validation_report.md`: agent-readable validation report containing the evidence-backed final verdict, fidelity/build/preview/test/remediation summaries, command/log paths, rerun verification, remaining failures, skipped/manual checks, limitations, blockers, and next actions.
+
 ## Inline Persona for Teammate
 
 ```
@@ -94,8 +99,8 @@ HANDLER (how you process):
 7. Decide final status (passed | failed | blocked).
 
 OUTPUTS (write under output_dir, exact names):
-- kmp_validation_report.json (schema below)
-- kmp_validation_report.md
+- kmp_validation_report.json (machine final verdict: fidelity/build/preview/test/remediation summaries, failures, blockers)
+- kmp_validation_report.md (agent report: evidence-backed verdict, command/log paths, remaining failures, limitations)
 
 kmp_validation_report.json schema:
 { "status": "passed | failed | blocked", "node": "validation-report", "migration_scope": "",

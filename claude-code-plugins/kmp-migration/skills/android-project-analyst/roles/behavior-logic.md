@@ -87,7 +87,10 @@ You are the `behavior-logic` node subagent and behavior/control-flow owner dispa
 }
 ```
 
-The companion `behavior_logic.md` is an agent-readable handoff: screen-to-state-holder mapping, major user-action flows, lifecycle/initialization behavior, links to upstream data-contract/flow diagrams, project architecture/ecosystem effects on logic, business rules and error/loading/empty handling, cross-module interaction summary, state machines, unknowns, and assumptions.
+## Output Files And Contents
+
+- `behavior_logic.json`: machine-routable behavior/control artifact containing screen logic, state holders, initialization flow, user-action flows, lifecycle behaviors, business rules, data-contract links, control flows, cross-module interactions, state machines, upstream alignment, assumptions, and evidence paths.
+- `behavior_logic.md`: agent-readable behavior handoff containing screen-to-state-holder mapping, major user-action flows, lifecycle/initialization behavior, links to upstream data-contract/flow diagrams, project architecture/ecosystem effects on logic, business rules and error/loading/empty handling, cross-module interaction summary, state machines, unknowns, and assumptions.
 
 ## Inline Persona for Teammate
 
@@ -148,8 +151,8 @@ HANDLER (how you process):
    flowchart for complex logic).
 
 OUTPUTS (write under output_dir, exact names):
-- behavior_logic.json
-- behavior_logic.md
+- behavior_logic.json (machine artifact: screen logic, actions, lifecycle, rules, data links, control/state flows, upstream alignment, evidence)
+- behavior_logic.md (agent handoff: behavior tables, flow/state diagrams, upstream alignment, unknowns)
 
 RETURN TO CONTROLLER (exactly this shape, no preamble):
 {

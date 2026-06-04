@@ -51,3 +51,17 @@ The third pass adds `analysis-workspace-state`, following the ledger pattern use
 | Function/duty analysis and old-to-new map | `ROLE_CLUSTERING.md` |
 | Per-role identity, boundary, schema, and teammate persona | `roles/<clustered-role>.md` |
 | SPEC output contract + MCP context | `SKILL.md` body |
+
+## Output Contract Refinement
+
+The active skill docs now distinguish output file names from output content responsibilities. `SKILL.md` and `workflow.md` define the full artifact schedule and content matrix, while each role file states the exact JSON/Markdown filenames and the evidence each artifact must contain.
+
+This refinement keeps role ownership explicit:
+
+- `analysis-workspace-state.*` records ledger state only.
+- `presentation_resource.*` records screens, checked UI trees, navigation, presentation modules, and resources.
+- `project_architecture.*` records build/module topology, architecture patterns, dependencies, platform services, and migration constraints.
+- `data_contract_flow.*` records APIs, models, data sources, mappings, streams, and end-to-end data flows.
+- `behavior_logic.*` records user actions, lifecycle behavior, state holders, rules, side effects, state machines, and upstream alignment.
+
+The Leader must reject artifacts that have the correct filename but contain another role's work or prose-only summaries without machine-routable evidence.

@@ -10,7 +10,7 @@ disable-model-invocation: true
 roles:
   - id: migration-workspace-state
     kind: ai_agent
-    purpose: State ledger owner — node status, changed-file ownership, stale outputs, rerun/blocker history, next actions. No code analysis or edits.
+    purpose: State/progress ledger owner — per-module migration status, finish rates, plan-vs-code gaps, changed-file ownership, stale outputs, rerun hooks, blocker history, and next actions. No code analysis or edits.
     skills: []
     tools: [git]
   - id: migration-analysis-planning
@@ -71,7 +71,7 @@ The team is a **reduced specialization pipeline (C) with embedded parallel fan-o
 0. **Pre-flight** — verify optional dependencies from [dependencies.yaml](dependencies.yaml).
 1. **Trigger + output root** — lock `output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator`; write `run_manifest.json`.
 2. **Migration module inventory** — write `module-index/migration_module_inventory.json` and `.md`; write each module's `module_brief.json`.
-3. **Workspace state** — initialize and refresh `migration-workspace-state` under `<output_root>/global/node-results/migration-workspace-state/`.
+3. **Workspace state** — initialize and refresh `migration-workspace-state` under `<output_root>/global/node-results/migration-workspace-state/` and module-scoped workspace-state dirs. It records per-module migration progress, finish rate, plan-vs-code gaps, stale outputs, rerun hooks, and next safe actions.
 4. **Per-module planning** — run `migration-analysis-planning`.
 5. **Per-module dependency/platform gate** — run `dependency-platform-gate`.
 6. **Per-module prep fan-out** — run `presentation-integration` and `state-data-prep` when inputs allow.
@@ -86,7 +86,7 @@ Each node is dispatched as a subagent that must read its role file (`skill_spec_
 
 | id | Purpose | When dispatched | Role file |
 |---|---|---|---|
-| `migration-workspace-state` | Ledger and stale-output tracking | Global and module refreshes | [roles/migration-workspace-state.md](roles/migration-workspace-state.md) |
+| `migration-workspace-state` | Migration progress ledger, finish rates, plan-vs-code gaps, stale outputs, and rerun hooks | Global and module refreshes after every major stage | [roles/migration-workspace-state.md](roles/migration-workspace-state.md) |
 | `migration-analysis-planning` | SPEC deltas, target understanding, alignment | Per-module first stage | [roles/migration-analysis-planning.md](roles/migration-analysis-planning.md) |
 | `dependency-platform-gate` | Dependency readiness and platform replacement | Before prep/implementation | [roles/dependency-platform-gate.md](roles/dependency-platform-gate.md) |
 | `presentation-integration` | Theme, resources, navigation | Prep fan-out before UI | [roles/presentation-integration.md](roles/presentation-integration.md) |
@@ -124,7 +124,11 @@ Required artifacts:
 - `<output_root>/run_manifest.json`
 - `<module_index_dir>/migration_module_inventory.json`
 - `<module_index_dir>/migration_module_inventory.md`
+- `<global_dir>/node-results/migration-workspace-state/migration_workspace_state.json`
+- `<global_dir>/node-results/migration-workspace-state/migration_workspace_state.md`
 - `<module_root>/module_brief.json`
+- `<module_root>/node-results/migration-workspace-state/migration_workspace_state.json`
+- `<module_root>/node-results/migration-workspace-state/migration_workspace_state.md`
 - `<node_result_dir>/<node-specific>.json`
 - `<node_result_dir>/<node-specific>.md`
 - `<module_representation_dir>/module_migration_representation.json`
@@ -133,6 +137,32 @@ Required artifacts:
 - `<global_dir>/global_migration_representation.md`
 - `<report_dir>/migration_report.json`
 - `<report_dir>/migration_report.md`
+
+## Output Artifact Content Matrix
+
+The controller verifies both artifact names and role-aligned content before a downstream stage consumes any file.
+
+| Stage / owner | Output file(s) | Required content |
+|---|---|---|
+| Output root lock / Leader | `run_manifest.json` | Migration trigger, Android/SPEC inputs, KMP target path, migration scope, output root, allowed roots, dependency-preflight status, schedule version, timestamp. |
+| Module inventory / Leader | `migration_module_inventory.json`, `migration_module_inventory.md` | Deterministic migration module list/order, `migration_module_id`, module scope, UI/logic/data/resource scope, target placement hints, allowed target files/source sets, module output roots, blockers. |
+| Module brief / Leader | `module_brief.json` | One module's dispatch contract: module id/scope, source/SPEC evidence paths, target hints, allowed files/source sets, expected node schedule, representation path, assumptions. |
+| Workspace progress / `migration-workspace-state` | `migration_workspace_state.json`, `migration_workspace_state.md` | Per-module migration status, finish rates, stage status, node status, changed-file ownership, plan-vs-code gaps, stale outputs, rerun hooks, blocker/rerun history, next safe actions. |
+| Planning / `migration-analysis-planning` | `migration_analysis_planning.json`, `migration_analysis_planning.md` | SPEC/raw-source deltas, target KMP understanding, reuse inventory, source-to-target map, resource project map, integration scaffold, ordered implementation tasks, blockers. |
+| Dependency/platform / `dependency-platform-gate` | `dependency_platform_gate.json`, `dependency_platform_gate.md` | Required capability map, minimal-change dependency decisions, build-config changes, platform capability boundaries, expect/actual/source-set plan, changed files, implementation constraints, blockers. |
+| Presentation prep / `presentation-integration` | `presentation_integration.json`, `presentation_integration.md` | Theme/design-token mapping, target component/resource reuse, local/online media modeling, route/navigation mapping, UI handoff, changed files, presentation gaps, blockers. |
+| State/data prep / `state-data-prep` | `state_data_prep.json`, `state_data_prep.md` | State holder mapping, UI state/events/effects, DTO/domain/UI model mapping, mappers, API/data contract expectations, logic handoff, changed files, blockers. |
+| UI implementation / `ui-implementation` | `ui_implementation.json`, `ui_implementation.md` | Migrated visible UI surface, changed UI/resource files, UI coverage, fidelity notes, binding surfaces, diagnostics, blockers. |
+| Logic implementation / `logic-implementation` | `logic_implementation.json`, `logic_implementation.md` | Implemented behavior/data/API/state propagation, architecture alignment, platform boundaries, data flows, API integrations, logic coverage, changed files, diagnostics, blockers. |
+| Review mode / `module-node-review-fix` | `module_node_review.json`, `module_node_review.md` | Read-only review of one owning node slice: reviewed files, contract/scope/parity/source-set/dependency findings, approval or `needs_fix`, blockers. |
+| Fix mode / `module-node-review-fix` | `module_node_fix.json`, `module_node_fix.md` | Scoped fix report for explicit findings: fixed/unfixed findings, changed files, `requires_re_review: true`, blockers. |
+| Verification / `migration-verification` | `migration_verification.json`, `migration_verification.md`, optional log files | `source_set`, `api_contract`, `ui_render`, and `incremental_build` check results, evidence, failures, routed owner nodes, command/log paths, blockers. |
+| Readiness / `completion-report` | `completion_readiness.json`, `completion_readiness.md` | Requirement coverage, migration invariants, review/verification completion, rerun requests, blockers, readiness for representation/report gates. |
+| Module representation / Leader | `module_migration_representation.json`, `module_migration_representation.md` | Module synthesis from verified node outputs only: source-to-target mapping, changed files by role, UI/state/data/logic/platform coverage, verification evidence, gaps, readiness. |
+| Global representation / Leader | `global_migration_representation.json`, `global_migration_representation.md` | Cross-module migration synthesis from module representations only: global target changes, shared files/ownership, coverage, unresolved blockers, validation handoff prerequisites. |
+| Final report / `completion-report` | `migration_report.json`, `migration_report.md` | Validation-ready migration handoff: source/target paths, scope, module/global representation paths, changed files by role, source-to-target summary, coverage summary, validation inputs, limitations, manual steps, blockers. |
+
+JSON artifacts are the machine-routable source of truth. Markdown artifacts are agent-readable handoffs that preserve exact paths, evidence, commands/logs where applicable, changed-file ownership, rerun context, blockers, and next-node routing. Node Markdown must not be a prose-only completion summary.
 
 ## Shared Return Shape
 
@@ -152,12 +182,13 @@ Required artifacts:
 }
 ```
 
-Controller handling: missing/empty `output_files` -> rerun the same node; non-empty `stale_upstream_inputs` -> refresh upstream artifacts then rerun; non-empty `rerun_requests` -> dispatch the responsible node first; unresolved `blocking_gaps` -> stop with a user-visible blocker.
+Controller handling: missing/empty `output_files` -> rerun the same node; non-empty `stale_upstream_inputs` -> refresh upstream artifacts then rerun; non-empty `rerun_requests` or `migration-workspace-state.rerun_hooks` -> dispatch the responsible node first; unresolved `blocking_gaps` -> stop with a user-visible blocker. Downstream stages may consume a module only when the latest workspace-state progress record does not mark its required stage stale, blocked, failed, or missing review/verification.
 
 ## Shared Rules
 
 - Each node must read its own role file before work and stay inside its responsibility boundary.
 - Consolidated roles must respect `mode`; do not combine review and fix in one invocation.
+- `migration-workspace-state` must be refreshed after inventory, planning, dependency/platform, prep fan-out, every review/fix loop, UI implementation, logic implementation, verification, readiness, module representation, global representation, and report. Its `module_progress`, `plan_code_gaps`, and `rerun_hooks` are routing inputs, not optional summaries.
 - Every important claim must include evidence from source paths, SPEC sections, upstream node outputs, or module/global representations.
 - The controller must not substitute itself for node implementation.
 - Target conventions and reusable modules/components take priority over new abstractions.

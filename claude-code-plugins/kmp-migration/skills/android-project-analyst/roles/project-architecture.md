@@ -97,7 +97,10 @@ You are the `project-architecture` node subagent and project architecture/ecosys
 }
 ```
 
-The companion `project_architecture.md` is an agent-readable handoff: build/SDK configuration, project topology overview, detected patterns + confidence, layer/role mapping, dependency + Jetpack inventory, DI setup, persistence/background/platform-service usage, generated tooling, dependency direction notes, legacy hybrid patterns/risks, migration constraints, and unknowns.
+## Output Files And Contents
+
+- `project_architecture.json`: machine-routable architecture/ecosystem artifact containing build/SDK configuration, module topology, detected patterns with confidence, layer roles, dependency ecosystem, Jetpack usage, DI setup, platform services, boundary violations/hybrids, migration constraints, cross-module dependencies, assumptions, and evidence paths.
+- `project_architecture.md`: agent-readable architecture handoff containing build/SDK configuration, project topology overview, detected patterns + confidence, layer/role mapping, dependency + Jetpack inventory, DI setup, persistence/background/platform-service usage, generated tooling, dependency direction notes, legacy hybrid patterns/risks, migration constraints, and unknowns.
 
 ## Inline Persona for Teammate
 
@@ -156,8 +159,8 @@ HANDLER (how you process):
 9. Identify legacy traits and migration/onboarding implications.
 
 OUTPUTS (write under output_dir, exact names):
-- project_architecture.json
-- project_architecture.md
+- project_architecture.json (machine artifact: build config, topology, patterns, layers, dependencies, platform/generated constraints, evidence)
+- project_architecture.md (agent handoff: architecture/ecosystem tables, risks, migration constraints, unknowns)
 
 RETURN TO CONTROLLER (exactly this shape, no preamble):
 {

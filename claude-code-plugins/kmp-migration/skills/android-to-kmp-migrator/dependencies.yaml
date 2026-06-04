@@ -2,7 +2,7 @@
 #
 # Leader reads this file in SKILL.md Workflow Step 0 (pre-flight) and reports missing items.
 # Populated from Stage 2 auto-matching (local CLI scan): rg, git, curl found locally; the target
-# project's own Gradle wrapper drives builds (incremental-build-check selects a documented/discovered
+# project's own Gradle wrapper drives builds (migration-verification selects a documented/discovered
 # command and returns blocked rather than inventing one). All entries are required: false — the team
 # degrades gracefully (built-in Grep/Read substitute for rg; resource downloads become resource_gaps
 # without curl; build check returns blocked without a trustworthy command).
@@ -15,7 +15,7 @@ tools:
     purpose: Fast source search across the Legacy and target projects for every node; built-in Grep/Read substitute if unavailable.
   - name: git
     required: false
-    purpose: Inspect changed-file sets and diffs in the target project for review, guard, parity, and workspace-state nodes.
+    purpose: Inspect changed-file sets, diffs, timestamps, and ownership evidence for review, verification, workspace-state progress tracking, plan-vs-code gap detection, and stale-output routing.
   - name: curl
     required: false
-    purpose: Used by resource-migration to fetch concrete online resource URLs when alignment requires local copies; without it those resources are recorded as resource_gaps.
+    purpose: Used by presentation-integration to fetch concrete online resource URLs when alignment requires local copies; without it those resources are recorded as resource_gaps.

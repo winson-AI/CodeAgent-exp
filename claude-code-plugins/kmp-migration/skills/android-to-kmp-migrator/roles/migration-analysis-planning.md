@@ -48,6 +48,11 @@ Mandatory:
 
 Shared return shape: `status`, `node`, `migration_module_id`, `module_scope`, `output_dir`, `output_files`, `changed_files`, `stale_upstream_inputs`, `rerun_requests`, `blocking_gaps`.
 
+## Output Files And Contents
+
+- `migration_analysis_planning.json`: machine-routable planning artifact containing SPEC/raw-source deltas, target KMP evidence, reuse inventory, source-to-target map, resource project map, integration scaffold, ordered implementation tasks, blockers, and exact module/output metadata.
+- `migration_analysis_planning.md`: agent-readable planning handoff containing delta summary, target evidence, reuse decisions, source-to-target tables, resource placement notes, integration scaffold, task order, assumptions, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -58,8 +63,8 @@ You produce the module migration plan: SPEC/raw-source deltas, target KMP unders
 INPUTS: legacy_android_project_path, kmp_target_project_path, migration_scope, migration_module_id, module_scope, module_brief_path, prd/design/plan/verification paths, output_root, output_dir.
 
 OUTPUTS under output_dir:
-- migration_analysis_planning.json
-- migration_analysis_planning.md
+- migration_analysis_planning.json (machine plan: SPEC/source deltas, target evidence, reuse inventory, source-to-target map, ordered tasks)
+- migration_analysis_planning.md (agent handoff: planning tables, scaffold, assumptions, blockers)
 
 Return JSON only. Include migration_module_id, module_scope, output_dir, output_files, changed_files: [], stale_upstream_inputs, rerun_requests, blocking_gaps.
 ```

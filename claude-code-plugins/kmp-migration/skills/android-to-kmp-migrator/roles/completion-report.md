@@ -53,6 +53,13 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `completion_readiness.json`: machine-routable readiness artifact containing requirement coverage, migration invariants, module/global representation references when applicable, verification/review status, validation inputs readiness, rerun requests, and blockers.
+- `completion_readiness.md`: agent-readable readiness handoff containing coverage tables, invariant checks, incomplete markers, rerun routing, blockers, and whether representation/report gates may proceed.
+- `migration_report.json`: machine-routable final migration handoff containing migration scope, source/target paths, output root, module representations, global representation, changed files by role, source-to-target summary, coverage summary, validation inputs, limitations, manual steps, and blockers.
+- `migration_report.md`: agent-readable final migration report for `kmp-test-validator` and follow-up agents, preserving exact artifact paths, changed-file ownership, validation handoff context, limitations, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -65,8 +72,8 @@ Report mode: consume module/global representations and write migration_report.js
 INPUTS: mode, migration_module_id, module_scope, raw user task, SPEC paths, module outputs or module/global representations, changed files, workspace state, output_dir.
 
 OUTPUTS:
-- readiness mode: completion_readiness.json/md
-- report mode: migration_report.json/md
+- readiness mode: completion_readiness.json/md (coverage, invariants, review/verification status, rerun requests, blockers)
+- report mode: migration_report.json/md (validation-ready handoff, representation paths, changed files, coverage, validation inputs)
 
 Return JSON only. Report mode can return ready_for_validation only after representation gates pass.
 ```

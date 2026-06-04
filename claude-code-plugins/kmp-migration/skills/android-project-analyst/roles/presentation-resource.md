@@ -130,7 +130,11 @@ You are the `presentation-resource` node subagent and presentation/resource owne
 }
 ```
 
-The companion `presentation_resource.md` is an agent-readable handoff: UI entry point overview, screen inventory table, checked UI layout/view trees by screen or section, Mermaid navigation graph (when evidence allows), presentation module decomposition, shared component summary, local resource inventory, online resource sources, downloaded resource manifest, resource→usage mapping table, production vs debug/test/sample classification, migration implications, download gaps, unknowns, and assumptions.
+## Output Files And Contents
+
+- `presentation_resource.json`: machine-routable presentation/resource artifact containing UI entry points, screen inventory, checked UI layout/view trees, presentation modules, navigation edges, shared presentation components, local/online/downloaded resources, resource usage map, migration implications, cross-module references, download gaps, assumptions, and evidence paths.
+- `presentation_resource.md`: agent-readable presentation handoff containing UI entry point overview, screen inventory table, checked UI layout/view trees by screen or section, Mermaid navigation graph when evidence allows, presentation module decomposition, shared component summary, local resource inventory, online resource sources, downloaded resource manifest, resource-to-usage mapping table, production vs debug/test/sample classification, migration implications, download gaps, unknowns, and assumptions.
+- `downloaded_resources/`: optional auxiliary directory for safe concrete HTTP(S) resources downloaded for analysis. Every file must be represented in `downloaded_resources[]` with original URL, local path, content type, SHA-256, byte size, status, and reason when skipped/failed.
 
 ## Checked UI Layout / View Tree Format
 
@@ -280,8 +284,9 @@ ForegroundConstraintLayout @id/parent_layout  [match_parent x wrap_content, padd
     └── src=ic_vector_more_new, tint=Graph_weak
 
 OUTPUTS (write under output_dir, exact names):
-- presentation_resource.json
-- presentation_resource.md
+- presentation_resource.json (machine artifact: screens, checked UI trees, navigation, presentation modules, resources, usage map, downloads, gaps, evidence)
+- presentation_resource.md (agent handoff: screen/resource tables, checked UI tree blocks, navigation graph, migration implications, unknowns)
+- downloaded_resources/ (optional safe downloaded resource copies, only when concrete URLs are proven)
 
 RETURN TO CONTROLLER (exactly this shape, no preamble):
 {

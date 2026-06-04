@@ -112,6 +112,26 @@ The Leader MUST write artifacts in this order and MUST NOT skip directly from ra
 
 Any artifact written outside these paths is invalid for downstream gates.
 
+## Output Artifact Content Matrix
+
+The controller verifies both the filename and the role-aligned content before any downstream stage consumes an artifact.
+
+| Stage / owner | Output file(s) | Required content |
+|---|---|---|
+| Output root lock / Leader | `run_manifest.json` | Source project path, target project path when provided, mode, analysis scope, output root, allowed path roots, schedule version, dependency-preflight status, timestamp. |
+| Workspace ledger / `analysis-workspace-state` | `analysis_workspace_state.json`, `analysis_workspace_state.md` | Module status, node output inventory, artifact inventory, stale upstream inputs, rerun history, blockers, next safe actions, SPEC readiness prerequisites. No UI/architecture/data/behavior analysis. |
+| Module inventory / Leader | `module_inventory.json`, `module_inventory.md` | Deterministic `analysis_modules`, `module_order`, module ids/types, source roots, UI/logic/data/resource scopes, dependencies, out-of-scope roots, module output roots, inventory evidence. |
+| Module brief / Leader | `module_brief.json` | One module's dispatch contract: `module_id`, module type, bounded source roots, UI/logic/data/resource scopes, dependencies, known entry points, output root, upstream assumptions, role-specific hints. |
+| Presentation/resources / `presentation-resource` | `presentation_resource.json`, `presentation_resource.md`, optional `downloaded_resources/` manifest entries | Entry points, screen inventory, checked UI layout/view trees, presentation modules, navigation edges, shared UI components, local/online/downloaded resources, resource usage map, migration implications, download gaps, assumptions, source evidence. |
+| Project architecture / `project-architecture` | `project_architecture.json`, `project_architecture.md` | Build/SDK configuration, module topology, architecture patterns with confidence, layer roles, dependency ecosystem, Jetpack/DI/persistence/background/platform/generated usage, boundary violations, migration constraints, cross-module dependencies, evidence. |
+| Data contracts/flow / `data-contract-flow` | `data_contract_flow.json`, `data_contract_flow.md` | Network stack, APIs, request/response/model contracts, data sources, model mappings, repository flows, reactive streams, transformations, end-to-end data flows, dynamic/unknown APIs, loading/error/empty behavior, cross-module data links, diagrams when supported. |
+| Behavior/control / `behavior-logic` | `behavior_logic.json`, `behavior_logic.md` | Screen logic, state holders, initialization and lifecycle flows, user-action flows, business rules, data-contract links, control flows, cross-module interactions, state machines, upstream alignment, diagrams when supported. |
+| Module representation / Leader | `module_representation.json`, `module_representation.md` | Synthesized module view from verified node outputs only: module purpose, UI/resources, architecture, data contracts/flows, behavior logic, cross-role traceability, risks, gaps, evidence index, readiness for global integration. |
+| Global representation / Leader | `global_representation.json`, `global_representation.md` | Full-project synthesis from module representations only: cross-module architecture, navigation, shared resources, shared logic, data dependencies, platform constraints, conflicts, global evidence index, readiness. |
+| SPEC / Leader | `prd.md`, `design.md`, `verification.md`, migration-only `plan.md` | Final agent-readable SPEC synthesized from global/module representations: product behavior, system design, migration/refactor plan when needed, traceability, coverage, consistency checks, readiness verdict, blockers. |
+
+JSON artifacts are the machine-routable source of truth. Markdown artifacts are agent-readable handoffs that preserve paths, evidence, diagrams/tables when useful, gaps, assumptions, and next-node context. Node Markdown must not become prose-only summaries.
+
 ## Optional Android Studio MCP Context
 
 When the `jetbrains` MCP server is available, the controller may pass indexed Android Studio context into the shared brief: project modules/dependencies/VCS roots (`get_project_modules`, `get_project_dependencies`, `get_repositories`), file/symbol discovery (`find_files_by_glob`, `search_in_files_by_regex`, `get_symbol_info`), and diagnostics (`get_file_problems`). Always pass `projectPath: <source_project_path>`. Treat MCP output as supporting evidence — major claims still need source paths and confidence labels; record any MCP gap in `verification.md`.

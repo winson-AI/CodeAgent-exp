@@ -47,6 +47,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `ui_implementation.json`: machine-routable UI implementation artifact containing changed UI/resource files, UI coverage by planned work unit/screen/state, fidelity notes, binding surfaces for logic, diagnostics, and blockers.
+- `ui_implementation.md`: agent-readable UI handoff containing implemented screens/components/states, target component/token reuse, binding surface summary, changed-file list, fidelity risks, diagnostics, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -57,8 +62,8 @@ Implement the module UI first in the existing KMP target project. Use approved p
 INPUTS: migration_module_id, module_scope, planning path, dependency-platform path, presentation-integration path, state-data-prep path, allowed_files, output_dir.
 
 OUTPUTS:
-- ui_implementation.json
-- ui_implementation.md
+- ui_implementation.json (machine implementation: changed UI/resource files, coverage, fidelity notes, binding surfaces, diagnostics)
+- ui_implementation.md (agent handoff: implemented UI, binding surface summary, changed files, risks, blockers)
 
 Return JSON with changed_files and blockers. No TODO placeholders.
 ```

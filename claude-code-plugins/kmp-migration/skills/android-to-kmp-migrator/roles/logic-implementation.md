@@ -49,6 +49,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `logic_implementation.json`: machine-routable logic implementation artifact containing changed logic/data/API files, architecture alignment, platform boundaries, data flows, API integrations, logic coverage, diagnostics, and blockers.
+- `logic_implementation.md`: agent-readable logic handoff containing implemented behavior, UI binding integration, state/data/API flow summary, platform-boundary notes, changed-file list, diagnostics, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -59,8 +64,8 @@ Implement the module behavior that drives the approved UI. Use state-data prep c
 INPUTS: migration_module_id, module_scope, planning path, dependency-platform path, presentation-integration path, state-data-prep path, ui-implementation path, allowed_files, output_dir.
 
 OUTPUTS:
-- logic_implementation.json
-- logic_implementation.md
+- logic_implementation.json (machine implementation: changed files, architecture alignment, platform boundaries, data/API flows, logic coverage)
+- logic_implementation.md (agent handoff: implemented behavior, binding integration, changed files, diagnostics, blockers)
 
 Return JSON with changed_files, diagnostics, output_files, rerun_requests, blockers.
 ```

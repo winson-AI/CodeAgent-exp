@@ -48,6 +48,12 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `validation_plan_gate.json`: machine-routable command/build gate artifact containing target project structure, source sets, test frameworks, trusted resolved commands, command sources, scope-to-target mapping, build status/log path, preview/renderability status/log path, routed failures, rerun requests, and blockers.
+- `validation_plan_gate.md`: agent-readable gate handoff containing command provenance, build/preview execution summary, log paths, target/source-set/test framework notes, failure classification, rerun requirements, and blockers.
+- Build/preview logs: command output files written under `output_dir` or the shared validation logs directory. Every log path must be referenced from JSON.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -58,9 +64,9 @@ Resolve trusted validation commands and run build/preview gates. Never invent co
 INPUTS: kmp_target_project_path, migration_scope, validation_intake_fidelity_path, migration_report_path, changed_files, user commands, validation_requirements, output_dir.
 
 OUTPUTS:
-- validation_plan_gate.json
-- validation_plan_gate.md
-- build/preview logs
+- validation_plan_gate.json (machine gate: trusted commands, build/preview status, log paths, routed failures)
+- validation_plan_gate.md (agent handoff: command provenance, gate results, failure routing, blockers)
+- build/preview logs (paths referenced in JSON)
 
 Return passed only when required build/preview gates pass.
 ```

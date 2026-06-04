@@ -56,14 +56,14 @@ Required durable artifacts:
 
 | Schedule point | Required artifacts |
 |---|---|
-| Output root lock | `<output_root>/run_manifest.json` |
-| Workspace state | `<workspace_state_dir>/analysis_workspace_state.json`, `<workspace_state_dir>/analysis_workspace_state.md` |
-| Module inventory | `<module_index_dir>/module_inventory.json`, `<module_index_dir>/module_inventory.md` |
-| Per module brief | `<module_root>/module_brief.json` |
-| Per module node outputs | `<module_node_dir>/<node_artifact>.json`, `<module_node_dir>/<node_artifact>.md` |
-| Per module representation | `<module_representation_dir>/module_representation.json`, `<module_representation_dir>/module_representation.md` |
-| Global representation | `<global_dir>/global_representation.json`, `<global_dir>/global_representation.md` |
-| SPEC package | `<spec_dir>/prd.md`, `<spec_dir>/design.md`, `<spec_dir>/verification.md`, plus `<spec_dir>/plan.md` in migration mode |
+| Output root lock | `<output_root>/run_manifest.json` - run identity, paths, mode, scope, allowed roots, dependency status, schedule version |
+| Workspace state | `<workspace_state_dir>/analysis_workspace_state.json`, `<workspace_state_dir>/analysis_workspace_state.md` - module/node/artifact ledger, stale inputs, reruns, blockers, next safe actions |
+| Module inventory | `<module_index_dir>/module_inventory.json`, `<module_index_dir>/module_inventory.md` - deterministic module list/order, scopes, dependencies, out-of-scope roots, evidence |
+| Per module brief | `<module_root>/module_brief.json` - module-scoped dispatch contract and role hints for one `module_id` |
+| Per module node outputs | `<module_node_dir>/<node_artifact>.json`, `<module_node_dir>/<node_artifact>.md` - role-owned evidence matching the active role schema |
+| Per module representation | `<module_representation_dir>/module_representation.json`, `<module_representation_dir>/module_representation.md` - module synthesis from verified node outputs only |
+| Global representation | `<global_dir>/global_representation.json`, `<global_dir>/global_representation.md` - full-project synthesis from module representations only |
+| SPEC package | `<spec_dir>/prd.md`, `<spec_dir>/design.md`, `<spec_dir>/verification.md`, plus `<spec_dir>/plan.md` in migration mode - final SPEC with traceability, coverage, and readiness |
 
 No node may choose its own output path. `presentation-resource` may write downloaded resources only under `<module_root>/node-results/presentation-resource/downloaded_resources/`.
 
@@ -82,7 +82,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: Leader
 - **Input**: `source_project_path`, optional `analysis_scope` / `mode` / `target_project_path` / `output_dir` / `language`, optional `jetbrains` MCP context
 - **Action**: verify the target is an Android project (`AndroidManifest.xml`, `settings.gradle(.kts)`, `build.gradle(.kts)`, or a `com.android.*` module) and that the request needs structured analysis, not a one-off lookup. Select `exploration` or `migration`. Lock `output_root`, `module_index_dir`, `global_dir`, and `spec_dir`. Write `run_manifest.json` with source path, mode, target path, scope, schedule version, allowed path roots, and timestamp.
-- **Output**: announced mode banner + `run_manifest.json`; default `output_root` = `~/.a2c_agents/understand/android-project-analyst`
+- **Output**: announced mode banner + `run_manifest.json`; default `output_root` = `~/.a2c_agents/understand/android-project-analyst`. `run_manifest.json` must contain source/target paths, mode, analysis scope, output root, allowed path roots, dependency-preflight status, schedule version, and timestamp.
 - **Serial / Parallel**: serial (precedes all dispatch)
 - **Quality gate**: Android evidence present AND scope valid AND `run_manifest.json` exists/non-empty → proceed; otherwise STOP and explain the failed check. Migration mode without `target_project_path` → ask before producing `plan.md`.
 
@@ -91,7 +91,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: `analysis-workspace-state`
 - **Input**: output root, run manifest, current controller step, known module/node/artifact outputs, source change/timestamp evidence, rerun reports, blockers
 - **Action**: initialize and refresh the analysis ledger. Track module status, node output inventory, artifact inventory, stale upstream inputs, rerun history, blockers, and next safe controller actions.
-- **Output**: `analysis_workspace_state.json`, `analysis_workspace_state.md`
+- **Output**: `analysis_workspace_state.json`, `analysis_workspace_state.md`. JSON is the machine ledger for module status, node output files, artifact inventory, stale upstream inputs, rerun history, blockers, and next actions. Markdown mirrors the ledger as an agent handoff with stale/rerun/blocker tables.
 - **Serial / Parallel**: serial; refreshed after module inventory, Stage A, Stage B, module representation, global representation, and SPEC.
 - **Quality gate**: downstream stages do not consume artifacts marked stale; rerun the responsible module/node or mark the affected module `blocked`.
 
@@ -100,7 +100,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: Leader
 - **Input**: source path, analysis scope, Android evidence, module/build files, optional MCP module context
 - **Action**: partition the project into explicit `analysis_modules`. Prefer Gradle modules and feature packages; when one Gradle module contains multiple independent features, split by package/route/feature boundary. Each module entry MUST include `module_id` (stable slug), `module_type` (`app | feature | ui | logic | data | platform | shared | test | unknown`), `source_roots`, `ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `depends_on`, and `module_output_root`. Include UI-only and logic-only modules when they exist; if a module has no UI or no logic, record `none` with evidence.
-- **Output**: `module_inventory.json`, `module_inventory.md`
+- **Output**: `module_inventory.json`, `module_inventory.md`. JSON must contain `analysis_modules`, deterministic `module_order`, in-scope and out-of-scope roots, dependencies, and each module's output root. Markdown must explain module boundaries and evidence without doing role analysis.
 - **Serial / Parallel**: serial (precedes all module dispatch)
 - **Quality gate**: module inventory exists/non-empty, every in-scope source root is assigned to one module or `out_of_scope`, and `module_order` is deterministic.
 
@@ -109,7 +109,10 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: `presentation-resource`, `project-architecture`, `data-contract-flow`
 - **Input**: per-node contract `{ source_project_path, module_id, module_scope, analysis_scope, mode, module_brief_path, skill_spec_path (roles/<id>.md), output_dir: <output_root>/modules/<module_id>/node-results/<node_id>, return_format: json }`; `data-contract-flow` may also receive `presentation_hints` when known.
 - **Action**: each node validates inputs, performs its bounded clustered slice, writes its JSON+MD artifacts, and returns the controller JSON shape.
-- **Output**: `presentation_resource.*`, `project_architecture.*`, `data_contract_flow.*`
+- **Output**:
+  - `presentation_resource.json`, `presentation_resource.md`: UI entry points, screen inventory, checked UI layout/view trees, navigation, presentation modules, resources, safe downloads, usage map, migration implications, gaps.
+  - `project_architecture.json`, `project_architecture.md`: build/SDK config, topology, architecture patterns, layer roles, dependencies, Jetpack/DI/platform/generated usage, boundary risks, migration constraints.
+  - `data_contract_flow.json`, `data_contract_flow.md`: network/local data contracts, APIs, models, data sources, mappings, repository/reactive/end-to-end flows, loading/error/empty behavior, dynamic API gaps.
 - **Serial / Parallel**: parallel within one module — all three run together for the same `module_id`. Do not start the next module until the current module representation is written unless the user explicitly allows concurrent modules.
 - **Quality gate**: each return must be `status: "completed"` with `output_files` that exist and are non-empty. Refresh `analysis-workspace-state` after the group; on missing/empty/non-`completed`/stale output → re-dispatch that node with the same contract plus the failure reason (retry policy in [bind.md](bind.md) § Failure Handling). Do NOT synthesize around a failed node.
 
@@ -118,7 +121,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: `behavior-logic`
 - **Input**: required `module_id`, `module_scope`, `presentation_resource_path`, `project_architecture_path`, `data_contract_flow_path`, and latest `analysis_workspace_state_path`
 - **Action**: synthesize user-action / lifecycle / state-machine / business-rule behavior, referencing (not rebuilding) upstream catalogs.
-- **Output**: `behavior_logic.*`
+- **Output**: `behavior_logic.json`, `behavior_logic.md`. JSON must contain screen logic, state holders, lifecycle/user-action/control flows, business rules, data-contract links, cross-module interactions, state machines, and upstream alignment. Markdown must provide an agent handoff with diagrams when evidence supports them.
 - **Serial / Parallel**: serial within the module — runs after that module's Stage A gate passes.
 - **Quality gate**: latest workspace state must not mark Stage A inputs stale; return-shape + output-file checks; every major UI/logic scope from the module brief has behavior coverage or an explicit reason for none.
 
@@ -127,7 +130,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: Leader
 - **Input**: verified node JSON/MD outputs for one `module_id`
 - **Action**: integrate ONLY from verified outputs for that module. Write a module representation that covers both UI and logic when present: module purpose, UI surface, resources, architecture/ecosystem, data contracts/flows, behavior logic, dependencies, risks, gaps, evidence index, and readiness.
-- **Output**: `module_representation.json`, `module_representation.md`
+- **Output**: `module_representation.json`, `module_representation.md`. JSON is the module-level synthesis and traceability index; Markdown is the agent-readable handoff. Both must cite verified node artifacts and source evidence for UI/resources, architecture, data flow, behavior, risks, gaps, and readiness.
 - **Serial / Parallel**: serial
 - **Quality gate**: no unknowns hidden; every module representation points to its node artifacts and source evidence. Refresh workspace state after writing. Do not proceed to global integration until every scheduled module is represented or explicitly marked blocked/out of scope.
 
@@ -136,7 +139,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: Leader
 - **Input**: all verified module representations
 - **Action**: combine module representations into a total full-project global representation. Preserve module boundaries first, then synthesize cross-module architecture, navigation, data dependencies, shared resources, shared logic, platform constraints, conflicts, and global readiness. Do not read raw source to fill gaps at this stage; rerun the responsible module/node instead.
-- **Output**: `global_representation.json`, `global_representation.md`
+- **Output**: `global_representation.json`, `global_representation.md`. JSON is the full-project representation and evidence index; Markdown explains cross-module architecture, navigation, shared resources, shared logic, data dependencies, platform constraints, conflicts, and global readiness.
 - **Serial / Parallel**: serial
 - **Quality gate**: latest workspace state must not mark required module representations stale; every global claim maps to a module representation and source-path evidence, or is marked `assumed`, `unknown`, or `blocked`.
 
@@ -145,7 +148,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: Leader
 - **Input**: `global_representation.json`, `global_representation.md`, module inventory, module representations, latest `analysis_workspace_state.json`
 - **Action**: write SPEC artifacts under `<output_root>/SPEC`. **Exploration** mode → `prd.md`, `design.md`, `verification.md`. **Migration** mode → adds `plan.md`. SPEC must synthesize, not paste node summaries; every important claim maps to module/global representation evidence and source paths or is marked assumption/gap. `design.md` sections include a Mermaid diagram, structured table, or evidence mapping; presentation/navigation, project architecture, data-contract/flow, and cross-module sections include diagrams when evidence exists.
-- **Output**: SPEC files + the completion report below
+- **Output**: SPEC files + the completion report below. `prd.md` captures product behavior and journeys, `design.md` captures implementation structure and evidence-backed diagrams/tables, `verification.md` captures coverage/traceability/consistency/readiness, and migration-mode `plan.md` captures migration milestones, source-to-target mapping, validation, risks, and blockers.
 
 #### Final Report Format
 

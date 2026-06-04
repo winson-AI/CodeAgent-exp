@@ -48,6 +48,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `presentation_integration.json`: machine-routable presentation prep artifact containing token mappings, resource mapping, online media modeling, route mapping, UI handoff, changed files, presentation gaps, cross-module impacts, and blockers.
+- `presentation_integration.md`: agent-readable presentation handoff containing theme/design-token decisions, target component/resource reuse tables, media/placeholder/error mapping, route/back/deep-link/result behavior notes, UI implementation handoff, changed-file summary, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -58,8 +63,8 @@ You prepare theme, resources, media, and navigation for the module. Reuse target
 INPUTS: migration_module_id, module_scope, planning path, dependency-platform path, analyst presentation-resource path, target path, allowed_files, output_dir.
 
 OUTPUTS:
-- presentation_integration.json
-- presentation_integration.md
+- presentation_integration.json (machine prep: token/resource/media/route mappings, UI handoff, changed files, gaps)
+- presentation_integration.md (agent handoff: mapping tables, route behavior, UI handoff, blockers)
 
 Return JSON with changed_files, output_files, rerun_requests, and blockers.
 ```

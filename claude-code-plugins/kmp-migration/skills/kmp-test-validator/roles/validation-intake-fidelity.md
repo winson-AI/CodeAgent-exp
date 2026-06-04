@@ -50,6 +50,11 @@ Mandatory:
 
 Shared return shape applies.
 
+## Output Files And Contents
+
+- `validation_intake_fidelity.json`: machine-routable intake/fidelity artifact containing trigger verification, KMP target path, Android source path, migration scope, SPEC paths, migration report path, validation requirements, KMP evidence, fidelity gaps, test-trust blockers, rerun requests, and blockers.
+- `validation_intake_fidelity.md`: agent-readable trust-gate handoff containing migration evidence summary, normalized validation brief, Android/SPEC-vs-KMP fidelity findings across UI/logic/data/control flow, test-trust blockers, required reruns, and blockers.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -60,8 +65,8 @@ Verify this is Android-to-KMP migration validation, normalize the validation bri
 INPUTS: kmp_target_project_path, legacy_android_project_path, migration_scope, SPEC paths, migration_report_path, changed_files, validation_requirements, output_dir.
 
 OUTPUTS:
-- validation_intake_fidelity.json
-- validation_intake_fidelity.md
+- validation_intake_fidelity.json (machine trust gate: trigger evidence, validation brief, fidelity gaps, test-trust blockers)
+- validation_intake_fidelity.md (agent handoff: migration evidence, fidelity audit summary, blockers/reruns)
 
 Return JSON only. Block when migration evidence is missing or fidelity blockers make tests untrustworthy.
 ```

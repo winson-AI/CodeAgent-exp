@@ -17,6 +17,8 @@
 - **Task-first routing**: `task-understanding-router` must complete before any downstream workflow is selected. A guessed route is invalid.
 - **Strict output root**: the Leader must lock `output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter` before role dispatch. Adapter roles write only under this root.
 - **Downstream boundary**: analyst, migrator, and validator artifacts stay under their own declared output roots. The adapter records their paths and statuses in intermediate asset records.
+- **Downstream output-root alignment**: validator outputs must be recorded under the validator's parallel `validation` output root, not under the migration output root. The adapter may route to `kmp-test-validator`, but it must record validator artifacts as external downstream assets.
+- **Role-output content discipline**: required adapter artifacts must contain the content owned by their role, not just the correct filename. `task_understanding_router.*` must contain route/evidence requirements, `workflow_orchestration.*` must contain downstream contracts/observations, `workspace_state_discipline.*` and `stage_inspection.*` must contain inspection evidence, `intermediate_asset_records.*` must contain asset records, and `task_adapter_report.*` must contain the final verified report.
 - **Stage inspection discipline**: every route boundary and downstream workflow boundary must have a `stage_inspection.json` and `.md`. A stage inspection must say whether the next stage is `pass`, `needs_rerun`, or `blocked`.
 - **Intermediate asset discipline**: every durable artifact consumed by another stage must have one asset record with producer, path, status, freshness basis, consumers, and gaps.
 - **Workspace-state freshness**: the adapter must refresh `workspace-state-discipline-inspector` after task routing, after downstream workflow completion, before report, and after report.
@@ -79,7 +81,8 @@ No downstream stage may consume a durable artifact whose record is `missing`, `s
 | Failure mode | Response |
 |---|---|
 | Node timeout | Retry once with the same contract. On second timeout, record `[ROLE MISSING - node timed out]` in workspace discipline and block any stage that hard-requires it. |
-| Malformed output or missing JSON/MD artifacts | Rerun the same role once with the expected schema and output paths inlined. On second failure, record `[ROLE MISSING - malformed output]` and block downstream consumption. |
+| Malformed output or missing JSON/MD artifacts | Rerun the same role once with the expected schema, output paths, and role-owned output content inlined. On second failure, record `[ROLE MISSING - malformed output]` and block downstream consumption. |
+| Adapter output written outside `output_root` or downstream validator output recorded under migration root | Reject the output as out-of-path; rerun the owning adapter role with the path contract and downstream output-root rules inlined. |
 | Route is ambiguous | Rerun `task-understanding-router` with the ambiguity. If still ambiguous, ask the user for source path, target path, task target, or scope. |
 | Stage inspection missing or malformed | Rerun `workspace-state-discipline-inspector` for that `stage_id`. Do not proceed past the stage. |
 | Intermediate asset record missing for consumed artifact | Rerun `workspace-state-discipline-inspector` to repair the asset ledger before downstream consumption. |

@@ -55,15 +55,15 @@ Required durable artifacts:
 
 | Schedule point | Required artifacts |
 |---|---|
-| Output root lock | `<output_root>/run_manifest.json` |
-| Task understanding | `<task_dir>/task_understanding_router.json`, `<task_dir>/task_understanding_router.md` |
-| Workspace discipline | `<workspace_state_dir>/workspace_state_discipline.json`, `<workspace_state_dir>/workspace_state_discipline.md` |
-| Stage inspection | `<stage_inspection_dir>/<stage_id>/stage_inspection.json`, `<stage_inspection_dir>/<stage_id>/stage_inspection.md` |
-| Intermediate assets | `<intermediate_asset_dir>/intermediate_asset_records.json`, `<intermediate_asset_dir>/intermediate_asset_records.md` |
-| Orchestration | `<orchestration_dir>/workflow_orchestration.json`, `<orchestration_dir>/workflow_orchestration.md` |
-| Final report | `<report_dir>/task_adapter_report.json`, `<report_dir>/task_adapter_report.md` |
+| Output root lock | `<output_root>/run_manifest.json` - task id, raw task, paths/scope, output roots, dependency status, schedule version |
+| Task understanding | `<task_dir>/task_understanding_router.json`, `<task_dir>/task_understanding_router.md` - route decision, focus, evidence, required/missing inputs, downstream sequence |
+| Workspace discipline | `<workspace_state_dir>/workspace_state_discipline.json`, `<workspace_state_dir>/workspace_state_discipline.md` - artifact inventory, path/freshness checks, rerun/blocker history, next actions |
+| Stage inspection | `<stage_inspection_dir>/<stage_id>/stage_inspection.json`, `<stage_inspection_dir>/<stage_id>/stage_inspection.md` - checked inputs/outputs, path/freshness/asset coverage, rerun/blocker routing |
+| Intermediate assets | `<intermediate_asset_dir>/intermediate_asset_records.json`, `<intermediate_asset_dir>/intermediate_asset_records.md` - stable records for every adapter/downstream artifact consumed later |
+| Orchestration | `<orchestration_dir>/workflow_orchestration.json`, `<orchestration_dir>/workflow_orchestration.md` - downstream contracts, expected/observed outputs, stage requests, rerun/blocker routing |
+| Final report | `<report_dir>/task_adapter_report.json`, `<report_dir>/task_adapter_report.md` - final route/status/readiness, verified outputs, stage/asset summaries, blockers |
 
-No adapter role may write inside downstream workflow output roots except by invoking the downstream controller with its own declared `output_dir`. Downstream artifacts are referenced by path in intermediate asset records.
+No adapter role may write inside downstream workflow output roots except by invoking the downstream controller with its own declared `output_dir`. Downstream artifacts are referenced by path in intermediate asset records. The validator output root must be the downstream validator's parallel `validation` location, not the migration output root.
 
 ## Route Matrix
 
@@ -82,7 +82,7 @@ No adapter role may write inside downstream workflow output roots except by invo
 
 - **Executor**: Leader.
 - **Input**: [dependencies.yaml](dependencies.yaml), user task, optional source/target/output paths.
-- **Action**: verify optional tools and lock `output_root`. Write `run_manifest.json` with task id, timestamp, requested scope, allowed roots, downstream workflow candidates, and schedule version.
+- **Action**: verify optional tools and lock `output_root`. Write `run_manifest.json` with task id, raw task summary, timestamp, requested scope, source/target paths, allowed roots, downstream workflow candidates, dependency status, and schedule version.
 - **Gate**: `run_manifest.json` exists and is non-empty before any role runs.
 
 ### Step 1 - Task Understanding And Router
@@ -90,14 +90,14 @@ No adapter role may write inside downstream workflow output roots except by invo
 - **Executor**: `task-understanding-router`.
 - **Input**: raw user task, paths, current workspace hints, optional existing analyst/migrator/validator artifact paths.
 - **Action**: normalize request, classify route, select focus, identify missing evidence, create downstream route contract.
-- **Output**: `task_understanding_router.json`, `task_understanding_router.md`.
+- **Output**: `task_understanding_router.json`, `task_understanding_router.md`. Artifacts must contain normalized task summary, route, task kind, focus, source/target/scope fields, existing artifact evidence, required/missing inputs, downstream workflow sequence, stage inspection requirements, intermediate asset requirements, and blockers.
 - **Gate**: route must be one of the route matrix values or `blocked` with missing inputs. No downstream workflow starts on `unknown`.
 
 ### Step 2 - Workspace State Discipline Init
 
 - **Executor**: `workspace-state-discipline-inspector`.
 - **Action**: initialize or refresh workspace discipline ledger, stage inspection index, intermediate asset records, rerun/blocker history.
-- **Output**: `workspace_state_discipline.*`, first `stage_inspection.*`, and `intermediate_asset_records.*`.
+- **Output**: `workspace_state_discipline.json`, `.md`, first `stage_inspection.json`, `.md`, and `intermediate_asset_records.json`, `.md`. Artifacts must record adapter artifact inventory, path compliance, freshness, consumed assets, rerun history, blockers, and next safe action.
 - **Gate**: task understanding artifacts and run manifest are recorded as intermediate assets before orchestration.
 
 ### Step 3 - Workflow Orchestration
@@ -108,7 +108,7 @@ No adapter role may write inside downstream workflow output roots except by invo
   - Record downstream output roots and expected artifacts.
   - After downstream workflow completion, record observed outputs, statuses, blockers, and required reruns.
   - Route stale or missing downstream outputs back to the owning workflow.
-- **Output**: `workflow_orchestration.json`, `workflow_orchestration.md`.
+- **Output**: `workflow_orchestration.json`, `workflow_orchestration.md`. Artifacts must contain downstream dispatch contracts, expected output roots/artifacts, observed downstream outputs, stage inspection requests, intermediate asset updates, rerun requests, and blockers.
 - **Gate**: orchestration cannot claim `completed` until downstream workflow status and required artifact paths are recorded or blockers are explicit.
 
 ### Step 4 - Stage Inspections
@@ -123,13 +123,13 @@ No adapter role may write inside downstream workflow output roots except by invo
   - `pre_report`
   - `post_report`
 - **Action**: for each applicable point, verify current stage inputs, outputs, freshness, path compliance, intermediate asset coverage, and rerun/blocker routing.
-- **Output**: one `stage_inspection.json` and `.md` per stage id plus refreshed workspace discipline and asset ledgers.
+- **Output**: one `stage_inspection.json` and `.md` per stage id plus refreshed workspace discipline and asset ledgers. Stage inspection artifacts must list checked inputs/outputs, path compliance, freshness checks, intermediate asset coverage, downstream contract checks, rerun requests, blockers, and next allowed stage.
 - **Gate**: final report cannot run unless `pre_report` stage inspection passes or explicitly reports `blocked`.
 
 ### Step 5 - Intermediate Asset Records
 
 - **Executor**: `workspace-state-discipline-inspector` with updates from `workflow-orchestrator`.
-- **Action**: record every durable artifact consumed across stages.
+- **Action**: record every durable adapter and downstream artifact consumed across stages.
 - **Required fields**:
   - `asset_id`
   - `asset_type`
@@ -148,7 +148,7 @@ No adapter role may write inside downstream workflow output roots except by invo
 - **Executor**: `task-reporter`.
 - **Input**: run manifest, task understanding, workflow orchestration, latest workspace discipline, stage inspections, intermediate asset records, downstream reports.
 - **Action**: synthesize a final machine-routable task report. Do not run new analysis, migration, validation, tests, or fixes.
-- **Output**: `task_adapter_report.json`, `task_adapter_report.md`.
+- **Output**: `task_adapter_report.json`, `task_adapter_report.md`. Artifacts must summarize final status, route, focus, source/target paths, downstream workflow results, stage inspections, intermediate assets, verified outputs, readiness, rerun requests, blockers, and report path.
 - **Gate**: report status is `completed`, `ready_for_validation`, `failed`, or `blocked` only from verified evidence.
 
 ## Final Report Shape
