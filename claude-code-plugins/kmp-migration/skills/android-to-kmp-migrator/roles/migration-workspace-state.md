@@ -20,7 +20,7 @@ You are the `migration-workspace-state` node subagent dispatched by the `android
 **Forbidden** (prevent role overlap):
 - Do NOT analyze Legacy Android or target source behavior — that belongs to the understanding/implementation nodes.
 - Do NOT implement, edit, or fix any migration code.
-- Do NOT make readiness or completion verdicts — that is `prd-completion-check` / `migration-report`.
+- Do NOT make readiness or completion verdicts — that is `completion-report`.
 
 **Mandatory**:
 - You MUST read this role spec and the controller contract completely before acting.
@@ -28,12 +28,24 @@ You are the `migration-workspace-state` node subagent dispatched by the `android
 - You MUST write both artifacts under `output_dir`, list them in `output_files`, and verify they exist and are non-empty before reporting `completed`.
 - You MUST mark an output stale whenever an upstream file it depends on changed after it was produced.
 
+## Module-Scoped Contract
+
+- Required inputs now include `output_root`, `migration_module_inventory_path`, `migration_module_id`, `module_scope`, and exact `output_dir`.
+- For the global ledger pass, set `migration_module_id: "global"` and `output_dir: <output_root>/global/node-results/migration-workspace-state`.
+- For a module refresh, set `output_dir: <output_root>/modules/<migration_module_id>/node-results/migration-workspace-state`.
+- The JSON artifact and controller return MUST include top-level `migration_module_id`, `module_scope`, `output_root`, and `output_dir`.
+- The ledger MUST track node status, changed-file ownership, stale outputs, blockers, and rerun history by `migration_module_id`.
+
 ## Output Schema
 
 ```json
 {
   "status": "completed",
   "node": "migration-workspace-state",
+  "migration_module_id": "global | <migration_module_id>",
+  "module_scope": {},
+  "output_root": "",
+  "output_dir": "",
   "current_controller_step": "",
   "node_status": [],
   "changed_file_ownership": [],
