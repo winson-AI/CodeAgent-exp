@@ -1,20 +1,76 @@
-# dependencies.yaml — Swarm Skill startup dependency check
+# dependencies.yaml — Swarm Skill startup dependency check (5-role module-first analyst)
 #
-# Leader reads this file in SKILL.md Workflow Step 0 (pre-flight) and reports missing items.
-# Populated from Stage 2 auto-matching (local CLI scan): rg, curl, git found locally.
-# All entries are required: false — the team degrades gracefully (built-in Grep/Read
-# substitute for rg; presentation/resource downloads become download_gaps without curl;
-# workspace-state stale detection degrades without git).
+# Leader reads this in Workflow Step 0 and records results in run_manifest.json
+# → dependency_preflight. All CLI entries are required: false.
+# Android Studio MCP is optional auxiliary evidence for the Legacy Android source project —
+# it never replaces durable node artifacts or handoff package gates (P0–P6).
 
-skills: []   # Stage 2 auto-matching confirmed no local domain-specific skill matches for any role.
+skills: []   # No local domain-specific skill packages required for active roles.
+
+optional_mcp:
+  - server: jetbrains
+    required: false
+    used_by:
+      - Leader
+      - project-architecture
+      - presentation-resource
+      - data-contract-flow
+      - behavior-logic
+    purpose: |
+      Optional indexed Legacy Android project context from Android Studio / JetBrains IDE.
+      Typical tools: get_project_modules, get_project_dependencies, get_repositories,
+      find_files_by_glob, search_in_files_by_regex, get_symbol_info, get_file_problems.
+      Always pass projectPath = source_project_path (Legacy project open in IDE).
+      Supports module inventory, Gradle topology, entry-point discovery, symbol ownership,
+      and diagnostics context. MCP output is supporting evidence only — major claims still
+      require source-path evidence in per-module dimension JSON artifacts and representations.
 
 tools:
   - name: rg
     required: false
-    purpose: Fast source search across the Android project for every clustered analysis node; built-in Grep/Read substitute if unavailable.
+    used_by:
+      - presentation-resource
+      - project-architecture
+      - data-contract-flow
+      - behavior-logic
+    purpose: Fast source search across the Legacy Android project. Built-in Grep/Read substitute if unavailable.
   - name: curl
     required: false
-    purpose: Used only by presentation-resource to download concrete online image/icon/media URLs for analysis; without it, those URLs are recorded as download_gaps instead.
+    used_by:
+      - presentation-resource
+    purpose: |
+      Download concrete online image/icon/media URLs for analysis under
+      node-results/presentation-resource/downloaded_resources/; without curl, record download_gaps.
   - name: git
     required: false
-    purpose: Used by analysis-workspace-state to inspect changed-file sets, timestamps, and stale upstream artifacts; without it, stale checks fall back to artifact path/status evidence.
+    used_by:
+      - analysis-workspace-state
+    purpose: |
+      Changed-file sets, timestamps, and stale upstream detection for the analysis ledger;
+      without git, fall back to artifact path/status comparison.
+
+# Analyst does not compile or build the Legacy Android project during analysis runs.
+
+downstream_handoff:
+  - consumer: android-to-kmp-migrator
+    handoff_package: P6
+    when: mode migration
+    required: true
+    purpose: |
+      Migration-mode runs must produce package P6 artifacts before migrator dispatch:
+      modules_index.json, migration_assembly_basis.json, cross_module_architecture.json,
+      cross_module_data_logic.json, global_representation.json, per-module representations,
+      dimension outputs, SPEC (prd, design, plan, verification). Record paths and
+      handoff_gates in analysis_workspace_state.json and verification.md.
+
+degraded_modes:
+  - trigger: rg missing
+    effect: Use built-in Grep/Read; record in run_manifest dependency_preflight
+  - trigger: curl missing
+    effect: presentation-resource records download_gaps for remote media URLs
+  - trigger: git missing
+    effect: analysis-workspace-state uses artifact timestamps only; stale detection less precise
+  - trigger: jetbrains MCP missing or wrong open project
+    effect: Continue on file-system evidence only; record MCP gap in verification.md
+  - trigger: migration mode without target_project_path
+    effect: Ask user before writing plan.md; exploration mode unaffected

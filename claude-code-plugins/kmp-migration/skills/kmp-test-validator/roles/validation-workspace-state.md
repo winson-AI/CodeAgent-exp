@@ -18,8 +18,8 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
 ## Boundary
 
 **Forbidden** (prevent role overlap):
-- Do NOT audit Android-vs-KMP fidelity — that is `validation-intake-fidelity`.
-- Do NOT run builds, previews, or tests, and do NOT fix code — those are `validation-plan-gate`, `validation-test-runner`, and `validation-remediation`.
+- Do NOT audit Android-vs-KMP fidelity — that is `validation-fidelity-gate`.
+- Do NOT run builds, previews, business tests, or fixes — those are `validation-code-gate` and `validation-business-testing`.
 - Do NOT issue the final validation verdict — that is `validation-report`.
 
 **Mandatory**:
@@ -40,6 +40,9 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
   "stale_upstream_inputs": [],
   "rerun_history": [],
   "blocking_gaps": [],
+  "handoff_gates": { "VG0": {}, "VG1": {}, "VG2": {}, "VG3": {}, "VG4": {}, "VG5": {} },
+  "migrator_supplement_cycles": 0,
+  "fix_cycles": 0,
   "next_actions": []
 }
 ```

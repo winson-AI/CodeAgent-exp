@@ -1,139 +1,118 @@
 ---
 name: kmp-test-validator
 description: |
-  6-role reduced pipeline Swarm Skill that validates Android-to-KMP migration output: workspace ledger, intake/fidelity trust gate, command/build-preview gate, Android-anchored test runner, scoped remediation, and final validation report.
-  Use with the kmp-test-validator controller after android-to-kmp-migrator has produced a validation-ready migration report, or when given Android source/SPEC plus a KMP target for migrated behavior validation.
+  5-role reduced pipeline Swarm Skill that validates Android-to-KMP migration output: workspace ledger, fidelity gate (trust + restoreability modes), code gate (build + fix modes), optional business testing (behavioral + Figma UI submodules), and final validation report.
+  Use with the kmp-test-validator controller after android-to-kmp-migrator has produced validation-ready package V0, or when given Android source/SPEC plus a KMP target for migrated behavior validation.
   Do NOT use for generic KMP testing, KMP-only feature work, isolated Gradle troubleshooting, Android analysis, or non-migration refactors.
-version: "0.3"
+version: "0.5"
 kind: swarm-skill
 disable-model-invocation: true
 roles:
   - id: validation-workspace-state
     kind: ai_agent
-    purpose: Validation ledger — node status, changed-file ownership, stale inputs, rerun/blocker history, next actions. No audit, build, test, fix, or verdict.
+    purpose: Validation ledger — node status, handoff gates VG0–VG5, supplement/remediation cycle counts, stale inputs, blockers. No audit, build, fix, or verdict.
     skills: []
     tools: [git]
-  - id: validation-intake-fidelity
+  - id: validation-fidelity-gate
     kind: ai_agent
-    purpose: Intake and fidelity trust gate — verify migration scenario, normalize brief, compare Android source/SPEC vs KMP, and flag test-trust blockers.
+    purpose: Fidelity gate — mode trust (pre-build Android/SPEC vs KMP) or restoreability (post-build module/function audit, migrator supplement routing). Read-only.
     skills: []
     tools: [rg, git]
-  - id: validation-plan-gate
+  - id: validation-code-gate
     kind: ai_agent
-    purpose: Command and build gate — resolve trusted build/preview/test commands, run build and preview/renderability before behavioral tests, route failures.
+    purpose: Code gate — mode build (3-scenario compile/preview) or fix (error DB or model, restoreability-preserving edits). Only fix mode edits production code.
     skills: []
     tools: [rg, git]
-  - id: validation-test-runner
+  - id: validation-business-testing
     kind: ai_agent
-    purpose: Test workflow — decompose validation requirements into atomic Android-anchored cases, execute them through project conventions, capture evidence.
-    skills: []
-    tools: [rg, git]
-  - id: validation-remediation
-    kind: ai_agent
-    purpose: Scoped target fixes — fix confirmed target KMP failures inside allowed files and emit required reruns.
+    purpose: Optional business testing — behavioral submodule (user test cases) and ui_comparison submodule (Figma) after VG3.
     skills: []
     tools: [rg, git]
   - id: validation-report
     kind: ai_agent
-    purpose: Final verdict synthesis — passed/failed/blocked from verified fidelity, build, preview, test, and remediation evidence. No new tests or fixes.
+    purpose: Final verdict synthesis — passed/failed/blocked from verified fidelity, code-gate, business-testing, and remediation evidence.
     skills: []
     tools: [git]
 ---
 
 # KMP Test Validator Swarm Skill
 
-This is the agent-facing registry and team definition for the `kmp-test-validator` controller. It validates Android-to-KMP migration output against Android source and migration SPEC evidence.
+This is the agent-facing registry and team definition for the `kmp-test-validator` controller. It validates Android-to-KMP migration output against Android source, analyst SPEC, and migrator artifacts.
 
-The team is a **reduced serial pipeline with a remediation loop**. Role overlap has been collapsed from 9 role files to 6 role definitions. See [ROLE_REDUCTION.md](ROLE_REDUCTION.md) for the old-to-new map and merge rationale.
+The team is a **reduced serial pipeline (5 roles) with two controller loops**: code-gate fix remediation and migrator supplement.
+
+**Canonical file recording system**: [output-contract.md](output-contract.md) defines paths, migrator `V0` inputs, handoff gates `VG0`–`VG5`, and mode contracts. The Leader MUST read `output-contract.md` before the first dispatch.
+
+## Role Reduction Summary (7 → 5)
+
+| Reduced role | Former roles merged |
+|---|---|
+| `validation-fidelity-gate` | `validation-intake-fidelity` + `validation-restoreability-audit` (`mode: trust \| restoreability`) |
+| `validation-code-gate` | `validation-plan-gate` + `validation-remediation` (`mode: build \| fix`) |
+| `validation-business-testing` | `validation-test-runner` (submodules: `behavioral \| ui_comparison`) |
+
+**Kept distinct**: `validation-workspace-state`, `validation-report`.
 
 ## Protocol Summary
 
-0. **Pre-flight** — check optional dependencies from [dependencies.yaml](dependencies.yaml).
-1. **Output root + workspace state** — lock validation output root parallel to migration, then initialize `validation-workspace-state`.
-2. **Intake/fidelity trust gate** — run `validation-intake-fidelity`; block non-migration validation and test-trust blockers.
-3. **Plan/build gate** — run `validation-plan-gate`; commands must be trusted, and build/preview must pass before behavioral tests.
-4. **Test workflow** — run `validation-test-runner` when validation cases exist.
-5. **Remediation loop** — run `validation-remediation` only for confirmed target KMP failures, then rerun affected gates/tests.
-6. **Final report** — run `validation-report` to issue `passed | failed | blocked`.
+0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root.
+1. **Workspace state** — ledger + `handoff_gates`.
+2. **Fidelity gate `trust`** — migration trigger + pre-build fidelity (`VG1`).
+3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); on failure → code gate `fix` → rerun `build` (max 3 cycles).
+4. **Fidelity gate `restoreability`** — post-build restoreability (`VG3`); migrator supplement loop (max 3) when required.
+5. **Business testing** — optional behavioral / Figma submodules when user inputs exist (`VG4`).
+6. **Final report** — `validation-report` (`VG5`).
 
 ## Roles
 
-| id | Purpose | Role file |
+| id | Modes | Role file |
 |---|---|---|
-| `validation-workspace-state` | Ledger and stale-input tracking | [roles/validation-workspace-state.md](roles/validation-workspace-state.md) |
-| `validation-intake-fidelity` | Migration scenario gate and fidelity audit | [roles/validation-intake-fidelity.md](roles/validation-intake-fidelity.md) |
-| `validation-plan-gate` | Command resolution plus build/preview gate | [roles/validation-plan-gate.md](roles/validation-plan-gate.md) |
-| `validation-test-runner` | Test decomposition and execution | [roles/validation-test-runner.md](roles/validation-test-runner.md) |
-| `validation-remediation` | Scoped target fixes and rerun requests | [roles/validation-remediation.md](roles/validation-remediation.md) |
-| `validation-report` | Final verdict synthesis | [roles/validation-report.md](roles/validation-report.md) |
+| `validation-workspace-state` | — | [roles/validation-workspace-state.md](roles/validation-workspace-state.md) |
+| `validation-fidelity-gate` | `trust \| restoreability` | [roles/validation-fidelity-gate.md](roles/validation-fidelity-gate.md) |
+| `validation-code-gate` | `build \| fix` | [roles/validation-code-gate.md](roles/validation-code-gate.md) |
+| `validation-business-testing` | `behavioral \| ui_comparison` submodules | [roles/validation-business-testing.md](roles/validation-business-testing.md) |
+| `validation-report` | — | [roles/validation-report.md](roles/validation-report.md) |
 
 ## Files
 
 | File | What it contains |
 |---|---|
-| [ROLE_REDUCTION.md](ROLE_REDUCTION.md) | Reduced role analysis and old-to-new map |
-| [workflow.md](workflow.md) | Reduced pipeline, gates, remediation loop, final report format |
-| [bind.md](bind.md) | Guardrails, failure handling, resource constraints |
-| [roles/](roles/) | Active reduced role specs |
-| [dependencies.yaml](dependencies.yaml) | Optional CLI tools checked at startup |
+| [output-contract.md](output-contract.md) | Canonical paths, V0 upstream, VG0–VG5 gates |
+| [workflow.md](workflow.md) | Pipeline, gates, controller loops |
+| [bind.md](bind.md) | Guardrails and resource limits |
+| [dependencies.yaml](dependencies.yaml) | Upstream V0, optional inputs, MCP, tools |
+| [roles/](roles/) | Five active role specs |
 
 ## Strict Output Schedule
 
-Validation artifacts must be written parallel to migration artifacts, under a `validation` base location. If the migration run uses a default base like `~/.a2c_agents/migration`, the validator uses the sibling base `~/.a2c_agents/validation`. If a `migration_output_root` is provided, derive the validation base by replacing the `migration` path segment with `validation` when possible; otherwise use `<output_dir or ~/.a2c_agents/validation>`.
-
 ```text
 output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
-workspace_state_dir = <output_root>/workspace-state
-intake_dir = <output_root>/intake-fidelity
-plan_gate_dir = <output_root>/plan-gate
-test_runner_dir = <output_root>/test-runner
-remediation_dir = <output_root>/remediation
-report_dir = <output_root>/report
-logs_dir = <output_root>/logs
+fidelity_gate_dir = <output_root>/fidelity-gate
+code_gate_dir = <output_root>/code-gate
+business_testing_dir = <output_root>/business-testing
 ```
 
-Required artifacts:
-
-- `<output_root>/run_manifest.json`
-- `<workspace_state_dir>/validation_workspace_state.json`
-- `<workspace_state_dir>/validation_workspace_state.md`
-- `<intake_dir>/validation_intake_fidelity.json`
-- `<intake_dir>/validation_intake_fidelity.md`
-- `<plan_gate_dir>/validation_plan_gate.json`
-- `<plan_gate_dir>/validation_plan_gate.md`
-- `<logs_dir>/plan-gate/*` when build/preview commands run
-- `<test_runner_dir>/validation_test_runner.json`
-- `<test_runner_dir>/validation_test_runner.md`
-- `<logs_dir>/test-runner/*` when tests run
-- `<remediation_dir>/<cycle_id>/validation_remediation.json` and `.md` when fixes run
-- `<report_dir>/kmp_validation_report.json`
-- `<report_dir>/kmp_validation_report.md`
-
-No validator artifact may be written inside the migration output root. Migration artifacts are read-only inputs referenced by path.
+See [output-contract.md](output-contract.md) for full layout. No validator artifact inside migration output root.
 
 ## Output Artifact Content Matrix
 
-The controller verifies both artifact names and role-aligned content before downstream stages consume any file.
-
-| Stage / owner | Output file(s) | Required content |
+| Owner | Artifacts | Required content |
 |---|---|---|
-| Output root lock / Leader | `run_manifest.json` | Validation scope, KMP target path, Android source/SPEC paths, migration report path, migration output root, validation output root, allowed roots, dependency-preflight status, timestamp. |
-| Workspace ledger / `validation-workspace-state` | `validation_workspace_state.json`, `validation_workspace_state.md` | Validator node status, output files, changed-file ownership, stale upstream inputs, rerun history, blockers, and next safe action. |
-| Intake/fidelity / `validation-intake-fidelity` | `validation_intake_fidelity.json`, `validation_intake_fidelity.md` | Migration trigger evidence, normalized validation brief, KMP evidence, Android/SPEC-vs-KMP fidelity gaps across UI/logic/data/control flow, test-trust blockers, rerun requests, blockers. |
-| Plan/build gate / `validation-plan-gate` | `validation_plan_gate.json`, `validation_plan_gate.md`, plan-gate logs | Target structure, source sets, test frameworks, trusted command resolution, command sources, build/preview/renderability gate results, log paths, routed failures, blockers. |
-| Test runner / `validation-test-runner` | `validation_test_runner.json`, `validation_test_runner.md`, test logs, optional changed test files | Android/SPEC-anchored test cases, expected vs actual results, commands, log paths, created/reused tests, failure routing, skipped/blocked reasons. |
-| Remediation / `validation-remediation` | `validation_remediation.json`, `validation_remediation.md`, changed target files | Confirmed target KMP failures, Android/SPEC evidence for fixes, fixed/unfixed failures, changed files, diagnostics, required reruns, blockers. |
-| Final verdict / `validation-report` | `kmp_validation_report.json`, `kmp_validation_report.md` | Final `passed | failed | blocked` verdict from verified evidence, fidelity summary, build/preview summary, test statistics, remediation summary, changed files, remaining failures, blockers, report path. |
-
-JSON artifacts are the machine-routable source of truth. Markdown artifacts are agent-readable handoffs that preserve exact paths, commands/logs, changed-file ownership, rerun context, blockers, and downstream routing. Node Markdown must not be a prose-only completion summary.
+| Leader | `run_manifest.json`, `upstream_migration_index.json` | V0 verification, dependency preflight |
+| `validation-workspace-state` | `validation_workspace_state.*` | `handoff_gates` VG0–VG5, cycle counts |
+| `validation-fidelity-gate` | `trust/validation_fidelity_trust.*`, `restoreability/validation_restoreability_audit.*` | Pre-build trust or post-build restoreability per mode |
+| `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, code-gate logs | Compile scenario + build/preview or fix knowledge + reruns |
+| `validation-business-testing` | `validation_business_testing.*`, logs | Submodule outcomes or explicit skip |
+| `validation-report` | `kmp_validation_report.*` | Evidence-backed final verdict |
 
 ## Shared Return Contract
 
 ```json
 {
-  "status": "completed | passed | failed | needs_rerun | blocked",
+  "status": "completed | passed | failed | needs_rerun | needs_migrator_supplement | blocked",
   "node": "node-name",
-  "output_dir": "<exact validator node output dir under output_root>",
+  "mode": "trust | restoreability | build | fix",
+  "output_dir": "<node output dir>",
   "output_files": [],
   "changed_files": [],
   "stale_upstream_inputs": [],
@@ -142,12 +121,10 @@ JSON artifacts are the machine-routable source of truth. Markdown artifacts are 
 }
 ```
 
-Use `needs_rerun` when a previous role can resolve the gap, `failed` when validation evidence is complete and a behavior/build/test failure remains, and `blocked` when required evidence, command, environment, or user input is missing.
-
 ## Shared Rules
 
-- Each role must read its role file before work and stay inside its responsibility boundary.
-- Build/test/preview commands must come from user input, project scripts/docs/CI, or verified Gradle task discovery.
-- A passing KMP test that contradicts Android source/SPEC behavior is a validation failure.
-- Only `validation-remediation` edits target code.
-- The controller must not substitute itself for a role's audit, command gate, test run, fix, or final verdict.
+- Dispatch only **5 active role IDs**; superseded 7-role IDs invalidate returns.
+- Only `validation-code-gate` mode `fix` edits target production code.
+- Fidelity-gate modes are read-only; restoreability routes gaps to migrator supplement.
+- Code-gate `build` uses three compile scenarios only; `fix` uses error DB when configured.
+- Business-testing submodules require user inputs; skipped is not pass-by-omission.

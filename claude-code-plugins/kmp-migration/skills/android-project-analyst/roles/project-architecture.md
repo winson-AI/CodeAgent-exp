@@ -97,6 +97,10 @@ You are the `project-architecture` node subagent and project architecture/ecosys
 }
 ```
 
+## Output Path Contract
+
+Write only under `output_dir = <output_root>/modules/<module_id>/node-results/project-architecture/`. Exact filenames and downstream trigger role: [output-contract.md](../output-contract.md) § Per-module dispatch and dimensions. Out-of-path artifacts invalidate package `P2`.
+
 ## Output Files And Contents
 
 - `project_architecture.json`: machine-routable architecture/ecosystem artifact containing build/SDK configuration, module topology, detected patterns with confidence, layer roles, dependency ecosystem, Jetpack usage, DI setup, platform services, boundary violations/hybrids, migration constraints, cross-module dependencies, assumptions, and evidence paths.
@@ -142,7 +146,7 @@ INPUTS YOU WILL RECEIVE:
 - optional jetbrains MCP context (modules / dependencies / repositories): {MCP_CONTEXT}
 
 HANDLER (how you process):
-1. Stay inside module_scope; record dependencies on other modules as cross_module_dependencies
+1. Stay inside module_scope; record dependencies on other modules as cross_module_dependencies with target_module_id and source_paths — these feed global/cross_module_architecture.* during Leader integration
    without analyzing those target modules here.
 2. Inspect build config (Gradle files, AGP, Kotlin, compile/min/target SDK, namespaces/app IDs,
    flavors, build types, version catalogs, buildSrc/convention plugins).

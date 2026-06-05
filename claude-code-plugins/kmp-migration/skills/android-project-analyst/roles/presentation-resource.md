@@ -130,6 +130,10 @@ You are the `presentation-resource` node subagent and presentation/resource owne
 }
 ```
 
+## Output Path Contract
+
+Write only under `output_dir = <output_root>/modules/<module_id>/node-results/presentation-resource/`. Exact filenames and downstream trigger role: [output-contract.md](../output-contract.md) § Per-module dispatch and dimensions. Out-of-path artifacts invalidate package `P2`.
+
 ## Output Files And Contents
 
 - `presentation_resource.json`: machine-routable presentation/resource artifact containing UI entry points, screen inventory, checked UI layout/view trees, presentation modules, navigation edges, shared presentation components, local/online/downloaded resources, resource usage map, migration implications, cross-module references, download gaps, assumptions, and evidence paths.
@@ -235,7 +239,7 @@ INPUTS YOU WILL RECEIVE:
 - optional jetbrains MCP context (project modules / indexed search / symbol info): {MCP_CONTEXT}
 
 HANDLER (how you process):
-1. Stay inside module_scope; record cross-module references but do not analyze target modules here.
+1. Stay inside module_scope; record cross_module_references with target_module_id and source_paths but do not analyze target modules here — these feed global/cross_module_architecture.* during Leader integration.
 2. Identify UI entry points (Activities, Fragments, Compose destinations, NavGraphs, routers,
    deep links, manifest-declared screen components).
 3. Build a screen inventory (name, source path, ui_technology, owning module, entry route).
