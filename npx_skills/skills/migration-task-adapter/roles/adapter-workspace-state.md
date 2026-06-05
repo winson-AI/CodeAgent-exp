@@ -54,6 +54,8 @@ You are the `adapter-workspace-state` node subagent. You maintain the workspace 
 
 ## Output Files
 
+Write only under `workspace_state_dir`, `stage_inspection_dir`, and `intermediate_asset_dir`. Exact filenames, stage folder names, and gate packages: [output-contract.md](../output-contract.md). Evaluate handoff packages `A0`–`A6`; persist `handoff_gates` with `ready` and `missing_paths[]`.
+
 - `adapter_workspace_state.json`, `adapter_workspace_state.md`
 - `<stage_inspection_dir>/<stage_id>/stage_inspection.json`, `.md`
 - `<intermediate_asset_dir>/intermediate_asset_records.json`, `.md`

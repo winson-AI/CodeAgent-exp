@@ -56,6 +56,8 @@ You are the `adapter-report` node subagent. You synthesize verified adapter and 
 
 ## Output Files
 
+Write only under `report_dir`. Require package `A5` (`pre_report` stage `pass`) before issuing report. See [output-contract.md](../output-contract.md) § Final report and package `A6`.
+
 - `adapter_report.json`, `adapter_report.md`
 
 ## Inline Persona

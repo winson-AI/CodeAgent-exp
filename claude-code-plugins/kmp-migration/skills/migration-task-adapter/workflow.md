@@ -2,6 +2,8 @@
 
 The adapter classifies intent, records contracts and stage gates, and emits a verified report. It does not perform analysis, migration, or validation itself.
 
+**File recording system**: every adapter output path, content requirement, and trigger gate is defined in [output-contract.md](output-contract.md). Adapter roles MUST fail closed when handoff package artifacts are missing, empty, out-of-path, stale, or schema-invalid.
+
 ## Overview
 
 ```mermaid
@@ -25,8 +27,11 @@ graph TD
 
 ## Output Paths
 
+The canonical path tree, stage folder names, and handoff packages `A0`–`A6` are in [output-contract.md](output-contract.md). Summary:
+
 ```text
 output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
+downstream_index_dir = <output_root>/downstream-index
 workspace_state_dir = <output_root>/workspace-state
 route_orchestration_dir = <output_root>/route-orchestration
 stage_inspection_dir = <output_root>/stage-inspections
@@ -106,6 +111,7 @@ Lock `output_root`; write `run_manifest.json` with task id, paths, scope, depend
 
 - Route classified before downstream invoke.
 - Stage inspections at each applicable boundary.
-- Every consumed artifact in `intermediate_asset_records.*`.
-- `adapter-report` runs only after fresh `pre_report` gate.
+- Every consumed artifact in `intermediate_asset_records.*` and downstream roots indexed in `downstream_workflow_index.*`.
+- `handoff_gates` in `adapter_workspace_state.json` accurately reflect [output-contract.md](output-contract.md) package readiness (`A0`–`A6`).
+- `adapter-report` runs only after fresh `pre_report` gate (`A5`).
 - Final report cites verified paths; gaps listed, not filled in.

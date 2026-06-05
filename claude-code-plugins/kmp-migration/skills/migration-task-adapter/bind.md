@@ -15,7 +15,7 @@
 
 - **Orchestrator only** — classify, route, inspect, record, report. No analysis, migration, validation, or code edits.
 - **Route before downstream** — `task-route-orchestrator` mode `route` completes before workflow invoke.
-- **Strict output root** — `output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter`.
+- **Strict output root** — `output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter`; paths and gates per [output-contract.md](output-contract.md).
 - **Downstream boundary** — analyst/migrator/validator artifacts stay in their output roots; adapter records paths in asset ledger.
 - **Validator root** — validation artifacts under parallel `validation` root, not migration root.
 - **Stage gates** — every route and downstream boundary gets `stage_inspection.*` with `pass | needs_rerun | blocked`.
@@ -37,9 +37,12 @@
 
 ## Path Contract
 
+Canonical paths and handoff gates `A0`–`A6`: [output-contract.md](output-contract.md).
+
 ```json
 {
   "output_root": "<output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter",
+  "downstream_index_dir": "<output_root>/downstream-index",
   "workspace_state_dir": "<output_root>/workspace-state",
   "route_orchestration_dir": "<output_root>/route-orchestration",
   "stage_inspection_dir": "<output_root>/stage-inspections",

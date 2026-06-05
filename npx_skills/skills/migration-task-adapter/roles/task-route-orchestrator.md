@@ -86,8 +86,11 @@ Shared return shape applies.
 
 ## Output Files
 
-- `route/task_route.json`, `route/task_route.md`
-- `orchestrate/workflow_orchestration.json`, `orchestrate/workflow_orchestration.md`
+Write only under `output_dir` paths declared in the dispatch contract. Exact filenames and downstream trigger role: [output-contract.md](../output-contract.md) § Route and orchestration. Out-of-path artifacts invalidate packages `A1` and `A3`.
+
+- `route/task_route.json`, `route/task_route.md` (mode `route`)
+- `orchestrate/workflow_orchestration.json`, `orchestrate/workflow_orchestration.md` (mode `orchestrate`)
+- `../downstream-index/downstream_workflow_index.json`, `.md` (mode `orchestrate`)
 
 ## Inline Persona
 

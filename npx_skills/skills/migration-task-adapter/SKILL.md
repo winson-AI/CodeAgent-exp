@@ -29,6 +29,8 @@ roles:
 
 Front-door adapter for the KMP Migration Toolkit. It does not replace `android-project-analyst`, `android-to-kmp-migrator`, or `kmp-test-validator`. It classifies the user task, invokes the right downstream workflow, enforces stage gates, records consumed artifacts, and produces a final adapter report.
 
+**Canonical file recording system**: [output-contract.md](output-contract.md) defines every adapter output path, required content, write order, and **handoff package gates** (`A0`–`A6`). The Leader MUST read `output-contract.md` before the first dispatch and MUST NOT claim completion without updating `handoff_gates` in `adapter_workspace_state.json`.
+
 ## Task Routes
 
 | Route | Downstream |
@@ -61,6 +63,7 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 
 | File | Contents |
 |---|---|
+| [output-contract.md](output-contract.md) | Canonical path tree, artifact registry, gates `A0`–`A6`, downstream root recording |
 | [workflow.md](workflow.md) | Topology, route matrix, stage gates, report shape |
 | [bind.md](bind.md) | Guardrails, path contract, failure handling |
 | [dependencies.yaml](dependencies.yaml) | Downstream skills and optional tools |
@@ -68,8 +71,11 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 
 ## Output Layout
 
+See [output-contract.md](output-contract.md) for the full folder tree, filename invariants, and handoff packages `A0`–`A6`. Summary path variables:
+
 ```text
 output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
+downstream_index_dir = <output_root>/downstream-index
 workspace_state_dir = <output_root>/workspace-state
 route_orchestration_dir = <output_root>/route-orchestration
 stage_inspection_dir = <output_root>/stage-inspections
@@ -77,24 +83,16 @@ intermediate_asset_dir = <output_root>/intermediate-assets
 report_dir = <output_root>/report
 ```
 
-Required artifacts:
+Downstream workflows write only to their own output roots; the adapter records paths in `downstream-index/` and `intermediate-assets/`.
 
-- `run_manifest.json`
-- `route-orchestration/route/task_route.json`, `.md`
-- `workspace-state/adapter_workspace_state.json`, `.md`
-- `route-orchestration/orchestrate/workflow_orchestration.json`, `.md`
-- `stage-inspections/<stage_id>/stage_inspection.json`, `.md`
-- `intermediate-assets/intermediate_asset_records.json`, `.md`
-- `report/adapter_report.json`, `.md`
-
-Downstream workflows write only to their own output roots; the adapter records paths in asset records.
+Any artifact written outside the path tree in `output-contract.md` is **invalid** — adapter roles MUST return `blocked` with `reason: out_of_path`.
 
 ## Artifact Owners
 
 | Owner | Artifacts |
 |---|---|
 | Leader | `run_manifest.json` |
-| `task-route-orchestrator` | `task_route.*`, `workflow_orchestration.*` |
+| `task-route-orchestrator` | `task_route.*`, `workflow_orchestration.*`, `downstream_workflow_index.*` |
 | `adapter-workspace-state` | `adapter_workspace_state.*`, `stage_inspection.*`, `intermediate_asset_records.*` |
 | `adapter-report` | `adapter_report.*` |
 
