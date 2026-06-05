@@ -88,6 +88,10 @@ You are the `data-contract-flow` node subagent and data contract/flow owner disp
 }
 ```
 
+## Output Path Contract
+
+Write only under `output_dir = <output_root>/modules/<module_id>/node-results/data-contract-flow/`. Exact filenames and downstream trigger role: [output-contract.md](../output-contract.md) § Per-module dispatch and dimensions. Out-of-path artifacts invalidate package `P2`.
+
 ## Output Files And Contents
 
 - `data_contract_flow.json`: machine-routable data contract/flow artifact containing network stack, API declarations, request/response/model contracts, local/generated/platform data sources, model mappings, repository flows, reactive streams, transformations, end-to-end flows, dynamic/unknown APIs, cross-module data links, gaps, assumptions, and evidence paths.
@@ -133,7 +137,7 @@ INPUTS YOU WILL RECEIVE:
 - optional jetbrains MCP context (indexed search / symbol info): {MCP_CONTEXT}
 
 HANDLER (how you process):
-1. Stay inside module_scope; record cross-module data dependencies as cross_module_data_links
+1. Stay inside module_scope; record cross-module data dependencies as cross_module_data_links with target_module_id and source_paths — these feed global/cross_module_data_logic.* during Leader integration
    without analyzing target modules here.
 2. Identify network stack (Retrofit/OkHttp/Ktor/Volley/GraphQL/custom/generated clients).
 3. Catalog API service declarations (path, method, function, service class, request/response

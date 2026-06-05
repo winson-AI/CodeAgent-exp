@@ -1,155 +1,86 @@
-# Workflow: input task -> route decision -> downstream workflow -> inspected task report
+# Workflow: task → route → downstream workflow → adapter report
 
-This adapter is a small orchestration swarm in front of the Android analyst, KMP migrator, and KMP validator. Its output is not the migration itself; its output is a verified task route, a downstream workflow record, stage inspection records, intermediate asset records, and a final task report.
+The adapter classifies intent, records contracts and stage gates, and emits a verified report. It does not perform analysis, migration, or validation itself.
 
 ## Overview
 
 ```mermaid
 graph TD
-  L0[Leader pre-flight] --> ROOT[Lock output_root<br/>run_manifest.json]
-  ROOT --> TUR[task-understanding-router]
-  TUR --> G0{Route classified?}
-  G0 -- No --> STOP[blocked: ask for missing task/path/scope]
-  G0 -- Yes --> WSI0[workspace-state-discipline-inspector<br/>init ledgers]
-  WSI0 --> ST1[stage-inspection: route_decision]
-  ST1 --> WO[workflow-orchestrator<br/>dispatch contract]
-  WO --> G1{Route target}
-  G1 -- only_understand_ui --> APA_UI[android-project-analyst<br/>focus: UI/presentation-resource]
-  G1 -- only_understand_logic --> APA_LOGIC[android-project-analyst<br/>focus: behavior-logic]
-  G1 -- only_understand_architecture --> APA_ARCH[android-project-analyst<br/>focus: project-architecture]
-  G1 -- only_understand_overview --> APA_OV[android-project-analyst<br/>focus: overview/global SPEC]
-  G1 -- migration --> MIG_PREP{Analyst SPEC fresh?}
-  MIG_PREP -- No --> APA_MIG[android-project-analyst<br/>mode: migration]
-  MIG_PREP -- Yes --> ATM[android-to-kmp-migrator]
-  APA_MIG --> WSI_A[workspace-state-discipline-inspector]
-  WSI_A --> ATM
-  ATM --> KV{kmp-test-validator needed?}
-  KV -- ready_for_validation --> KTV[kmp-test-validator]
-  KV -- blocked --> WSI_M[workspace-state-discipline-inspector]
-  KTV --> WSI_V[workspace-state-discipline-inspector]
-  APA_UI --> WSI_D[workspace-state-discipline-inspector]
-  APA_LOGIC --> WSI_D
-  APA_ARCH --> WSI_D
-  APA_OV --> WSI_D
-  WSI_M --> TR[task-reporter]
-  WSI_V --> TR
-  WSI_D --> TR
-  TR --> WSI_FINAL[workspace-state-discipline-inspector<br/>final check]
+  L0[Pre-flight] --> ROOT[run_manifest.json]
+  ROOT --> TRO_R[task-route-orchestrator route]
+  TRO_R --> G0{Route ok?}
+  G0 -- No --> STOP[blocked]
+  G0 -- Yes --> WS0[adapter-workspace-state init]
+  WS0 --> TRO_O[task-route-orchestrator orchestrate]
+  TRO_O --> G1{Route}
+  G1 --> APA[android-project-analyst variants]
+  G1 --> MIG[migration: analyst then migrator]
+  MIG --> KV[kmp-test-validator optional]
+  APA --> WS1[adapter-workspace-state]
+  KV --> WS1
+  MIG --> WS1
+  WS1 --> AR[adapter-report]
+  AR --> WS2[adapter-workspace-state post_report]
 ```
 
-## Strict Output Paths
-
-The Leader must lock one adapter `output_root` before dispatch:
+## Output Paths
 
 ```text
 output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
-task_dir = <output_root>/task
 workspace_state_dir = <output_root>/workspace-state
-orchestration_dir = <output_root>/orchestration
+route_orchestration_dir = <output_root>/route-orchestration
 stage_inspection_dir = <output_root>/stage-inspections
 intermediate_asset_dir = <output_root>/intermediate-assets
 report_dir = <output_root>/report
 ```
 
-Required durable artifacts:
-
-| Schedule point | Required artifacts |
-|---|---|
-| Output root lock | `<output_root>/run_manifest.json` - task id, raw task, paths/scope, output roots, dependency status, schedule version |
-| Task understanding | `<task_dir>/task_understanding_router.json`, `<task_dir>/task_understanding_router.md` - route decision, focus, evidence, required/missing inputs, downstream sequence |
-| Workspace discipline | `<workspace_state_dir>/workspace_state_discipline.json`, `<workspace_state_dir>/workspace_state_discipline.md` - artifact inventory, path/freshness checks, rerun/blocker history, next actions |
-| Stage inspection | `<stage_inspection_dir>/<stage_id>/stage_inspection.json`, `<stage_inspection_dir>/<stage_id>/stage_inspection.md` - checked inputs/outputs, path/freshness/asset coverage, rerun/blocker routing |
-| Intermediate assets | `<intermediate_asset_dir>/intermediate_asset_records.json`, `<intermediate_asset_dir>/intermediate_asset_records.md` - stable records for every adapter/downstream artifact consumed later |
-| Orchestration | `<orchestration_dir>/workflow_orchestration.json`, `<orchestration_dir>/workflow_orchestration.md` - downstream contracts, expected/observed outputs, stage requests, rerun/blocker routing |
-| Final report | `<report_dir>/task_adapter_report.json`, `<report_dir>/task_adapter_report.md` - final route/status/readiness, verified outputs, stage/asset summaries, blockers |
-
-No adapter role may write inside downstream workflow output roots except by invoking the downstream controller with its own declared `output_dir`. Downstream artifacts are referenced by path in intermediate asset records. The validator output root must be the downstream validator's parallel `validation` location, not the migration output root.
+Validator artifacts are recorded under the validator's parallel `validation` root, not the migration root.
 
 ## Route Matrix
 
-| Route | Required inputs | Downstream workflow | Required downstream evidence |
+| Route | Required inputs | Downstream | Key evidence |
 |---|---|---|---|
-| `only_understand_ui` | Android source path, UI/screen/feature scope when available | `android-project-analyst` in exploration mode with `analysis_focus: ui` | `presentation_resource.*`, module/global representation, `SPEC/design.md`, `SPEC/verification.md` |
-| `only_understand_logic` | Android source path, logic/feature/use-case scope when available | `android-project-analyst` in exploration mode with `analysis_focus: logic` | verified Stage A outputs plus `behavior_logic.*`, module/global representation, `SPEC/verification.md` |
-| `only_understand_architecture` | Android source path, module/project scope | `android-project-analyst` in exploration mode with `analysis_focus: architecture` | `project_architecture.*`, module/global representation, `SPEC/design.md`, `SPEC/verification.md` |
-| `only_understand_overview` | Android source path, overview/full or feature scope | `android-project-analyst` in exploration mode | module inventory, all node outputs in scope, module/global representation, SPEC |
-| `migration` | Android source or fresh analyst SPEC, KMP target path, migration scope | `android-project-analyst` if needed, then `android-to-kmp-migrator`, then optional `kmp-test-validator` | analyst SPEC, migration module inventory, module/global migration representation, `migration_report.*`, validation report when run |
-| `validation_handoff` | KMP target path, Android source/SPEC, migration report | `kmp-test-validator` | validation intake, plan/build gate, test runner/remediation as applicable, validation report |
+| `only_understand_ui` | Android source, UI scope | analyst exploration, focus `ui` | `presentation_resource.*`, SPEC |
+| `only_understand_logic` | Android source, logic scope | analyst exploration, focus `logic` | Stage A + `behavior_logic.*`, SPEC |
+| `only_understand_architecture` | Android source | analyst exploration, focus `architecture` | `project_architecture.*`, SPEC |
+| `only_understand_overview` | Android source | analyst exploration | module inventory, representations, SPEC |
+| `migration` | source or SPEC, KMP target | analyst → migrator → validator optional | SPEC, `migration_report.*` |
+| `validation_handoff` | KMP target, migration report | validator | `kmp_validation_report.*` |
 
-## Detailed Steps
+## Steps
 
-### Step 0 - Pre-flight
+### Step 0 — Pre-flight
 
-- **Executor**: Leader.
-- **Input**: [dependencies.yaml](dependencies.yaml), user task, optional source/target/output paths.
-- **Action**: verify optional tools and lock `output_root`. Write `run_manifest.json` with task id, raw task summary, timestamp, requested scope, source/target paths, allowed roots, downstream workflow candidates, dependency status, and schedule version.
-- **Gate**: `run_manifest.json` exists and is non-empty before any role runs.
+Lock `output_root`; write `run_manifest.json` with task id, paths, scope, dependency preflight.
 
-### Step 1 - Task Understanding And Router
+### Step 1 — Route
 
-- **Executor**: `task-understanding-router`.
-- **Input**: raw user task, paths, current workspace hints, optional existing analyst/migrator/validator artifact paths.
-- **Action**: normalize request, classify route, select focus, identify missing evidence, create downstream route contract.
-- **Output**: `task_understanding_router.json`, `task_understanding_router.md`. Artifacts must contain normalized task summary, route, task kind, focus, source/target/scope fields, existing artifact evidence, required/missing inputs, downstream workflow sequence, stage inspection requirements, intermediate asset requirements, and blockers.
-- **Gate**: route must be one of the route matrix values or `blocked` with missing inputs. No downstream workflow starts on `unknown`.
+- **Executor**: `task-route-orchestrator` mode `route`
+- **Output**: `route-orchestration/route/task_route.*`
+- **Gate**: route is known or `blocked` with `blocking_gaps`
 
-### Step 2 - Workspace State Discipline Init
+### Step 2 — Workspace init
 
-- **Executor**: `workspace-state-discipline-inspector`.
-- **Action**: initialize or refresh workspace discipline ledger, stage inspection index, intermediate asset records, rerun/blocker history.
-- **Output**: `workspace_state_discipline.json`, `.md`, first `stage_inspection.json`, `.md`, and `intermediate_asset_records.json`, `.md`. Artifacts must record adapter artifact inventory, path compliance, freshness, consumed assets, rerun history, blockers, and next safe action.
-- **Gate**: task understanding artifacts and run manifest are recorded as intermediate assets before orchestration.
+- **Executor**: `adapter-workspace-state`
+- **Output**: `adapter_workspace_state.*`, first `stage_inspection.*`, `intermediate_asset_records.*`
+- **Gate**: route artifacts recorded as assets before orchestrate
 
-### Step 3 - Workflow Orchestration
+### Step 3 — Orchestrate
 
-- **Executor**: `workflow-orchestrator`.
-- **Action**:
-  - Build exact downstream dispatch contracts from the route decision.
-  - Record downstream output roots and expected artifacts.
-  - After downstream workflow completion, record observed outputs, statuses, blockers, and required reruns.
-  - Route stale or missing downstream outputs back to the owning workflow.
-- **Output**: `workflow_orchestration.json`, `workflow_orchestration.md`. Artifacts must contain downstream dispatch contracts, expected output roots/artifacts, observed downstream outputs, stage inspection requests, intermediate asset updates, rerun requests, and blockers.
-- **Gate**: orchestration cannot claim `completed` until downstream workflow status and required artifact paths are recorded or blockers are explicit.
+- **Executor**: `task-route-orchestrator` mode `orchestrate`
+- **Output**: `route-orchestration/orchestrate/workflow_orchestration.*`
+- **Gate**: downstream contracts and observed outputs recorded or blockers explicit
 
-### Step 4 - Stage Inspections
+### Step 4 — Stage gates
 
-- **Executor**: `workspace-state-discipline-inspector`.
-- **Required inspection points**:
-  - `route_decision`
-  - `pre_downstream_dispatch`
-  - `post_analyst`
-  - `post_migrator`
-  - `post_validator`
-  - `pre_report`
-  - `post_report`
-- **Action**: for each applicable point, verify current stage inputs, outputs, freshness, path compliance, intermediate asset coverage, and rerun/blocker routing.
-- **Output**: one `stage_inspection.json` and `.md` per stage id plus refreshed workspace discipline and asset ledgers. Stage inspection artifacts must list checked inputs/outputs, path compliance, freshness checks, intermediate asset coverage, downstream contract checks, rerun requests, blockers, and next allowed stage.
-- **Gate**: final report cannot run unless `pre_report` stage inspection passes or explicitly reports `blocked`.
+- **Executor**: `adapter-workspace-state`
+- **Stages**: `route_decision`, `pre_downstream_dispatch`, `post_analyst`, `post_migrator`, `post_validator`, `pre_report`, `post_report` (as applicable)
+- **Gate**: `pre_report` must pass before adapter-report
 
-### Step 5 - Intermediate Asset Records
+### Step 5 — Adapter report
 
-- **Executor**: `workspace-state-discipline-inspector` with updates from `workflow-orchestrator`.
-- **Action**: record every durable adapter and downstream artifact consumed across stages.
-- **Required fields**:
-  - `asset_id`
-  - `asset_type`
-  - `producer`
-  - `path`
-  - `status`
-  - `created_or_observed_at`
-  - `freshness_basis`
-  - `consumers`
-  - `source_evidence`
-  - `blocking_gaps`
-- **Gate**: every `output_files[]` item returned by an adapter role or downstream workflow must appear in `intermediate_asset_records.*` before a downstream consumer uses it.
-
-### Step 6 - Task Report
-
-- **Executor**: `task-reporter`.
-- **Input**: run manifest, task understanding, workflow orchestration, latest workspace discipline, stage inspections, intermediate asset records, downstream reports.
-- **Action**: synthesize a final machine-routable task report. Do not run new analysis, migration, validation, tests, or fixes.
-- **Output**: `task_adapter_report.json`, `task_adapter_report.md`. Artifacts must summarize final status, route, focus, source/target paths, downstream workflow results, stage inspections, intermediate assets, verified outputs, readiness, rerun requests, blockers, and report path.
-- **Gate**: report status is `completed`, `ready_for_validation`, `failed`, or `blocked` only from verified evidence.
+- **Executor**: `adapter-report`
+- **Output**: `report/adapter_report.*`
 
 ## Final Report Shape
 
@@ -158,16 +89,14 @@ No adapter role may write inside downstream workflow output roots except by invo
   "status": "completed | ready_for_validation | failed | blocked",
   "task_id": "",
   "route": "",
-  "understand_focus": "ui | logic | architecture | overview | mixed | none",
+  "understand_focus": "",
   "source_project_path": "",
   "target_project_path": "",
-  "output_root": "",
   "downstream_workflows": [],
   "stage_inspection_summary": [],
-  "intermediate_asset_summary": [],
-  "downstream_outputs": [],
-  "readiness": "ready | ready_with_assumptions | ready_for_validation | blocked",
-  "rerun_requests": [],
+  "intermediate_asset_summary": {},
+  "verified_outputs": [],
+  "readiness": "",
   "blocking_gaps": [],
   "report_path": ""
 }
@@ -175,9 +104,8 @@ No adapter role may write inside downstream workflow output roots except by invo
 
 ## Acceptance Criteria
 
-- Task route is classified before any downstream workflow is invoked.
-- Only-understand UI/logic/architecture/overview routes go through `android-project-analyst`; migration routes go through analyst completion before migrator when SPEC is missing or stale.
-- Stage inspection records exist for every applicable route boundary and downstream workflow boundary.
-- Intermediate asset records include every durable adapter and downstream artifact consumed by a later stage.
-- Latest workspace discipline inspection has no stale required inputs before `task-reporter` runs.
-- Final task report cites paths to verified downstream artifacts and lists unresolved gaps instead of filling them in.
+- Route classified before downstream invoke.
+- Stage inspections at each applicable boundary.
+- Every consumed artifact in `intermediate_asset_records.*`.
+- `adapter-report` runs only after fresh `pre_report` gate.
+- Final report cites verified paths; gaps listed, not filled in.

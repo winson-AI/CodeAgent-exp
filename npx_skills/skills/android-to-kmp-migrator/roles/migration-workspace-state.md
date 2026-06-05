@@ -52,22 +52,30 @@ Track progress at two levels:
 Use these canonical stage ids when evidence exists:
 
 ```text
+upstream_analyst_index
 inventory
-planning
-dependency_platform
-presentation_integration
-state_data_prep
+target_assistant_global
+target_assistant_module
+planning_gate
+migration_prep
 prep_review
-ui_implementation
+module_implementation_ui
 ui_review
-logic_implementation
+module_implementation_logic
 logic_review
 verification
+module_completion_record
 readiness
 module_representation
+all_modules_complete
+global_migration_integrate
+global_migration_align
 global_representation
 report
+validator_handoff
 ```
+
+Evaluate handoff packages `M0`–`M6` and `V0` per [output-contract.md](../output-contract.md); persist `handoff_gates` with `ready` and `missing_paths[]`.
 
 Calculate `finish_rate` only from verified planned work units:
 
@@ -77,10 +85,10 @@ finish_rate = completed_work_units / max(planned_work_units, 1)
 
 Where:
 
-- `planned_work_units` come from the module brief, `migration-analysis-planning`, expected node schedule, and approved source-to-target map.
+- `planned_work_units` come from the module brief, `migration-planning-gate`, expected node schedule, and approved source-to-target map.
 - `completed_work_units` require durable node output evidence and, for file-changing slices, latest review approval or verification pass when applicable.
 - `blocked`, `stale`, `missing`, `failed`, or unreviewed implementation work does not count as completed.
-- If the plan is missing or stale, set `finish_rate_basis: "blocked_missing_plan"` or `"stale_plan"` and emit a rerun hook to `migration-analysis-planning`.
+- If the plan is missing or stale, set `finish_rate_basis: "blocked_missing_plan"` or `"stale_plan"` and emit a rerun hook to `migration-planning-gate`.
 
 Plan-vs-code gaps compare the approved plan to observed implementation and verification evidence. Record gaps for:
 
