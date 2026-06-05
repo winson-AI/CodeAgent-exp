@@ -270,7 +270,7 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 
 ### `global_system_integration.json`
 
-`assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `shared_contracts_applied[]`, `integration_changed_files[]`, evidence paths from analyst cross-module globals.
+`kmp_target_project_path`, `target_edit_summary`, `assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `shared_contracts_applied[]`, `integration_changed_files[]` (target glue paths only), evidence paths from analyst cross-module globals. Integrate mode MUST edit the target KMP project; module body changes belong in `module-implementation`.
 
 ### `post_integration_alignment.json` (analysis only — no target edits)
 
@@ -286,7 +286,7 @@ Combined `presentation` (tokens, resources, routes) and `state_data` (state/mode
 
 ### `module_implementation_ui.json` / `module_implementation_logic.json`
 
-UI mode and logic mode outputs under `module-implementation/ui/` and `module-implementation/logic/` respectively.
+UI mode and logic mode outputs under `module-implementation/ui/` and `module-implementation/logic/` respectively. Each MUST record `kmp_target_project_path`, `target_edit_summary`, and `changed_files[]` listing every target KMP path created or modified in that invocation. Legacy Android paths are evidence only — implementation edits occur under `kmp_target_project_path`.
 
 ### `alignment_report.json`
 

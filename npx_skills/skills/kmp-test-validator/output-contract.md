@@ -127,7 +127,7 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 
 ### `validation_code_fix.json` (mode `fix`)
 
-`fix_knowledge_source`: `error_database | model_inference`. `restoreability_impact` per changed file. `required_reruns`: `["validation-code-gate:build", ...]`.
+`kmp_target_project_path`, `fix_knowledge_source`: `error_database | model_inference`, `target_edit_summary`, `changed_files[]` listing every target KMP path created or modified to resolve build/preview failures, `restoreability_impact` per change. `required_reruns`: `["validation-code-gate:build", ...]`. Fix mode is the **only** validator role that edits target production code.
 
 **Forbidden fix patterns**: delete/stub migrated behavior solely to pass compile; route missing modules to migrator supplement.
 

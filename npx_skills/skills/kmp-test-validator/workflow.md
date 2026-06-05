@@ -44,7 +44,7 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - **Executor**: `validation-code-gate` mode `build`
 - **Compile scenarios**: `user_specified` → `global_tool_search` → `default_gradle_kmp`
 - **Output**: `code-gate/build/validation_code_build.*`, `logs/code-gate/*`
-- **On failure**: dispatch code-gate mode `fix` → rerun `build` (max 3 fix cycles)
+- **On failure**: dispatch code-gate mode `fix` (edit target KMP files) → rerun `build` (max 3 fix cycles)
 - **Gate**: `VG2`
 
 ### Step 4 — Fidelity Gate `restoreability`

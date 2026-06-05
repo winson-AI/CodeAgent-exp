@@ -69,8 +69,8 @@ graph TD
 | 5b | `migration-planning-gate` | Planning + dep/platform in one pass |
 | 5c | `migration-prep` | Presentation + state/data in one pass |
 | 5d | `module-node-review-fix` | After prep if file-changing |
-| 5e | `module-implementation` `ui` | Then review/fix |
-| 5f | `module-implementation` `logic` | After UI approved; then review/fix |
+| 5e | `module-implementation` `ui` | Edit/create target KMP UI files; then review/fix |
+| 5f | `module-implementation` `logic` | Edit/create target KMP logic files after UI approved; then review/fix |
 | 5g | `migration-verification` | Static + restoration; **no full build** |
 | 5h | Leader | `module_completion_record.json` |
 | 5i | `completion-report` `readiness` + module representation | Package **M3** |
@@ -82,7 +82,8 @@ Repeat until package **M4**.
 ### 6a Integrate
 
 - **Role**: `global-migration-phase` `mode: integrate`
-- **Output**: `global-migration-phase/integrate/global_system_integration.*`
+- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts) under `kmp_target_project_path`
+- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]`
 - **Gate**: package **M5**
 
 ### 6b Align

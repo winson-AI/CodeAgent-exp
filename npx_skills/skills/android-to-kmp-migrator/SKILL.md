@@ -30,7 +30,7 @@ roles:
     tools: [rg, curl]
   - id: module-implementation
     kind: ai_agent
-    purpose: UI and logic implementation by mode — ui first, then logic after UI approval.
+    purpose: Target KMP module implementation by mode — edit/create KMP UI files first, then logic after UI approval.
     skills: []
     tools: [rg]
   - id: module-node-review-fix
@@ -45,7 +45,7 @@ roles:
     tools: [rg, git]
   - id: global-migration-phase
     kind: ai_agent
-    purpose: Global integrate (cross-module wiring) then align (analyst vs target comparison) by mode.
+    purpose: Target KMP global integrate (edit cross-module glue) then align (read-only analyst vs target comparison) by mode.
     skills: []
     tools: [rg]
   - id: completion-report

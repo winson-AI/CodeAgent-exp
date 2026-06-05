@@ -39,7 +39,7 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 | `only_understand_logic` | `android-project-analyst` — behavior/control-flow focus |
 | `only_understand_architecture` | `android-project-analyst` — architecture/ecosystem focus |
 | `only_understand_overview` | `android-project-analyst` — full representation + SPEC |
-| `migration` | analyst (if SPEC stale) → `android-to-kmp-migrator` → optional `kmp-test-validator` |
+| `migration` | analyst (if SPEC stale) → `android-to-kmp-migrator` → **`kmp-test-validator` (required)** |
 | `validation_handoff` | `kmp-test-validator` when migration evidence exists |
 
 ## Protocol Summary
@@ -120,4 +120,5 @@ Any artifact written outside the path tree in `output-contract.md` is **invalid*
 - Route classification happens before downstream workflow selection.
 - Every consumed durable artifact must appear in `intermediate_asset_records.*`.
 - Downstream evidence is consumed by path and status only — never invented.
+- Route `migration` MUST invoke `kmp-test-validator` after migrator handoff; adapter cannot claim migration completion without validator evidence and `post_validator` stage pass.
 - Final user-facing completion requires `adapter_report.*`.

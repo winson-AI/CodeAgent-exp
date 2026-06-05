@@ -15,7 +15,7 @@ skills:
     required: false
     used_by:
       - task-route-orchestrator
-    purpose: Downstream for validation when migration report exists; validation root is parallel to migration.
+    purpose: Mandatory downstream for route migration after migrator V0/M6; also used by validation_handoff. Validation root is parallel to migration.
 
 tools:
   - name: rg
