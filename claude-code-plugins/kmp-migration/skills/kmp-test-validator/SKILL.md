@@ -20,7 +20,7 @@ roles:
     tools: [rg, git]
   - id: validation-code-gate
     kind: ai_agent
-    purpose: Code gate — mode build (3-scenario compile/preview) or fix (error DB or model, restoreability-preserving edits). Only fix mode edits production code.
+    purpose: Code gate — mode build (3-scenario compile/preview) or fix (edit target KMP project to resolve build/preview failures). Only fix mode edits production code.
     skills: []
     tools: [rg, git]
   - id: validation-business-testing
@@ -91,7 +91,7 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 | Leader | `run_manifest.json`, `upstream_migration_index.json` | V0 verification, dependency preflight |
 | `validation-workspace-state` | `validation_workspace_state.*` | `handoff_gates` VG0–VG5, cycle counts |
 | `validation-fidelity-gate` | `trust/validation_fidelity_trust.*`, `restoreability/validation_restoreability_audit.*` | Pre-build trust or post-build restoreability per mode |
-| `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, code-gate logs | Compile scenario + build/preview or fix knowledge + reruns |
+| `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, code-gate logs | Compile scenario + build/preview (build mode) or target KMP edits + `changed_files` + reruns (fix mode) |
 | `validation-business-testing` | `validation_business_testing.*`, logs | Submodule outcomes or explicit skip |
 | `validation-report` | `kmp_validation_report.*` | Evidence-backed final verdict |
 

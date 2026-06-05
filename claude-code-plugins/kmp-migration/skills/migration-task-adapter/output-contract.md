@@ -84,7 +84,7 @@ output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
 | `pre_downstream_dispatch` | Before downstream workflow invoke |
 | `post_analyst` | After analyst workflow when route requires it |
 | `post_migrator` | After migrator workflow when route requires it |
-| `post_validator` | After validator workflow when route requires it |
+| `post_validator` | After validator workflow; **required** for route `migration` |
 | `pre_report` | Before `adapter-report` |
 | `post_report` | After `adapter-report` |
 
@@ -158,7 +158,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | `A1` | `route-orchestration/route/task_route.json` — route known or explicit `blocked` with `blocking_gaps` |
 | `A2` | `adapter_workspace_state.json`, `stage-inspections/route_decision/*`, route assets recorded in `intermediate_asset_records.json` |
 | `A3` | `workflow_orchestration.json`, `downstream_workflow_index.json` — dispatch contracts and observed outputs recorded |
-| `A4` | All applicable boundary stages (`pre_downstream_dispatch`, `post_analyst`, `post_migrator`, `post_validator`) are `pass` or explicitly `skipped` with evidence |
+| `A4` | All applicable boundary stages (`pre_downstream_dispatch`, `post_analyst`, `post_migrator`, `post_validator`) are `pass` or explicitly `skipped` with evidence; route `migration` MUST NOT skip `post_validator` |
 | `A5` | `stage-inspections/pre_report/*` — `status: pass` |
 | `A6` | `report/adapter_report.json` issued |
 
@@ -176,7 +176,7 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 | `only_understand_logic` | analyst `P5` or focused `P2` with `behavior_logic.*` + SPEC |
 | `only_understand_architecture` | analyst `P5` or `P2` with `project_architecture.*` + SPEC |
 | `only_understand_overview` | analyst `P5` |
-| `migration` | analyst `P6` when required, migrator `M6` + `migration_report.*`; optional validator `VG5` |
+| `migration` | analyst `P6` when required, migrator `M6` + `migration_report.*`, **required** validator `VG5` + `kmp_validation_report.*` |
 | `validation_handoff` | migrator `V0`, validator `VG5` + `kmp_validation_report.*` |
 
 ---
@@ -235,8 +235,8 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 
 ### `adapter_report.json` status rules
 
-- `completed` — understand route satisfied; inspections pass; assets recorded.
-- `ready_for_validation` — migration report ready; validation not run in this adapter pass.
+- `completed` — understand route satisfied; inspections pass; assets recorded. Route `migration` additionally requires validator `VG5` and `kmp_validation_report.*`.
+- `ready_for_validation` — migrator report ready but validator not yet complete; **invalid final status for route `migration`** — migration runs must trigger validator and resolve before `A6`.
 - `needs_rerun` — concrete owner can resolve missing/stale evidence.
 - `failed` — downstream workflow failed with verified evidence.
 - `blocked` — missing path, evidence, or user decision.
@@ -252,6 +252,7 @@ Before claiming adapter completion, the Leader MUST:
 3. Refresh `adapter-workspace-state` after every route and downstream boundary.
 4. Never invoke `adapter-report` before `A5` is true.
 5. Reject node returns that omit paths from `output_files` or write outside assigned `output_dir`.
+6. For route `migration`, invoke `kmp-test-validator` after migrator handoff; record validator output root under parallel `validation` location; do not mark `A4`/`A6` ready without `post_validator` pass.
 
 ## Node Obligations
 

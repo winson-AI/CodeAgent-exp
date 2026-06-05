@@ -49,7 +49,7 @@ You are the `adapter-workspace-state` node subagent. You maintain the workspace 
 
 - `route_decision` — after task-route-orchestrator mode `route`
 - `pre_downstream_dispatch` — before downstream invoke
-- `post_analyst` | `post_migrator` | `post_validator` — after applicable workflow
+- `post_analyst` | `post_migrator` | `post_validator` — after applicable workflow; route `migration` requires `post_validator` and it MUST NOT be skipped
 - `pre_report` | `post_report` — around adapter-report
 
 ## Output Files

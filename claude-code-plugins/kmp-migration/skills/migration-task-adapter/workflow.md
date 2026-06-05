@@ -17,7 +17,7 @@ graph TD
   TRO_O --> G1{Route}
   G1 --> APA[android-project-analyst variants]
   G1 --> MIG[migration: analyst then migrator]
-  MIG --> KV[kmp-test-validator optional]
+  MIG --> KV[kmp-test-validator required]
   APA --> WS1[adapter-workspace-state]
   KV --> WS1
   MIG --> WS1
@@ -49,7 +49,7 @@ Validator artifacts are recorded under the validator's parallel `validation` roo
 | `only_understand_logic` | Android source, logic scope | analyst exploration, focus `logic` | Stage A + `behavior_logic.*`, SPEC |
 | `only_understand_architecture` | Android source | analyst exploration, focus `architecture` | `project_architecture.*`, SPEC |
 | `only_understand_overview` | Android source | analyst exploration | module inventory, representations, SPEC |
-| `migration` | source or SPEC, KMP target | analyst → migrator → validator optional | SPEC, `migration_report.*` |
+| `migration` | source or SPEC, KMP target | analyst → migrator → **validator required** | SPEC, `migration_report.*`, `kmp_validation_report.*` |
 | `validation_handoff` | KMP target, migration report | validator | `kmp_validation_report.*` |
 
 ## Steps
@@ -74,7 +74,8 @@ Lock `output_root`; write `run_manifest.json` with task id, paths, scope, depend
 
 - **Executor**: `task-route-orchestrator` mode `orchestrate`
 - **Output**: `route-orchestration/orchestrate/workflow_orchestration.*`
-- **Gate**: downstream contracts and observed outputs recorded or blockers explicit
+- **Action**: route `migration` MUST dispatch `kmp-test-validator` after migrator; record validator output root under parallel `validation` location
+- **Gate**: downstream contracts and observed outputs recorded or blockers explicit; migration route incomplete without validator dispatch/evidence
 
 ### Step 4 — Stage gates
 
@@ -114,4 +115,5 @@ Lock `output_root`; write `run_manifest.json` with task id, paths, scope, depend
 - Every consumed artifact in `intermediate_asset_records.*` and downstream roots indexed in `downstream_workflow_index.*`.
 - `handoff_gates` in `adapter_workspace_state.json` accurately reflect [output-contract.md](output-contract.md) package readiness (`A0`–`A6`).
 - `adapter-report` runs only after fresh `pre_report` gate (`A5`).
+- Route `migration` always dispatches `kmp-test-validator` after migrator; `post_validator` stage required before `pre_report`.
 - Final report cites verified paths; gaps listed, not filled in.

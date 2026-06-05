@@ -22,6 +22,7 @@
 - **Asset ledger** — every consumed durable artifact has one record with producer, path, status, freshness.
 - **No hidden fallbacks** — missing/stale evidence → rerun request to owning workflow.
 - **Migration readiness** — migrator requires fresh analyst SPEC; route analyst first when missing.
+- **Migration validator mandate** — route `migration` MUST trigger `kmp-test-validator` after migrator `V0`/`M6` evidence; skipping validator invalidates `A4`/`A5` for migration runs.
 - **Final verdict** — only `adapter-report` issues adapter final status.
 
 ## Failure Handling
