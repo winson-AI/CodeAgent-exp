@@ -1,6 +1,6 @@
-# Workflow: migrated KMP target → verified validation verdict (5 roles)
+# Workflow: migrated KMP target → verified validation verdict
 
-Reduced pipeline: **5 active roles** with mode-based fidelity and code gates. See [output-contract.md](output-contract.md) and [SKILL.md](SKILL.md).
+Serial pipeline with mode-based fidelity and code gates. See [output-contract.md](output-contract.md) and [SKILL.md](SKILL.md).
 
 ## Overview
 
@@ -77,7 +77,7 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 
 ## Acceptance Criteria
 
-- Only 5 active role IDs dispatched.
+- Dispatch only role IDs from `SKILL.md`.
 - Fidelity-gate `trust` before code-gate `build`; `restoreability` after `VG2`.
 - Only code-gate mode `fix` edits production code.
 - Business testing skipped (not passed) when no user inputs.

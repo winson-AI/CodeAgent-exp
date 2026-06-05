@@ -29,7 +29,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
 - Every required `check_id` has `passed | failed | blocked`.
 - `ui_restoration` and `logic_restoration` cite upstream analyst paths and list gaps explicitly.
 - `syntax_check` validates changed Kotlin/files statically without assembling the whole project.
-- Failures route to reduced role IDs; Leader writes `module_completion_record.json` only when all checks pass.
+- Failures route to owning roles per `SKILL.md`; Leader writes `module_completion_record.json` only when all checks pass.
 
 ## Boundary
 

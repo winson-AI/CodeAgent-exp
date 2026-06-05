@@ -4,12 +4,11 @@
 
 | Item | Limit | Reason |
 |---|---|---|
-| `max_parallel_teammates` | 1 | Reduced pipeline is serial per module (prep and planning-gate consolidated) |
-| `total_wall_clock_budget` | 90 min per module batch | 9-role reduced schedule |
-| `total_token_budget` | 1.2M tokens per batch | Fewer dispatches; broader consolidated role context |
-| `per_node_token_budget` | 160k tokens | Consolidated roles (planning-gate, prep, module-implementation) |
+| `max_parallel_teammates` | 1 | Serial pipeline per module |
+| `total_wall_clock_budget` | 90 min per module batch | Module-first migration schedule |
+| `total_token_budget` | 1.2M tokens per batch | Leader + role dispatches per module |
+| `per_node_token_budget` | 160k tokens | Planning-gate, prep, module-implementation carry broader context |
 | `max_review_fix_cycles` | 3 per slice | Before `blocked` escalation |
-| `active_role_count` | 9 | Do not dispatch superseded 13-role IDs |
 
 ## Build Boundary
 
@@ -19,7 +18,7 @@
 
 ## Behavioral Constraints
 
-- **9-role schedule only**: active role IDs are listed in [SKILL.md](SKILL.md). Superseded 13-role IDs are invalid returns.
+- **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
 - **Mode discipline**:
   - `module-implementation`: `ui` then `logic` — separate invocations
   - `global-migration-phase`: `integrate` (edits) then `align` (read-only) — separate invocations
@@ -33,7 +32,7 @@
 
 | Failure | Response |
 |---|---|
-| Superseded role ID dispatched | Reject; use reduced role from `SKILL.md` § Role Reduction Summary |
+| Unknown or invalid role ID | Reject; use role from `SKILL.md` registry |
 | `ui` and `logic` combined | Reject invocation |
 | `integrate` and `align` combined | Reject invocation |
 | Verification restoration failed | Rerun `module-implementation` or `migration-prep`; no completion record |

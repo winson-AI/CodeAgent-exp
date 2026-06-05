@@ -1,6 +1,6 @@
 # Output Contract: Validation File Recording, Upstream Inputs, And Trigger Gates
 
-This document is the **canonical path and content contract** for `kmp-test-validator` (5-role reduced team). Downstream handlers and cross-controller loops **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers**.
+This document is the **canonical path and content contract** for `kmp-test-validator`. Downstream handlers and cross-controller loops **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers**.
 
 When `SKILL.md` or `workflow.md` diverge, **this file wins on paths, filenames, upstream inputs, and trigger gates**.
 
@@ -150,7 +150,7 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 
 ## Leader Obligations
 
-1. Dispatch only **5 active role IDs** per [SKILL.md](SKILL.md).
+1. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
 2. Run fidelity-gate `trust` before code-gate `build`; `restoreability` only after `VG2`.
 3. Route compile failures to code-gate `fix`; route missing modules to migrator supplement.
 4. Enable business-testing submodules only with user prerequisites.
@@ -160,7 +160,7 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 
 | Condition | Action |
 |---|---|
-| Superseded 7-role ID in return payload | Reject; re-dispatch with active role + mode |
+| Unknown or invalid role ID in return payload | Reject; re-dispatch with role + mode from `SKILL.md` |
 | `restoreability` before `VG2` | `blocked` |
 | Fix mode delete/stub violation | `failed`; rerun fix with constraint recorded |
 | Business submodule without user input | `skipped`, not pass-by-omission |

@@ -1,6 +1,6 @@
 # Workflow: Legacy Android source → module artifacts → global representation → SPEC package
 
-This Swarm Skill is **module-first Mixed B+C with workspace-state tracking**: the Leader first partitions the Legacy Android project into bounded analysis modules, maintains a ledger of module/node artifacts and stale inputs, then runs the clustered node schedule inside each module before combining the verified module representations into one global project representation and SPEC package. Each node owns a bounded module slice; the Leader never does node work and never invents claims that no node traced to source.
+This Swarm Skill is **module-first Mixed B+C with workspace-state tracking**: the Leader first partitions the Legacy Android project into bounded analysis modules, maintains a ledger of module/node artifacts and stale inputs, then runs the foundation node schedule inside each module before combining the verified module representations into one global project representation and SPEC package. Each node owns a bounded module slice; the Leader never does node work and never invents claims that no node traced to source.
 
 **File recording system**: every output path, content requirement, and downstream trigger gate is defined in [output-contract.md](output-contract.md). Downstream handlers (`migration-task-adapter`, `android-to-kmp-migrator`) MUST fail closed when handoff package artifacts are missing, empty, out-of-path, stale, or schema-invalid.
 
@@ -117,11 +117,11 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Serial / Parallel**: serial (precedes all module dispatch)
 - **Quality gate**: module inventory exists/non-empty, `modules_index.json` exists/non-empty, every scheduled module folder path is declared, every in-scope source root is assigned to one module or `out_of_scope`, and `module_order` is deterministic.
 
-### Step 4 — Stage A per module: dispatch clustered foundation nodes (parallel, B-pattern)
+### Step 4 — Stage A per module: dispatch foundation nodes (parallel, B-pattern)
 
 - **Executor**: `presentation-resource`, `project-architecture`, `data-contract-flow`
 - **Input**: per-node contract `{ source_project_path, module_id, module_scope, analysis_scope, mode, module_brief_path, skill_spec_path (roles/<id>.md), output_dir: <output_root>/modules/<module_id>/node-results/<node_id>, return_format: json }`; `data-contract-flow` may also receive `presentation_hints` when known.
-- **Action**: each node validates inputs, performs its bounded clustered slice, writes its JSON+MD artifacts, and returns the controller JSON shape.
+- **Action**: each node validates inputs, performs its bounded slice, writes its JSON+MD artifacts, and returns the controller JSON shape.
 - **Output**:
   - `presentation_resource.json`, `presentation_resource.md`: UI entry points, screen inventory, checked UI layout/view trees, navigation, presentation modules, resources, safe downloads, usage map, migration implications, gaps.
   - `project_architecture.json`, `project_architecture.md`: build/SDK config, topology, architecture patterns, layer roles, dependencies, Jetpack/DI/platform/generated usage, boundary risks, migration constraints.

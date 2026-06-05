@@ -1,7 +1,7 @@
 ---
 name: android-to-kmp-migrator
 description: |
-  9-role reduced module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, consolidated planning/prep/implementation roles, global integrate+align phase, and kmp-test-validator handoff — without full-project build during migration.
+  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, planning/prep/implementation roles, global integrate+align phase, and kmp-test-validator handoff — without full-project build during migration.
   Use when analyst package P6 exists and the user wants module-first porting then whole-system assembly.
   Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
 version: "0.6"
@@ -20,17 +20,17 @@ roles:
     tools: [rg]
   - id: migration-planning-gate
     kind: ai_agent
-    purpose: Merged planning + dependency/platform gate — SPEC deltas, source-to-target map, capability map, ready_for_implementation.
+    purpose: Planning and dependency/platform gate — SPEC deltas, source-to-target map, capability map, ready_for_implementation.
     skills: []
     tools: [rg]
   - id: migration-prep
     kind: ai_agent
-    purpose: Merged presentation + state/data prep — tokens, resources, routes, state/models/API expectations.
+    purpose: Presentation and state/data prep — tokens, resources, routes, state/models/API expectations.
     skills: []
     tools: [rg, curl]
   - id: module-implementation
     kind: ai_agent
-    purpose: Merged UI + logic implementation by mode — ui first, then logic after UI approval.
+    purpose: UI and logic implementation by mode — ui first, then logic after UI approval.
     skills: []
     tools: [rg]
   - id: module-node-review-fix
@@ -57,20 +57,9 @@ roles:
 
 # Android To KMP Migrator Swarm Skill
 
-Reduced **9-role** module-first migrator. Consolidates overlapping planning, prep, implementation, and global-phase duties while preserving mode boundaries and safety gates.
+Module-first migrator for Legacy Android → KMP target assembly.
 
 **Canonical contract**: [output-contract.md](output-contract.md)
-
-## Role Reduction Summary (13 → 9)
-
-| Reduced role | Former roles merged |
-|---|---|
-| `migration-planning-gate` | `migration-analysis-planning` + `dependency-platform-gate` |
-| `migration-prep` | `presentation-integration` + `state-data-prep` |
-| `module-implementation` | `ui-implementation` + `logic-implementation` (`mode: ui \| logic`) |
-| `global-migration-phase` | `global-system-integration` + `post-integration-alignment` (`mode: integrate \| align`) |
-
-**Kept distinct**: `migration-workspace-state`, `target-project-assistant`, `module-node-review-fix`, `migration-verification`, `completion-report`.
 
 ## Protocol Summary
 
@@ -106,7 +95,7 @@ Reduced **9-role** module-first migrator. Consolidates overlapping planning, pre
 | [workflow.md](workflow.md) | Topology, steps, gates |
 | [bind.md](bind.md) | Limits, constraints, failures |
 | [dependencies.yaml](dependencies.yaml) | CLI + optional MCP per role |
-| [roles/](roles/) | Nine active role specs |
+| [roles/](roles/) | Role specs |
 
 ## Handoff Gates
 

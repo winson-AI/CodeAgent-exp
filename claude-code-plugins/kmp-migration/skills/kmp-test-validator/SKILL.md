@@ -1,7 +1,7 @@
 ---
 name: kmp-test-validator
 description: |
-  5-role reduced pipeline Swarm Skill that validates Android-to-KMP migration output: workspace ledger, fidelity gate (trust + restoreability modes), code gate (build + fix modes), optional business testing (behavioral + Figma UI submodules), and final validation report.
+  Swarm Skill pipeline that validates Android-to-KMP migration output: workspace ledger, fidelity gate (trust + restoreability modes), code gate (build + fix modes), optional business testing (behavioral + Figma UI submodules), and final validation report.
   Use with the kmp-test-validator controller after android-to-kmp-migrator has produced validation-ready package V0, or when given Android source/SPEC plus a KMP target for migrated behavior validation.
   Do NOT use for generic KMP testing, KMP-only feature work, isolated Gradle troubleshooting, Android analysis, or non-migration refactors.
 version: "0.5"
@@ -30,7 +30,7 @@ roles:
     tools: [rg, git]
   - id: validation-report
     kind: ai_agent
-    purpose: Final verdict synthesis — passed/failed/blocked from verified fidelity, code-gate, business-testing, and remediation evidence.
+    purpose: Final verdict synthesis — passed/failed/blocked from verified fidelity, code-gate, business-testing, and fix evidence.
     skills: []
     tools: [git]
 ---
@@ -39,19 +39,9 @@ roles:
 
 This is the agent-facing registry and team definition for the `kmp-test-validator` controller. It validates Android-to-KMP migration output against Android source, analyst SPEC, and migrator artifacts.
 
-The team is a **reduced serial pipeline (5 roles) with two controller loops**: code-gate fix remediation and migrator supplement.
+The team is a **serial pipeline with two controller loops**: code-gate fix remediation and migrator supplement.
 
 **Canonical file recording system**: [output-contract.md](output-contract.md) defines paths, migrator `V0` inputs, handoff gates `VG0`–`VG5`, and mode contracts. The Leader MUST read `output-contract.md` before the first dispatch.
-
-## Role Reduction Summary (7 → 5)
-
-| Reduced role | Former roles merged |
-|---|---|
-| `validation-fidelity-gate` | `validation-intake-fidelity` + `validation-restoreability-audit` (`mode: trust \| restoreability`) |
-| `validation-code-gate` | `validation-plan-gate` + `validation-remediation` (`mode: build \| fix`) |
-| `validation-business-testing` | `validation-test-runner` (submodules: `behavioral \| ui_comparison`) |
-
-**Kept distinct**: `validation-workspace-state`, `validation-report`.
 
 ## Protocol Summary
 
@@ -81,7 +71,7 @@ The team is a **reduced serial pipeline (5 roles) with two controller loops**: c
 | [workflow.md](workflow.md) | Pipeline, gates, controller loops |
 | [bind.md](bind.md) | Guardrails and resource limits |
 | [dependencies.yaml](dependencies.yaml) | Upstream V0, optional inputs, MCP, tools |
-| [roles/](roles/) | Five active role specs |
+| [roles/](roles/) | Role specs |
 
 ## Strict Output Schedule
 
@@ -123,7 +113,7 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 
 ## Shared Rules
 
-- Dispatch only **5 active role IDs**; superseded 7-role IDs invalidate returns.
+- Dispatch only role IDs listed in this registry.
 - Only `validation-code-gate` mode `fix` edits target production code.
 - Fidelity-gate modes are read-only; restoreability routes gaps to migrator supplement.
 - Code-gate `build` uses three compile scenarios only; `fix` uses error DB when configured.

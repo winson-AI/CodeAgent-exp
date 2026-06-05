@@ -1,4 +1,4 @@
-# dependencies.yaml — Swarm Skill startup dependency check (9-role reduced migrator)
+# dependencies.yaml — Swarm Skill startup dependency check (android-to-kmp-migrator)
 #
 # Leader reads this in Workflow Step 0 and records results in run_manifest.json
 # → dependency_preflight. All CLI entries are required: false.

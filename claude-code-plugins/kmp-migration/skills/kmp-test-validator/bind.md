@@ -6,16 +6,16 @@
 |---|---|---|
 | `max_parallel_teammates` | 1 | Serial pipeline with mode dispatches |
 | `total_wall_clock_budget` | 45 min | Full validation including loops |
-| `total_token_budget` | 600k tokens | 5 roles + Leader + loops |
-| `per_node_token_budget` | 130k tokens | Mode-merged roles carry broader context |
+| `total_token_budget` | 600k tokens | Leader + role dispatches + loops |
+| `per_node_token_budget` | 130k tokens | Mode-based roles carry broader context |
 | `max_fix_cycles` | 3 | Max code-gate `fix` → rerun `build`/business-testing iterations |
 | `max_migrator_supplement_cycles` | 3 | Max restoreability gap → migrator supplement iterations |
 
 ## Behavioral Constraints
 
-- **Leader orchestrates only** — dispatches 5 roles with explicit `mode`; runs both controller loops.
+- **Leader orchestrates only** — dispatches roles with explicit `mode`; runs both controller loops.
 - **Canonical contract**: [output-contract.md](output-contract.md) wins on paths and `VG0`–`VG5`.
-- **5 active role IDs only** — superseded 7-role IDs (`validation-intake-fidelity`, `validation-plan-gate`, `validation-restoreability-audit`, `validation-remediation`, `validation-test-runner`) invalidate returns.
+- **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
 - **Dependency order**: workspace → fidelity-gate `trust` → code-gate `build` → [fix loop] → fidelity-gate `restoreability` → [supplement loop] → business-testing → report.
 - **Read-only fidelity**: `validation-fidelity-gate` never runs commands or edits code.
 - **Single production editor**: only `validation-code-gate` mode `fix` edits target production code.
@@ -34,7 +34,7 @@
 | Fix uses forbidden delete/stub | Reject; record violation; route supplement or `blocked` |
 | Fix cycles exhausted | `blocked` with evidence |
 | Business submodule failure | Code-gate `fix` if target-code; else `failed` |
-| Superseded role ID returned | Re-dispatch with active role + mode |
+| Unknown or invalid role ID | Re-dispatch with active role + mode from `SKILL.md` |
 
 ## Degraded Modes
 

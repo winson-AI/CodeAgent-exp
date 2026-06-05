@@ -1,7 +1,7 @@
 ---
 name: android-project-analyst
 description: |
-  5-role module-first Swarm Skill that converts a Legacy Android project into module-indexed artifacts, per-module dimension folders, cross-module architecture/data-logic records, a workspace-state ledger, a global representation, and an integrated SPEC package (PRD/DESIGN/PLAN/verification) under strict output paths.
+  Module-first Swarm Skill that converts a Legacy Android project into module-indexed artifacts, per-module dimension folders, cross-module architecture/data-logic records, a workspace-state ledger, a global representation, and an integrated SPEC package (PRD/DESIGN/PLAN/verification) under strict output paths.
   Use when the android-project-analyst controller must understand, document, onboard, or migration-prep an existing Android project by dividing it into modules first, analyzing each module across presentation/architecture/data/behavior dimensions, recording inter-module assembly basis separately, then combining module representations into a full-project representation.
   Do NOT use for quick file/symbol lookup, non-Android codebases, or single-agent skill authoring.
 version: "0.6"
@@ -123,7 +123,7 @@ Each node is dispatched as a subagent that must read its role file (`skill_spec_
 | [roles/\*.md](roles/) | Per-node identity, success criteria, boundary, output schema, Inline Persona for Teammate | Before dispatching each teammate — extract Inline Persona |
 | [dependencies.yaml](dependencies.yaml) | CLI tools, optional `jetbrains` MCP, migration **P6** downstream handoff | Step 0 — verify deps, record `dependency_preflight`, user decides go/no-go |
 
-## Converted SPEC Output Contract
+## SPEC Output Contract
 
 The Leader integrates verified module representations and the global representation into a SPEC package under `<output_root>/SPEC`:
 

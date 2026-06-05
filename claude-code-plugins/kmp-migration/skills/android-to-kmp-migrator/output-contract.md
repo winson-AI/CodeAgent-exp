@@ -301,7 +301,7 @@ Human/agent-readable synthesis of align mode; routes reruns to `migration_module
 3. Write `module_completion_record.json` after each module passes `migration-verification`.
 4. Run `global-migration-phase` `integrate` only after package `M4`.
 5. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
-6. Dispatch only **9 active role IDs** per [SKILL.md](SKILL.md); superseded 13-role IDs invalidate returns.
+6. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
 7. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
 8. Invoke `kmp-test-validator` only when `V0` is true.
 

@@ -1,4 +1,4 @@
-# Workflow: Analyst P6 → reduced 9-role module-first migration → kmp-test-validator
+# Workflow: Analyst P6 → module-first migration → kmp-test-validator
 
 See [output-contract.md](output-contract.md) and active role IDs in [SKILL.md](SKILL.md).
 
@@ -12,7 +12,7 @@ graph TD
   WS --> TPA0[target-project-assistant global_baseline]
   TPA0 --> LOOP[For each migration_module_id]
 
-  subgraph MOD[Per-module — 9-role reduced pipeline]
+  subgraph MOD[Per-module pipeline]
     TPA1[target-project-assistant module_anchors]
     TPA1 --> PG[migration-planning-gate]
     PG --> PREP[migration-prep]
@@ -101,8 +101,7 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 
 ## Acceptance Criteria
 
-- Active roles = 9 IDs from `SKILL.md`.
-- No dispatch of superseded 13-role IDs (use reduced roles from `SKILL.md` § Role Reduction Summary).
+- Dispatch only role IDs from `SKILL.md`.
 - Mode rules: `ui` before `logic`; `integrate` before `align`; `review`/`fix` separate.
 - `migration-verification` never runs `incremental_build`.
 - `handoff_gates` match output-contract.
