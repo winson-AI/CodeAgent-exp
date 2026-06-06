@@ -286,8 +286,9 @@ After all four module analysis node outputs for a module verify, write:
 
 - `<output_root>/modules/<module_id>/representation/module_representation.json`
 - `<output_root>/modules/<module_id>/representation/module_representation.md`
+- `<output_root>/modules/<module_id>/representation/module_ui_representation.md`
 
-The module representation must include module purpose, UI coverage, logic coverage, resources, project architecture/ecosystem, data contracts/flows, behavior logic, cross-module references, risks, gaps, readiness, node output inventory, and evidence index.
+The module representation must include module purpose, UI coverage, logic coverage, resources, project architecture/ecosystem, data contracts/flows, behavior logic, cross-module references, risks, gaps, readiness, node output inventory, and evidence index. **UI layout trees**: promote every `presentation_resource.json` → `ui_layout_view_trees[]` item with `representation_promotion_ready: true` verbatim into `module_representation.json` → `presentation_slice.ui_layout_view_trees[]` (Required Markdown `tree_text`, `tree_text_format: required-markdown-v1`, screen/section metadata, `dimension_source_path`); write the same trees into independent `module_ui_representation.md` per [output-contract.md](claude-code-plugins/kmp-migration/skills/android-project-analyst/output-contract.md); set `ui_representation_md_path` in JSON; `module_representation.md` links to the UI file without duplicating tree blocks.
 
 Do not proceed to global integration until every scheduled module has a representation or is explicitly `blocked`/`out_of_scope`.
 

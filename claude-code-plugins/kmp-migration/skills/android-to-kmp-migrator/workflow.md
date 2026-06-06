@@ -90,15 +90,16 @@ Repeat until package **M4**.
 ### 6a Integrate
 
 - **Role**: `global-migration-phase` `mode: integrate`
-- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts) under `kmp_target_project_path`
-- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]`
+- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts) and **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links) under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`
+- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]` and `entry_point_wiring[]`
 - **Gate**: package **M5**
 
 ### 6b Align
 
 - **Role**: `global-migration-phase` `mode: align`
-- **Output**: `global-migration-phase/align/post_integration_alignment.*`, `report/alignment_report.*`
-- **Gate**: package **M6**; `needs_rerun` → module loop or re-integrate
+- **Action**: read-only comparison including **entry point alignment** — verify each Android entry resolves to the correct KMP shell path, launch flow, and deep-link route
+- **Output**: `global-migration-phase/align/post_integration_alignment.*` with `entry_point_alignment_results[]` and `global_alignment_results.entry_points`, plus `report/alignment_report.*`
+- **Gate**: package **M6**; entry point or cross-module mismatch → `rerun_global_integration` or module loop
 
 ## Step 7 — Report + mandatory validator handoff (MG17)
 

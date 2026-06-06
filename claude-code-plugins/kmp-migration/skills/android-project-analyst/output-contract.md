@@ -40,7 +40,8 @@ output_root = <output_dir or ~/.a2c_agents/understand>/android-project-analyst
 │       │       └── behavior_logic.md
 │       └── representation/
 │           ├── module_representation.json
-│           └── module_representation.md
+│           ├── module_representation.md
+│           └── module_ui_representation.md      # independent UI-only handoff (Required Markdown trees)
 ├── global/
 │   ├── cross_module_architecture.json
 │   ├── cross_module_architecture.md
@@ -91,7 +92,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | 3 | `G3` | per `module_id`: `module_brief.json` |
 | 4 | `G4` | per `module_id`: all three Stage A dimension JSON+MD pairs |
 | 5 | `G5` | per `module_id`: `behavior-logic` dimension JSON+MD pair |
-| 6 | `G6` | per `module_id`: `dimension_index.json`, `representation/module_representation.*` |
+| 6 | `G6` | per `module_id`: `dimension_index.json`, `representation/module_representation.*`, `representation/module_ui_representation.md` |
 | 7 | `G7` | `global/cross_module_architecture.*`, `global/cross_module_data_logic.*`, `global/migration_assembly_basis.*` |
 | 8 | `G8` | `global/global_representation.*` |
 | 9 | `G9` | `SPEC/prd.md`, `SPEC/design.md`, `SPEC/verification.md`, migration-only `SPEC/plan.md` |
@@ -144,7 +145,8 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
       "representation_paths": {
         "dimension_index": "",
         "module_representation_json": "",
-        "module_representation_md": ""
+        "module_representation_md": "",
+        "module_ui_representation_md": ""
       },
       "depends_on": []
     }
@@ -157,12 +159,107 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
 | `modules/<module_id>/module_brief.json` | Leader | `module_id`, `module_type`, `source_roots`, scopes, `depends_on`, `output_root`, `dimension_output_dirs`, role hints | **Node dispatch** — nodes refuse work without this contract |
-| `modules/<module_id>/node-results/presentation-resource/presentation_resource.json` | `presentation-resource` | `module_id`, `screen_inventory`, `navigation_edges`, `cross_module_references[]`, `resource_usage_map`, `evidence_paths` | UI understanding, resource migration, navigation handoff |
+| `modules/<module_id>/node-results/presentation-resource/presentation_resource.json` | `presentation-resource` | `module_id`, `screen_inventory`, `ui_layout_view_trees[]` (each with non-empty `tree_text` in `tree_text_format: required-markdown-v1` when `representation_promotion_ready: true`), `navigation_edges`, `cross_module_references[]`, `resource_usage_map`, `representation_promotion`, `evidence_paths` | UI understanding, resource migration, navigation handoff, representation promotion |
 | `modules/<module_id>/node-results/project-architecture/project_architecture.json` | `project-architecture` | `module_id`, `module_topology`, `detected_patterns`, `layer_roles`, `cross_module_dependencies[]`, `migration_constraints`, `evidence_paths` | Architecture migration, dependency/platform gate |
 | `modules/<module_id>/node-results/data-contract-flow/data_contract_flow.json` | `data-contract-flow` | `module_id`, API/model contracts, `end_to_end_flows`, `cross_module_data_links[]`, `evidence_paths` | Data/API migration, repository mapping |
 | `modules/<module_id>/node-results/behavior-logic/behavior_logic.json` | `behavior-logic` | `module_id`, `screen_logic`, `control_flows`, `cross_module_interactions[]`, upstream alignment refs | Behavior/test planning, control-flow migration |
 | `modules/<module_id>/dimension_index.json` | Leader | `module_id`, `dimensions{}` with four entries, each with `node_id`, `output_dir`, `json_path`, `md_path`, `status` | **Per-module completeness gate** — handlers verify all four dimensions before consuming representation |
-| `modules/<module_id>/representation/module_representation.json` | Leader | `module_id`, `dimension_traceability[]`, synthesized slices per dimension, `intra_module_gaps`, `readiness` | **Module-level handoff** — migrator loads this for a scoped `module_id` |
+| `modules/<module_id>/representation/module_representation.json` | Leader | `module_id`, `ui_representation_md_path`, `dimension_traceability[]`, `presentation_slice.ui_layout_view_trees[]` (verbatim `tree_text` from `presentation_resource.json`), synthesized slices per dimension, `intra_module_gaps`, `readiness` | **Module-level handoff** — migrator loads this for a scoped `module_id` |
+| `modules/<module_id>/representation/module_ui_representation.md` | Leader | Independent UI-only handoff: entry points, screen inventory summary, every checked screen/section with verbatim Required Markdown `tree_text` blocks (`tree_text_format: required-markdown-v1`), navigation graph, UI gaps | **Primary UI migration handoff** — agents read this for layout/composable restoration without parsing full module synthesis |
+
+#### `module_representation.json` minimum schema (presentation trees)
+
+Leader MUST promote every `ui_layout_view_trees[]` item with `representation_promotion_ready: true` from `presentation_resource.json` into `presentation_slice.ui_layout_view_trees[]` **verbatim** — do not summarize, truncate, or reformat `tree_text`.
+
+```json
+{
+  "module_id": "",
+  "schema_version": "1.0",
+  "ui_representation_md_path": "representation/module_ui_representation.md",
+  "dimension_traceability": [
+    {
+      "dimension": "presentation-resource",
+      "json_path": "",
+      "md_path": "",
+      "status": "completed"
+    }
+  ],
+  "presentation_slice": {
+    "source_artifact": "node-results/presentation-resource/presentation_resource.json",
+    "entry_points": [],
+    "screen_inventory": [],
+    "ui_layout_view_trees": [
+      {
+        "screen_name": "",
+        "section_name": "",
+        "ui_technology": "XML | Compose | mixed | custom view | unknown",
+        "layout_or_composable": "",
+        "checked_status": "checked | partial | inferred | unknown",
+        "source_paths": [],
+        "tree_text": "",
+        "tree_text_format": "required-markdown-v1",
+        "unknowns": [],
+        "dimension_source_path": ""
+      }
+    ],
+    "navigation_edges": [],
+    "presentation_modules": []
+  },
+  "intra_module_gaps": [],
+  "readiness": "ready | ready_with_assumptions | blocked"
+}
+```
+
+#### `module_ui_representation.md` (independent UI handoff — Leader writes at G6)
+
+Leader MUST write this file for every module with UI scope (or with `ui_scope: none` and evidence when no UI exists). It is the **canonical standalone UI representation** — not embedded inside `module_representation.md`.
+
+Required structure:
+
+```markdown
+# Module UI Representation: <module_id>
+
+> tree_text_format: required-markdown-v1
+> presentation_source: node-results/presentation-resource/presentation_resource.json
+
+## Metadata
+- module_id: <module_id>
+- tree_text_format: required-markdown-v1
+- checked_tree_count: <N>
+- promotion_ready_count: <N>
+
+## Entry Points
+| name | type | source_path | route_or_action |
+|---|---|---|---|
+
+## Screen Inventory
+| screen_name | ui_technology | layout_or_composable | checked_status |
+|---|---|---|---|
+
+## UI Layout Trees
+
+### <screen_name> — <section_name>
+- ui_technology: <value>
+- layout_or_composable: <value>
+- checked_status: <value>
+- source_paths: <paths>
+
+```text
+<tree_text verbatim — Required Markdown shape>
+```
+
+(repeat per checked screen/section)
+
+## Navigation
+(Mermaid graph when evidence supports it)
+
+## UI Gaps
+(screens/sections with representation_promotion_ready: false or empty tree_text)
+```
+
+Rules:
+- Every `ui_layout_view_trees[]` item with `representation_promotion_ready: true` MUST appear under `## UI Layout Trees` with its `tree_text` in a ` ```text ` fence, byte-identical to `presentation_resource.json`.
+- `module_representation.md` MUST link to this file (`ui_representation_md_path`) and MUST NOT duplicate full tree blocks — summary only.
 
 #### `dimension_index.json` minimum schema
 
@@ -279,8 +376,9 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 | Package `P2` artifacts |
 | `modules/<module_id>/representation/module_representation.json` |
 | `modules/<module_id>/representation/module_representation.md` |
+| `modules/<module_id>/representation/module_ui_representation.md` |
 
-**Fail closed when**: representation references dimension paths that fail Package `P2`.
+**Fail closed when**: representation references dimension paths that fail Package `P2`, any `presentation_resource.json` item with `representation_promotion_ready: true` is missing its verbatim `tree_text` in `presentation_slice.ui_layout_view_trees[]`, or the same `tree_text` is missing from `module_ui_representation.md`.
 
 ### Package `P4` — Cross-module assembly basis
 

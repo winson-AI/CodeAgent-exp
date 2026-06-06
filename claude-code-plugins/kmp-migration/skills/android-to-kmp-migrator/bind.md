@@ -40,6 +40,7 @@
 | `integrate` and `align` combined | Reject invocation |
 | Verification restoration failed | Rerun `module-implementation` or `migration-prep`; no completion record |
 | Align omissions | Rerun `rerun_modules` or `global-migration-phase integrate` |
+| Entry point alignment failed | `rerun_global_integration` — rewire KMP app shell in integrate mode |
 | Build requested in migrator | Block; route to kmp-test-validator |
 | Migrator invoked before analyst P6 | Block; dispatch `android-project-analyst` first |
 | V0 ready but validator not invoked | Block; dispatch `kmp-test-validator` at MG17 |

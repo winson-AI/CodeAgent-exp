@@ -24,7 +24,7 @@ Forbidden:
 - Do not fix implementation gaps.
 - Do not mark validation passed.
 - Do not run report mode when module/global representations are missing.
-- Do not run report mode when package `M6` is false (`global-migration-phase align` / `alignment_report` missing or failed).
+- Do not run report mode when package `M6` is false (`global-migration-phase align` / `alignment_report` missing or failed, including `global_alignment_results.entry_points.verdict` failed).
 - Do not mark `ready_for_validation` when `handoff_gates.V0` is false.
 - Do not treat report mode success as final migration completion — Leader must still dispatch `kmp-test-validator` at MG17.
 

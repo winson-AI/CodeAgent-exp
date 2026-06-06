@@ -22,6 +22,7 @@ Migration starts only when analyst handoff package **`P6`** (see `android-projec
 Per legacy `module_id`, migrator may consume:
 
 - `modules/<module_id>/representation/module_representation.json`
+- `modules/<module_id>/representation/module_ui_representation.md` (standalone Required Markdown UI trees)
 - `modules/<module_id>/dimension_index.json`
 - dimension JSON artifacts under `node-results/<dimension>/`
 
@@ -206,8 +207,8 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | Required paths |
 |---|
 | Package `M5` |
-| `global/node-results/global-migration-phase/align/post_integration_alignment.json` with `alignment_verdict: passed \| passed_with_assumptions` |
-| `report/alignment_report.json` |
+| `global/node-results/global-migration-phase/align/post_integration_alignment.json` with `alignment_verdict: passed \| passed_with_assumptions` and `global_alignment_results.entry_points.verdict: passed \| passed_with_assumptions` |
+| `report/alignment_report.json` (includes entry point alignment verdict) |
 
 ### Package `V0` — kmp-test-validator entry (downstream)
 
@@ -249,7 +250,7 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 
 ### `target_alignment_revision.json` (Target-Project-Assistant)
 
-`target_project_layout`, `reusable_components[]`, `anchor_points[]` (legacy scope → target path), `revised_alignment[]`, `integration_constraints[]`, `consultation_log[]`.
+`target_project_layout`, `reusable_components[]`, `anchor_points[]` (legacy scope → target path), `entry_point_anchors[]` (Legacy Android `entry_points[]` + manifest launcher → KMP app-shell path/symbol), `revised_alignment[]`, `integration_constraints[]`, `consultation_log[]`.
 
 ### `target_module_anchors.json` (per module)
 
@@ -284,11 +285,11 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 
 ### `global_system_integration.json`
 
-`kmp_target_project_path`, `target_edit_summary`, `assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `shared_contracts_applied[]`, `integration_changed_files[]` (target glue paths only), evidence paths from analyst cross-module globals. Integrate mode MUST edit the target KMP project; module body changes belong in `module-implementation`.
+`kmp_target_project_path`, `target_edit_summary`, `assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `entry_point_wiring[]` (Android entry → KMP shell wiring with `wiring_kind` and `status`), `shared_contracts_applied[]`, `integration_changed_files[]` (target glue paths only), evidence paths from analyst cross-module globals and per-module `presentation_resource` `entry_points[]`. Integrate mode MUST edit the target KMP project and wire app-shell entry points; module body changes belong in `module-implementation`.
 
 ### `post_integration_alignment.json` (analysis only — no target edits)
 
-`alignment_verdict`, `module_alignment_results[]`, `global_alignment_results`, `omissions[]`, `poor_restoration[]`, `rerun_modules[]`, `comparison_evidence[]` (analyst path vs target path pairs).
+`alignment_verdict`, `module_alignment_results[]`, `global_alignment_results` (including `entry_points.verdict`), `entry_point_alignment_results[]`, `omissions[]`, `poor_restoration[]`, `rerun_modules[]`, `rerun_global_integration` (true when entry point alignment fails), `comparison_evidence[]` (analyst path vs target path pairs). Entry point alignment MUST pass (`global_alignment_results.entry_points.verdict: passed | passed_with_assumptions`) for package **M6**.
 
 ### `migration_planning_gate.json`
 
@@ -304,7 +305,7 @@ UI mode and logic mode outputs under `module-implementation/ui/` and `module-imp
 
 ### `alignment_report.json`
 
-Human/agent-readable synthesis of align mode; routes reruns to `migration_module_id` or `global-migration-phase integrate`.
+Human/agent-readable synthesis of align mode; includes `entry_point_alignment_results` summary; routes reruns to `migration_module_id` or `global-migration-phase integrate` when entry points or cross-module glue fail.
 
 ---
 

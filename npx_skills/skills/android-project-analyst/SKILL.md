@@ -4,7 +4,7 @@ description: |
   Module-first Swarm Skill that converts a Legacy Android project into module-indexed artifacts, per-module dimension folders, cross-module architecture/data-logic records, a workspace-state ledger, a global representation, and an integrated SPEC package (PRD/DESIGN/PLAN/verification) under strict output paths.
   Use when the android-project-analyst controller must understand, document, onboard, or migration-prep an existing Android project by dividing it into modules first, analyzing each module across presentation/architecture/data/behavior dimensions, recording inter-module assembly basis separately, then combining module representations into a full-project representation.
   Do NOT use for quick file/symbol lookup, non-Android codebases, or single-agent skill authoring.
-version: "0.6"
+version: "0.8"
 kind: swarm-skill
 disable-model-invocation: false
 roles:
@@ -71,7 +71,7 @@ Each module is understood from four analysis dimensions. Dimension outputs live 
 | `data-contract-flow` | `data-contract-flow` | `node-results/data-contract-flow/` |
 | `behavior-logic` | `behavior-logic` | `node-results/behavior-logic/` |
 
-The Leader writes `dimension_index.json` after all four node outputs verify. `representation/module_representation.*` synthesizes only from verified dimension artifacts for that `module_id`. Nodes must not write outside their assigned dimension directory.
+The Leader writes `dimension_index.json` after all four node outputs verify. `representation/module_representation.*` synthesizes only from verified dimension artifacts for that `module_id`; `representation/module_ui_representation.md` is the independent UI-only handoff with Required Markdown layout trees. Nodes must not write outside their assigned dimension directory.
 
 ### Layer 3 — Cross-module architecture and data/logic (migration assembly basis)
 
@@ -93,7 +93,7 @@ The full playbook (Mermaid topology, per-step gates, integration rules, Final Re
 3. **Module inventory + index** — Leader writes `module-index/module_inventory.json` and `.md`, plus `module-index/modules_index.json`, dividing the project into deterministic `analysis_modules` and creating each `modules/<module_id>/` folder with scopes and output roots.
 4. **Per-module Stage A (parallel, B-pattern)** — for each `module_id`, dispatch `presentation-resource`, `project-architecture`, and `data-contract-flow` under `<output_root>/modules/<module_id>/node-results/<dimension>/`.
 5. **Per-module Stage B (gated behavior stage, C-pattern)** — after that module's Stage A verifies and workspace-state marks upstream outputs fresh, dispatch `behavior-logic` under the same module root.
-6. **Module dimension index + representation** — Leader writes `dimension_index.json`, then `representation/module_representation.json` and `.md`, synthesizing all four dimensions for that `module_id` before moving to the next module.
+6. **Module dimension index + representation** — Leader writes `dimension_index.json`, then `representation/module_representation.json`, `module_representation.md`, and `module_ui_representation.md`, synthesizing all four dimensions for that `module_id` and promoting `presentation_resource` Required Markdown UI trees verbatim into `presentation_slice.ui_layout_view_trees[]` and the independent UI MD file before moving to the next module.
 7. **Cross-module global records** — Leader aggregates verified module outputs into `global/cross_module_architecture.*`, `global/cross_module_data_logic.*`, and `global/migration_assembly_basis.*`.
 8. **Global representation + SPEC** — Leader combines module representations and cross-module global records into `global/global_representation.json` and `.md`, then writes SPEC under `<output_root>/SPEC`.
 
@@ -144,7 +144,7 @@ The Leader MUST follow the write-order gates `G0`–`G9` and handoff packages `P
 |---|---|---|
 | `G0`–`G2` | `run_manifest.json`, workspace ledger, `module_inventory.*`, `modules_index.json` | Module dispatch (`P1`) |
 | `G3`–`G5` | per-module `module_brief.json` + four dimension JSON/MD pairs | Dimension completeness (`P2`) |
-| `G6` | per-module `dimension_index.json`, `module_representation.*` | Module handoff (`P3`) |
+| `G6` | per-module `dimension_index.json`, `module_representation.*`, `module_ui_representation.md` | Module handoff (`P3`) |
 | `G7` | `cross_module_architecture.*`, `cross_module_data_logic.*`, `migration_assembly_basis.*` | Migrator scheduling (`P4`) |
 | `G8`–`G9` | `global_representation.*`, `SPEC/*` | Exploration (`P5`) or migration (`P6`) pipeline entry |
 

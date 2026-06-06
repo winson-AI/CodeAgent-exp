@@ -75,7 +75,7 @@ report
 validator_handoff
 ```
 
-Evaluate handoff packages `M0`–`M6` and `V0` per [output-contract.md](../output-contract.md); persist `handoff_gates` with `ready` and `missing_paths[]`.
+Evaluate handoff packages `M0`–`M6` and `V0` per [output-contract.md](../output-contract.md); persist `handoff_gates` with `ready` and `missing_paths[]`. Package **M6** requires `global_alignment_results.entry_points.verdict` passed in addition to overall `alignment_verdict`.
 
 When `handoff_gates.V0.ready` is true, set `validator_handoff.status` to `pending` until Leader dispatches `kmp-test-validator` (then `dispatched`) or records explicit validator blockers (then `blocked`). `overall_status: ready_for_validation` means migrator artifacts are ready but **does not** mean migration is complete — validator dispatch at MG17 is still mandatory.
 

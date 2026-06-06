@@ -4,7 +4,7 @@ description: |
   Module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, planning/prep/implementation roles, global integrate+align phase, and mandatory kmp-test-validator handoff — without full-project build during migration.
   Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting then whole-system assembly followed by validation.
   Do NOT invoke before android-project-analyst completes P6. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
-version: "0.7"
+version: "0.8"
 kind: swarm-skill
 disable-model-invocation: false
 roles:
@@ -45,7 +45,7 @@ roles:
     tools: [rg, git]
   - id: global-migration-phase
     kind: ai_agent
-    purpose: Target KMP global integrate (edit cross-module glue) then align (read-only analyst vs target comparison) by mode.
+    purpose: Target KMP global integrate (edit cross-module glue + entry point wiring) then align (read-only analyst vs target comparison incl. entry points) by mode.
     skills: []
     tools: [rg]
   - id: completion-report
@@ -69,7 +69,7 @@ Module-first migrator for Legacy Android → KMP target assembly.
 3. Workspace state init.
 4. TPA `global_baseline`.
 5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** → review/fix → verification → completion record → readiness → module representation.
-6. **Global phase `integrate`** → **`align`** + alignment report.
+6. **Global phase `integrate`** (cross-module glue + **entry point wiring**) → **`align`** (incl. **entry point alignment** vs Android) + alignment report.
 7. Global representation + completion-report `report` mode.
 8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
 

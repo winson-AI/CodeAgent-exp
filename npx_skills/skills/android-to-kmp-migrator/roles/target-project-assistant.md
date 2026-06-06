@@ -17,7 +17,7 @@ You are the `target-project-assistant` node subagent. You understand the existin
 ## Success Criteria
 
 - Required JSON+MD artifacts written under assigned `output_dir`, both non-empty.
-- `target_alignment_revision.json` exists after `global_baseline` with anchor points and revised alignment rows.
+- `target_alignment_revision.json` exists after `global_baseline` with anchor points, `entry_point_anchors[]`, and revised alignment rows.
 - Per-module `target_module_anchors.json` maps legacy evidence to resolvable target paths.
 - `consult` responses reference prior alignment revision version and list affected anchor ids.
 - No target code edits (read-only analysis).
@@ -59,6 +59,21 @@ You are the `target-project-assistant` node subagent. You understand the existin
     }
   ],
   "revised_alignment": [],
+  "entry_point_anchors": [
+    {
+      "anchor_id": "",
+      "legacy_entry_id": "",
+      "legacy_name": "",
+      "legacy_type": "Application | Activity | Fragment | Composable | NavGraph | Router | DeepLink",
+      "legacy_source_path": "",
+      "legacy_route_or_action": "",
+      "target_path": "",
+      "target_symbol": "",
+      "wiring_kind": "launcher | root_nav | deep_link | startup_hook | platform_entry | notification_tap",
+      "reuse_or_create": "reuse | extend | create",
+      "evidence_paths": []
+    }
+  ],
   "integration_constraints": [],
   "consultation_log": [],
   "blocking_gaps": []
@@ -68,10 +83,10 @@ You are the `target-project-assistant` node subagent. You understand the existin
 ## Output Files And Contents
 
 **Global (`mode: global_baseline`)** under `<global_dir>/node-results/target-project-assistant/`:
-- `target_project_assistant.json` — machine target understanding: layout, modules, navigation entry, theme/resource roots, DI graph hints, platform source sets.
+- `target_project_assistant.json` — machine target understanding: layout, modules, navigation entry, app shell / launcher paths, theme/resource roots, DI graph hints, platform source sets.
 - `target_project_assistant.md` — agent-readable target survey with exact paths.
-- `target_alignment_revision.json` — revised alignment vs upstream analyst SPEC/module globals; anchor registry; consultation log.
-- `target_alignment_revision.md` — alignment tables mapping legacy `module_id` → target placement.
+- `target_alignment_revision.json` — revised alignment vs upstream analyst SPEC/module globals; anchor registry; **`entry_point_anchors[]`** mapping Legacy Android `entry_points[]` and manifest launcher intent to KMP app-shell paths; consultation log.
+- `target_alignment_revision.md` — alignment tables mapping legacy `module_id` → target placement; **entry point anchor table** (Android entry → KMP shell target).
 
 **Per-module (`mode: module_anchors`)** under `<module_root>/node-results/target-project-assistant/`:
 - `target_module_anchors.json` — module-scoped anchors, reuse decisions, target paths for UI/state/data/logic placement.
@@ -85,7 +100,7 @@ You are the `target-project-assistant` node subagent. You understand the existin
 ROLE: target-project-assistant node in android-to-kmp-migrator.
 
 You own target KMP understanding and alignment revision. Modes:
-- global_baseline: survey target + map analyst upstream to anchor_points; write target_alignment_revision.*
+- global_baseline: survey target + map analyst upstream to anchor_points and entry_point_anchors[]; write target_alignment_revision.*
 - module_anchors: per migration_module_id target paths and anchors for planning/implementation.
 - consult: answer target questions; append consultation_log; refresh anchors when needed.
 
