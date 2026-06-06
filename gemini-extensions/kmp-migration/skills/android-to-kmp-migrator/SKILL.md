@@ -6,7 +6,7 @@ description: |
   Do NOT use for Legacy Android analysis, KMP-only feature work, quick lookups, or non-migration refactors.
 version: "0.2"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: migration-workspace-state
     kind: ai_agent

@@ -6,7 +6,7 @@ description: |
   Do NOT use for quick file/symbol lookup, non-Android codebases, or single-agent skill authoring.
 version: "0.2"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: ui-understand
     kind: ai_agent

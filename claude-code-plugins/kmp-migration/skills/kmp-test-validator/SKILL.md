@@ -6,7 +6,7 @@ description: |
   Do NOT use for generic KMP testing, KMP-only feature work, isolated Gradle troubleshooting, Android analysis, or non-migration refactors.
 version: "0.5"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: validation-workspace-state
     kind: ai_agent

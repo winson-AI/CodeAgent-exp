@@ -6,7 +6,7 @@ description: |
   Do NOT use for direct source lookup, single-file edits, generic KMP testing without migration context, or standalone implementation work.
 version: "0.2"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: task-route-orchestrator
     kind: ai_agent

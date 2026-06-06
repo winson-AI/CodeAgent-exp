@@ -6,7 +6,7 @@ description: |
   Do NOT invoke before android-project-analyst completes P6. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
 version: "0.7"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: migration-workspace-state
     kind: ai_agent
