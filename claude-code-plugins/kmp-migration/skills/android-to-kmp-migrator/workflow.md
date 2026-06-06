@@ -2,6 +2,14 @@
 
 See [output-contract.md](output-contract.md) and active role IDs in [SKILL.md](SKILL.md).
 
+## Skill Chain (mandatory)
+
+| Phase | Skill | Gate | Leader rule |
+|---|---|---|---|
+| Prerequisite | `android-project-analyst` | **P6** | MUST finish before `android-to-kmp-migrator` is invoked. Missing/stale P6 → `blocked`; dispatch analyst first. |
+| Migration | `android-to-kmp-migrator` | **M0**–**V0** | Runs only after P6 verified; ends with `migration_report.*` and **V0** ready. |
+| Post-migration | `kmp-test-validator` | **V0** | MUST be invoked after migrator completes **V0** (MG17). Do not end the migration workflow without validator dispatch. |
+
 ## Overview
 
 ```mermaid
@@ -43,7 +51,7 @@ graph TD
 - **Executor**: Leader
 - **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**
 - **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer)
-- **Gate**: missing CLI tools → degraded modes per dependencies.yaml; analyst P6 not ready → **blocked** before module dispatch
+- **Gate**: missing CLI tools → degraded modes per dependencies.yaml; `android-project-analyst` **P6** not ready → **blocked** — invoke analyst first, do not dispatch migrator nodes
 
 ## Step 1 — Upstream + output root
 
@@ -92,9 +100,12 @@ Repeat until package **M4**.
 - **Output**: `global-migration-phase/align/post_integration_alignment.*`, `report/alignment_report.*`
 - **Gate**: package **M6**; `needs_rerun` → module loop or re-integrate
 
-## Step 7 — Report + validator
+## Step 7 — Report + mandatory validator handoff (MG17)
 
-- Global representation + `completion-report` `report` → package **V0** → `kmp-test-validator`
+- Global representation + `completion-report` `report` → package **V0**
+- **Leader MUST invoke `kmp-test-validator`** with `migration_report.*`, analyst SPEC paths, and `kmp_target_project_path`
+- Record `validator_handoff` in workspace ledger (`dispatched | pending | blocked`)
+- Migrator workflow is **incomplete** until validator is dispatched or explicit validator blockers are recorded
 
 ## TPA consult
 
@@ -102,6 +113,8 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 
 ## Acceptance Criteria
 
+- `android-project-analyst` **P6** verified before any migrator module dispatch.
+- `kmp-test-validator` invoked after **V0** — mandatory MG17 step.
 - Dispatch only role IDs from `SKILL.md`.
 - Mode rules: `ui` before `logic`; `integrate` before `align`; `review`/`fix` separate.
 - `migration-verification` never runs `incremental_build`.

@@ -18,6 +18,9 @@
 
 ## Behavioral Constraints
 
+- **Skill chain (mandatory)**:
+  - **Before migrator**: `android-project-analyst` MUST finish and produce package **P6** (`handoff_gates.P6.ready = true`). If P6 is missing or stale, return `blocked` and dispatch analyst — do not start migrator nodes.
+  - **After migrator**: when package **V0** is ready, Leader MUST invoke `kmp-test-validator` (MG17). Migrator completion without validator dispatch is invalid.
 - **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
 - **Mode discipline**:
   - `module-implementation`: `ui` then `logic` — separate invocations
@@ -38,6 +41,8 @@
 | Verification restoration failed | Rerun `module-implementation` or `migration-prep`; no completion record |
 | Align omissions | Rerun `rerun_modules` or `global-migration-phase integrate` |
 | Build requested in migrator | Block; route to kmp-test-validator |
+| Migrator invoked before analyst P6 | Block; dispatch `android-project-analyst` first |
+| V0 ready but validator not invoked | Block; dispatch `kmp-test-validator` at MG17 |
 
 ## Dependencies
 

@@ -26,6 +26,7 @@ Forbidden:
 - Do not run report mode when module/global representations are missing.
 - Do not run report mode when package `M6` is false (`global-migration-phase align` / `alignment_report` missing or failed).
 - Do not mark `ready_for_validation` when `handoff_gates.V0` is false.
+- Do not treat report mode success as final migration completion — Leader must still dispatch `kmp-test-validator` at MG17.
 
 Mandatory:
 - Validate `mode`, `migration_module_id`, module/global representation paths, workspace state, and exact `output_dir`.
@@ -61,6 +62,7 @@ Shared return shape applies.
 - `completion_readiness.md`: agent-readable readiness handoff containing coverage tables, invariant checks, incomplete markers, rerun routing, blockers, and whether representation/report gates may proceed.
 - `migration_report.json`: machine-routable final migration handoff containing migration scope, source/target paths, analyst_output_root, upstream_analyst_index, `handoff_gates` (`M0`–`M6`, `V0`), `handoff_package: V0`, module representations, global representation, `alignment_report` path, `global_system_integration` path, changed files by role, coverage summary, validation inputs for kmp-test-validator, `validation_deferred_to: kmp-test-validator`, limitations, blockers.
 - `migration_report.md`: agent-readable final migration report for `kmp-test-validator` and follow-up agents, preserving exact artifact paths, changed-file ownership, validation handoff context, limitations, and blockers.
+- Report mode success signals Leader to **mandatorily invoke** `kmp-test-validator` — migration is incomplete without validator dispatch.
 
 ## Inline Persona for Teammate
 

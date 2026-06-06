@@ -6,7 +6,18 @@
 # replaces durable node artifacts or upstream android-project-analyst package P6 inputs.
 # Full KMP project compile/build is NOT a migrator dependency; kmp-test-validator owns that at package V0.
 
-skills: []   # No local domain-specific skill packages required for active roles.
+# Skill chain (mandatory — Leader enforces at Step 0 and MG17)
+skills:
+  - name: android-project-analyst
+    required: true
+    phase: prerequisite
+    handoff_package: P6
+    must_complete_before: android-to-kmp-migrator
+    purpose: |
+      android-to-kmp-migrator MUST NOT be invoked until android-project-analyst has
+      finished and produced package P6 (handoff_gates.P6.ready = true). If P6 is
+      missing or stale, dispatch or re-run android-project-analyst first — do not
+      start migrator module dispatch.
 
 # Read-only upstream inputs (not MCP — verified at Step 1)
 upstream_inputs:
@@ -69,6 +80,18 @@ tools:
 # Target Gradle wrapper: path discovery reference only during migrator.
 # migration-verification MUST NOT invoke assemble/test; kmp-test-validator uses the wrapper at V0.
 
+downstream_handoff:
+  - consumer: kmp-test-validator
+    handoff_package: V0
+    required: true
+    must_invoke_after: android-to-kmp-migrator
+    when: package M6 passed and migration_report.* ready
+    purpose: |
+      After android-to-kmp-migrator finishes (handoff_gates.V0.ready = true), the Leader
+      MUST invoke kmp-test-validator. Migration is incomplete without validator dispatch.
+      Do not treat migrator completion as final until validator is invoked or blocked
+      with explicit validator blockers recorded in migration_report and workspace ledger.
+
 degraded_modes:
   - trigger: analyst P6 not ready
     effect: blocked — do not dispatch migration nodes; repair upstream analyst handoff first
@@ -80,3 +103,5 @@ degraded_modes:
     effect: migration-prep records resource_gaps for remote media URLs
   - trigger: jetbrains MCP missing or wrong open project
     effect: TPA and planning-gate use file-system target evidence only; record MCP gap in migration_report or alignment_report
+  - trigger: migrator finished but kmp-test-validator not invoked
+    effect: blocked — Leader must dispatch kmp-test-validator at MG17; record validator_handoff pending in workspace ledger

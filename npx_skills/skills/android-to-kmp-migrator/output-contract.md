@@ -27,7 +27,19 @@ Per legacy `module_id`, migrator may consume:
 
 Record all resolved upstream paths in `run_manifest.json` → `upstream_analyst_artifacts`.
 
-**Fail closed**: if analyst `handoff_gates.P6.ready` is false or paths are missing, migrator returns `blocked` — do not start module dispatch.
+**Fail closed**: if analyst `handoff_gates.P6.ready` is false or paths are missing, migrator returns `blocked` — do not start module dispatch. Dispatch or re-run `android-project-analyst` until **P6** is ready.
+
+## Skill Chain (mandatory)
+
+```text
+android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-validator (V0)
+```
+
+| Skill | When | Rule |
+|---|---|---|
+| `android-project-analyst` | **Before** migrator | MUST finish; package **P6** required. Migrator MUST NOT be invoked until P6 is ready. |
+| `android-to-kmp-migrator` | Migration body | Consumes P6 artifacts only; produces **V0** via `migration_report.*`. |
+| `kmp-test-validator` | **After** migrator | MUST be invoked when **V0** is true (MG17). Migration is incomplete without validator dispatch. |
 
 ---
 
@@ -208,6 +220,8 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 **Fail closed**: `kmp-test-validator` MUST NOT start when `V0` is false. It owns full project build, preview, and behavioral tests.
 
+**Mandatory downstream**: when `V0` is true, the migrator Leader MUST invoke `kmp-test-validator` before treating the migration workflow as complete. Record `validator_handoff.status` in the workspace ledger (`pending | dispatched | blocked`).
+
 ---
 
 ## Key Artifact Content Requirements
@@ -303,7 +317,7 @@ Human/agent-readable synthesis of align mode; routes reruns to `migration_module
 5. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
 6. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
 7. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
-8. Invoke `kmp-test-validator` only when `V0` is true.
+8. **MUST** invoke `kmp-test-validator` when `V0` is true (MG17). Do not end the migration workflow without validator dispatch or explicit validator blockers in `migration_report.json`.
 
 ## Invalid Artifact Handling
 

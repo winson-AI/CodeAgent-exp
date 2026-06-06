@@ -1,10 +1,10 @@
 ---
 name: android-to-kmp-migrator
 description: |
-  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, planning/prep/implementation roles, global integrate+align phase, and kmp-test-validator handoff — without full-project build during migration.
-  Use when analyst package P6 exists and the user wants module-first porting then whole-system assembly.
-  Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
-version: "0.6"
+  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, planning/prep/implementation roles, global integrate+align phase, and mandatory kmp-test-validator handoff — without full-project build during migration.
+  Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting then whole-system assembly followed by validation.
+  Do NOT invoke before android-project-analyst completes P6. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
+version: "0.7"
 kind: swarm-skill
 disable-model-invocation: true
 roles:
@@ -71,7 +71,19 @@ Module-first migrator for Legacy Android → KMP target assembly.
 5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** → review/fix → verification → completion record → readiness → module representation.
 6. **Global phase `integrate`** → **`align`** + alignment report.
 7. Global representation + completion-report `report` mode.
-8. **kmp-test-validator** when **V0** ready.
+8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
+
+## Skill Chain (mandatory)
+
+```text
+android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-validator (V0)
+```
+
+| Order | Skill | Gate | Rule |
+|---|---|---|---|
+| 1 | `android-project-analyst` | **P6** | MUST finish before migrator dispatch. If P6 missing/stale → run analyst first; migrator returns `blocked`. |
+| 2 | `android-to-kmp-migrator` | **M0**–**V0** | Runs only on analyst P6 artifacts; produces `migration_report.*` at **V0**. |
+| 3 | `kmp-test-validator` | **V0** | MUST be invoked after migrator **V0**; migration incomplete without validator dispatch. |
 
 ## Roles
 
@@ -110,6 +122,7 @@ Module-first migrator for Legacy Android → KMP target assembly.
 
 ## Shared Rules
 
+- **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
 - Analyst **P6** required; TPA owns all target Q&A.
 - Mode boundaries non-negotiable: `ui`/`logic`, `integrate`/`align`, `review`/`fix`.
 - No full project build in migrator.
