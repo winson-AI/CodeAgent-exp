@@ -10,6 +10,16 @@ See [output-contract.md](output-contract.md) and active role IDs in [SKILL.md](S
 | Migration | `android-to-kmp-migrator` | **M0**–**V0** | Runs only after P6 verified; ends with `migration_report.*` and **V0** ready. |
 | Post-migration | `kmp-test-validator` | **V0** | MUST be invoked after migrator completes **V0** (MG17). Do not end the migration workflow without validator dispatch. |
 
+## Target KMP Edit Flow
+
+After analyst **P6** understanding (read-only), the migrator **edits** `kmp_target_project_path`:
+
+1. **Per module**: `migration-prep` (optional scaffold) → `module-implementation` `ui` → `logic` (required target edits) → review/fix remediation as needed.
+2. **Global**: `global-migration-phase` `integrate` edits cross-module glue and entry-point wiring.
+3. **Align** is read-only verification — reruns integrate or module implementation when target edits are missing or wrong.
+
+Planning and TPA artifacts route edits; they do not replace implementation.
+
 ## Overview
 
 ```mermaid
@@ -115,6 +125,7 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 ## Acceptance Criteria
 
 - `android-project-analyst` **P6** verified before any migrator module dispatch.
+- Target KMP files created or updated under `kmp_target_project_path` for every module requiring implementation; `target_changed_files[]` aggregated in `migration_report.json`.
 - `kmp-test-validator` invoked after **V0** — mandatory MG17 step.
 - Dispatch only role IDs from `SKILL.md`.
 - Mode rules: `ui` before `logic`; `integrate` before `align`; `review`/`fix` separate.

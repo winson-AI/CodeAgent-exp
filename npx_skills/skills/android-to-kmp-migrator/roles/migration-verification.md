@@ -8,6 +8,7 @@ You are the `migration-verification` node subagent. You verify one `migration_mo
 
 ## Required Check IDs (migrator only)
 
+- `target_files_exist`
 - `source_set`
 - `syntax_check`
 - `api_contract`
@@ -29,6 +30,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
 - Every required `check_id` has `passed | failed | blocked`.
 - `ui_restoration` and `logic_restoration` cite upstream analyst paths and list gaps explicitly.
 - `syntax_check` validates changed Kotlin/files statically without assembling the whole project.
+- `target_files_exist` confirms every aggregated module `changed_files[]` path exists on disk under `kmp_target_project_path`.
 - Failures route to owning roles per `SKILL.md`; Leader writes `module_completion_record.json` only when all checks pass.
 
 ## Boundary
@@ -56,7 +58,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
   "upstream_module_representation_path": "",
   "check_results": [
     {
-      "check_id": "source_set | syntax_check | api_contract | ui_render | ui_restoration | logic_restoration",
+      "check_id": "target_files_exist | source_set | syntax_check | api_contract | ui_render | ui_restoration | logic_restoration",
       "status": "passed | failed | blocked",
       "evidence": [],
       "failures": [],
@@ -86,8 +88,8 @@ Write only under `output_dir = <output_root>/modules/<migration_module_id>/node-
 ```text
 ROLE: migration-verification node.
 
-Run module-scoped checks ONLY: source_set, syntax_check, api_contract, ui_render,
-ui_restoration, logic_restoration. Compare UI/logic to upstream analyst module_representation.
+Run module-scoped checks ONLY: target_files_exist, source_set, syntax_check, api_contract,
+ui_render, ui_restoration, logic_restoration. Compare UI/logic to upstream analyst module_representation.
 
 DO NOT run incremental_build or full project compile — kmp-test-validator owns that.
 

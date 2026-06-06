@@ -46,10 +46,17 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 │   ├── build/
 │   │   ├── validation_code_build.json
 │   │   └── validation_code_build.md
-│   └── fix/
-│       └── <cycle_id>/
-│           ├── validation_code_fix.json
-│           └── validation_code_fix.md
+│   ├── fix/
+│   │   └── <cycle_id>/
+│   │       ├── validation_code_fix.json
+│   │       └── validation_code_fix.md
+│   └── knowledge/
+│       ├── compile_error_knowledge.json
+│       ├── compile_error_knowledge.md
+│       └── entries/
+│           └── <entry_id>/
+│               ├── bug_fix_experience.json
+│               └── bug_fix_experience.md
 ├── business-testing/
 │   ├── validation_business_testing.json
 │   └── validation_business_testing.md
@@ -72,6 +79,8 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | `code_gate_dir` | `<output_root>/code-gate` |
 | `code_build_dir` | `<code_gate_dir>/build` |
 | `code_fix_dir` | `<code_gate_dir>/fix` |
+| `code_gate_knowledge_dir` | `<code_gate_dir>/knowledge` |
+| `knowledge_entries_dir` | `<code_gate_knowledge_dir>/entries` |
 | `business_testing_dir` | `<output_root>/business-testing` |
 
 ### Role Ownership (mandatory)
@@ -92,7 +101,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 1. Verify `V0`; write `run_manifest.json`, `upstream_migration_index.json`.
 2. `validation-workspace-state` — initialize; refresh after each group.
 3. `validation-fidelity-gate` mode `trust` → `VG1`.
-4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` → rerun `build` (max 3 fix cycles).
+4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` (lookup `compile_error_knowledge.*` and optional `error_knowledge_path`) → rerun `build` (max 3 fix cycles); on `VG2` pass after a fix cycle, persist verified bug-fix experiences under `code-gate/knowledge/entries/`.
 5. `validation-fidelity-gate` mode `restoreability` → `VG3`; on `needs_migrator_supplement` → migrator supplement (max 3) → refresh upstream → rerun affected stages.
 6. `validation-business-testing` when user inputs exist → `VG4` or explicit skip.
 7. On business failures → code-gate mode `fix` → rerun `build` and/or business-testing.
@@ -127,9 +136,83 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 
 ### `validation_code_fix.json` (mode `fix`)
 
-`kmp_target_project_path`, `fix_knowledge_source`: `error_database | model_inference`, `target_edit_summary`, `changed_files[]` listing every target KMP path created or modified to resolve build/preview failures, `restoreability_impact` per change. `required_reruns`: `["validation-code-gate:build", ...]`. Fix mode is the **only** validator role that edits target production code.
+`kmp_target_project_path`, `fix_knowledge_source`: `prior_experience | error_database | model_inference`, `knowledge_lookup`, `referenced_entry_ids[]`, `knowledge_candidates[]`, `target_edit_summary`, `changed_files[]` listing every target KMP path created or modified to resolve build/preview failures, `restoreability_impact` per change. `required_reruns`: `["validation-code-gate:build", ...]`. Fix mode is the **only** validator role that edits target production code.
 
 **Forbidden fix patterns**: delete/stub migrated behavior solely to pass compile; route missing modules to migrator supplement.
+
+### Compile error knowledge store (`code-gate/knowledge/`)
+
+The validator maintains a durable bug-fix experience ledger for compile/preview failures. Reuse it before inventing new fixes.
+
+| Path | Owner | When written | Purpose |
+|---|---|---|---|
+| `compile_error_knowledge.json` | `validation-code-gate` | init empty; update after verified fix | Machine index: fingerprints → `entry_id`, hit counts, last match |
+| `compile_error_knowledge.md` | `validation-code-gate` | with index updates | Agent-readable lookup table |
+| `entries/<entry_id>/bug_fix_experience.json` | `validation-code-gate` | after `VG2` pass confirms fix cycle | Verified error signature + solution steps + changed files |
+| `entries/<entry_id>/bug_fix_experience.md` | `validation-code-gate` | with entry JSON | Agent-readable bug-fix experience card |
+
+**Lookup order (fix mode, before editing target code)**:
+
+1. `code-gate/knowledge/compile_error_knowledge.json` — match `message_fingerprint`, `error_code`, `file_pattern`, `symbol_pattern`.
+2. Optional external `error_knowledge_path` — same signature matching when configured.
+3. `model_inference` — only when no prior experience matches.
+
+**Persist rule**: write or update `entries/<entry_id>/` only after the fix cycle is **verified** by a subsequent code-gate `build` pass (`VG2`). Unverified fixes stay in `validation_code_fix.json` → `knowledge_candidates[]` only.
+
+#### `compile_error_knowledge.json` index shape
+
+```json
+{
+  "knowledge_root": "",
+  "external_error_knowledge_path": "",
+  "entry_count": 0,
+  "entries": [
+    {
+      "entry_id": "ce-<slug>",
+      "message_fingerprint": "",
+      "error_code": "",
+      "compiler": "kotlin | gradle | compose",
+      "verified": true,
+      "hit_count": 0,
+      "last_matched_at": "",
+      "entry_path": "entries/<entry_id>/bug_fix_experience.json"
+    }
+  ]
+}
+```
+
+#### `bug_fix_experience.json` entry shape
+
+```json
+{
+  "entry_id": "ce-<slug>",
+  "error_signature": {
+    "compiler": "kotlin | gradle | compose",
+    "error_code": "",
+    "normalized_message": "",
+    "message_fingerprint": "",
+    "file_pattern": "",
+    "symbol_pattern": ""
+  },
+  "root_error_excerpt": "",
+  "build_log_ref": "",
+  "failure_id": "",
+  "fix_summary": "",
+  "solution_steps": [],
+  "target_files_changed": [],
+  "changed_files_snapshot": [],
+  "fix_knowledge_source": "prior_experience | error_database | model_inference",
+  "referenced_entry_ids": [],
+  "verified_by": "validation-code-gate:build",
+  "verification_cycle_id": "",
+  "fix_cycle_id": "",
+  "created_at": "",
+  "hit_count": 0,
+  "last_matched_at": ""
+}
+```
+
+**Same-error reuse**: when a routed failure matches an existing fingerprint, fix mode MUST set `fix_knowledge_source: prior_experience`, populate `referenced_entry_ids`, apply the recorded `solution_steps` when still valid, and increment `hit_count` in the index after successful verification.
 
 ### `validation_restoreability_audit.json` (mode `restoreability`)
 
@@ -153,8 +236,9 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 1. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
 2. Run fidelity-gate `trust` before code-gate `build`; `restoreability` only after `VG2`.
 3. Route compile failures to code-gate `fix`; route missing modules to migrator supplement.
-4. Enable business-testing submodules only with user prerequisites.
-5. Maintain `handoff_gates` in workspace ledger and final report.
+4. Initialize `code-gate/knowledge/compile_error_knowledge.json` when missing; persist verified bug-fix experiences after `VG2` pass.
+5. Enable business-testing submodules only with user prerequisites.
+6. Maintain `handoff_gates` in workspace ledger and final report.
 
 ## Invalid Artifact Handling
 

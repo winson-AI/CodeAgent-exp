@@ -26,12 +26,23 @@ upstream_inputs:
       migration_assembly_basis, module representations for fidelity and restoreability.
 
 optional_inputs:
+  - name: compile_error_knowledge_path
+    required: false
+    default: <output_root>/code-gate/knowledge/compile_error_knowledge.json
+    used_by:
+      - validation-code-gate
+    mode: fix
+    purpose: |
+      Run-local bug-fix experience index. Fix mode looks up matching compile errors here first;
+      verified fixes are persisted under code-gate/knowledge/entries/ after VG2 pass.
   - name: error_knowledge_path
     required: false
     used_by:
       - validation-code-gate
     mode: fix
-    purpose: Compilation error DB; code-gate fix mode uses error_database lookup before model_inference.
+    purpose: |
+      Optional external/shared compilation error DB. Used after local compile_error_knowledge lookup;
+      does not replace run-local knowledge persistence.
   - name: user_provided_commands
     required: false
     used_by:
@@ -89,8 +100,10 @@ tools:
 degraded_modes:
   - trigger: migrator V0 not ready
     effect: blocked
+  - trigger: compile_error_knowledge_path missing
+    effect: Leader initializes empty code-gate/knowledge/compile_error_knowledge.json on first fix dispatch
   - trigger: error_knowledge_path missing
-    effect: code-gate fix uses model_inference only
+    effect: code-gate fix uses local knowledge + model_inference only
   - trigger: no validation_requirements and no figma_refs
     effect: VG4 skipped — not auto-pass
   - trigger: rg missing

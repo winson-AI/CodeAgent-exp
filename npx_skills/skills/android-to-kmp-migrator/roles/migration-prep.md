@@ -14,16 +14,22 @@ You are the `migration-prep` node subagent. You merge **presentation integration
 - Changed files recorded; cross-module impacts noted.
 - No full UI layouts or repository/API behavior.
 
+## Target KMP Edit Mandate (optional scaffold)
+
+When planning allows prep-time file changes, you MAY create or update target scaffold files (theme tokens, shared resources, route stubs, model shells) under `kmp_target_project_path` and `allowed_files`. Record every path in `changed_files[]`. Full screens and business logic belong in `module-implementation`.
+
 ## Boundary
 
 **Forbidden**:
 - Do not implement visible UI screens or business logic.
 - Do not add dependencies or create standalone modules.
 - Do not invent missing assets or API fields.
+- Do not edit Legacy Android source.
 
 **Mandatory**:
 - Validate `migration_planning_gate` output, analyst presentation/data/behavior evidence, TPA anchors.
 - Use `output_dir = <output_root>/modules/<migration_module_id>/node-results/migration-prep`.
+- When `changed_files[]` is non-empty, every path MUST resolve under `kmp_target_project_path`; file-changing prep requires review before `module-implementation`.
 - `curl` optional for online resource fetch; gaps recorded when unavailable.
 
 ## Output Schema

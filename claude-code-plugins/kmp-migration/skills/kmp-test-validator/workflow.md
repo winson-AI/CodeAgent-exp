@@ -44,7 +44,8 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - **Executor**: `validation-code-gate` mode `build`
 - **Compile scenarios**: `user_specified` → `global_tool_search` → `default_gradle_kmp`
 - **Output**: `code-gate/build/validation_code_build.*`, `logs/code-gate/*`
-- **On failure**: dispatch code-gate mode `fix` (edit target KMP files) → rerun `build` (max 3 fix cycles)
+- **On failure**: dispatch code-gate mode `fix` — lookup `code-gate/knowledge/compile_error_knowledge.json` and optional `error_knowledge_path` for matching bug-fix experiences, then edit target KMP files → rerun `build` (max 3 fix cycles)
+- **On `VG2` pass after fix**: persist verified `knowledge_candidates` to `code-gate/knowledge/entries/<entry_id>/bug_fix_experience.*` and update the knowledge index
 - **Gate**: `VG2`
 
 ### Step 4 — Fidelity Gate `restoreability`
@@ -80,5 +81,6 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - Dispatch only role IDs from `SKILL.md`.
 - Fidelity-gate `trust` before code-gate `build`; `restoreability` after `VG2`.
 - Only code-gate mode `fix` edits production code.
+- Compile errors with verified solutions are stored as bug-fix experiences; same fingerprints reuse prior entries before `model_inference`.
 - Business testing skipped (not passed) when no user inputs.
 - Final verdict evidence-backed from verified artifacts.

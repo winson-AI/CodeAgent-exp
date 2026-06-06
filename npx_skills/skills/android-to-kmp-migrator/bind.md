@@ -16,6 +16,14 @@
 - **Forbidden**: `incremental_build` in migrator.
 - **kmp-test-validator**: full compile/build/test at package **V0**.
 
+## Target KMP Edit Mandate
+
+- Analyst **P6** is read-only input. Migrator success requires **editing the target KMP project** at `kmp_target_project_path`.
+- **Edit-owning roles**: `migration-prep` (optional scaffold), `module-implementation` `ui`/`logic` (required), `module-node-review-fix` `fix`, `global-migration-phase` `integrate`.
+- **Read-only on target**: TPA, `migration-planning-gate`, `migration-verification`, `global-migration-phase` `align`, `completion-report`.
+- When planning tasks require file changes, `changed_files[]` MUST be non-empty and paths MUST resolve under `kmp_target_project_path`.
+- `migration_report.json` MUST aggregate `target_changed_files[]` before **V0**.
+
 ## Behavioral Constraints
 
 - **Skill chain (mandatory)**:
@@ -44,6 +52,9 @@
 | Build requested in migrator | Block; route to kmp-test-validator |
 | Migrator invoked before analyst P6 | Block; dispatch `android-project-analyst` first |
 | V0 ready but validator not invoked | Block; dispatch `kmp-test-validator` at MG17 |
+| Analysis/planning only — no target edits when required | Block package M3; rerun `module-implementation` or `migration-prep` |
+| `changed_files` outside `kmp_target_project_path` | Block; rerun owning edit role |
+| Empty `target_changed_files` in `migration_report.json` when scope required edits | Block package V0 |
 
 ## Dependencies
 

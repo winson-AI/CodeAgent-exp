@@ -17,6 +17,7 @@ You are the `migration-planning-gate` node subagent. You merge **migration analy
 
 **Forbidden**:
 - Do not re-survey target project (consume `target-project-assistant` artifacts only).
+- Do not edit target KMP source files — planning routes edits to `migration-prep` and `module-implementation`.
 - Do not implement UI, repositories, or business logic.
 - Do not add dependencies for convenience.
 

@@ -48,7 +48,7 @@ The team is a **serial pipeline with two controller loops**: code-gate fix remed
 0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root.
 1. **Workspace state** — ledger + `handoff_gates`.
 2. **Fidelity gate `trust`** — migration trigger + pre-build fidelity (`VG1`).
-3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); on failure → code gate `fix` → rerun `build` (max 3 cycles).
+3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); on failure → code gate `fix` (lookup bug-fix knowledge, then fix) → rerun `build` (max 3 cycles); persist verified compile-error experiences after `VG2` pass.
 4. **Fidelity gate `restoreability`** — post-build restoreability (`VG3`); migrator supplement loop (max 3) when required.
 5. **Business testing** — optional behavioral / Figma submodules when user inputs exist (`VG4`).
 6. **Final report** — `validation-report` (`VG5`).
@@ -91,7 +91,7 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 | Leader | `run_manifest.json`, `upstream_migration_index.json` | V0 verification, dependency preflight |
 | `validation-workspace-state` | `validation_workspace_state.*` | `handoff_gates` VG0–VG5, cycle counts |
 | `validation-fidelity-gate` | `trust/validation_fidelity_trust.*`, `restoreability/validation_restoreability_audit.*` | Pre-build trust or post-build restoreability per mode |
-| `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, code-gate logs | Compile scenario + build/preview (build mode) or target KMP edits + `changed_files` + reruns (fix mode) |
+| `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, `knowledge/compile_error_knowledge.*`, `knowledge/entries/<entry_id>/bug_fix_experience.*`, code-gate logs | Compile scenario + build/preview (build mode); target KMP edits + knowledge lookup/candidates (fix mode); verified bug-fix experiences (after `VG2` pass) |
 | `validation-business-testing` | `validation_business_testing.*`, logs | Submodule outcomes or explicit skip |
 | `validation-report` | `kmp_validation_report.*` | Evidence-backed final verdict |
 
@@ -116,5 +116,5 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 - Dispatch only role IDs listed in this registry.
 - Only `validation-code-gate` mode `fix` edits target production code.
 - Fidelity-gate modes are read-only; restoreability routes gaps to migrator supplement.
-- Code-gate `build` uses three compile scenarios only; `fix` uses error DB when configured.
+- Code-gate `build` uses three compile scenarios only; `fix` reuses `code-gate/knowledge/` bug-fix experiences when fingerprints match, then optional external error DB, then `model_inference`.
 - Business-testing submodules require user inputs; skipped is not pass-by-omission.

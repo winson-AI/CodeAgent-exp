@@ -13,7 +13,7 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
 - Stale upstream inputs flagged when changed files, SPEC paths, migration report, or validation requirements changed since a node ran.
 - Rerun history recorded without hiding repeated failures; next safe controller action identified.
 
-**Focus areas**: node status normalization, stale-input detection, changed-file ownership, rerun/blocker history, next-action guidance.
+**Focus areas**: node status normalization, stale-input detection, changed-file ownership, compile-error knowledge inventory, rerun/blocker history, next-action guidance.
 
 ## Boundary
 
@@ -43,6 +43,11 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
   "handoff_gates": { "VG0": {}, "VG1": {}, "VG2": {}, "VG3": {}, "VG4": {}, "VG5": {} },
   "migrator_supplement_cycles": 0,
   "fix_cycles": 0,
+  "knowledge_inventory": {
+    "compile_error_knowledge_path": "",
+    "verified_entry_count": 0,
+    "last_persisted_entry_ids": []
+  },
   "next_actions": []
 }
 ```
@@ -51,7 +56,7 @@ Shared controller return shape (all nodes): `status`, `node`, `output_files`, `c
 
 ## Output Files And Contents
 
-- `validation_workspace_state.json`: machine-routable validation ledger containing current controller step, validator node status, output file inventory, changed-file ownership, stale upstream inputs, rerun history, blockers, and next safe actions.
+- `validation_workspace_state.json`: machine-routable validation ledger containing current controller step, validator node status, output file inventory, changed-file ownership, compile-error knowledge inventory (`knowledge_inventory`), stale upstream inputs, rerun history, blockers, and next safe actions.
 - `validation_workspace_state.md`: agent-readable ledger handoff containing node status table, stale-input table, changed-file ownership summary, rerun/blocker history, and next safe controller action.
 
 ## Inline Persona for Teammate

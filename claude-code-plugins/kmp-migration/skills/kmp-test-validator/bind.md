@@ -20,7 +20,7 @@
 - **Read-only fidelity**: `validation-fidelity-gate` never runs commands or edits code.
 - **Single production editor**: only `validation-code-gate` mode `fix` edits target production code.
 - **Three compile scenarios**: `user_specified` → `global_tool_search` → `default_gradle_kmp`.
-- **Two fix knowledge paths**: `error_knowledge_path` when configured; else `model_inference`.
+- **Compile error knowledge loop**: fix mode looks up `code-gate/knowledge/compile_error_knowledge.json` first, then optional `error_knowledge_path`, then `model_inference`; verified fixes persist under `knowledge/entries/` after `VG2` pass.
 - **Restoreability-preserving fixes**: no delete/stub of migrated behavior; missing modules → migrator supplement.
 - **Optional business testing**: submodules require user inputs; skip is not pass-by-omission.
 - **Report-only verdict**: only `validation-report` issues `passed | failed | blocked`.
@@ -41,7 +41,8 @@
 | Trigger | Effect |
 |---|---|
 | Migrator V0 not ready | `blocked` |
-| No `error_knowledge_path` | Fix uses `model_inference` only |
+| No local knowledge index yet | Leader initializes empty `compile_error_knowledge.json` |
+| No knowledge match and no `error_knowledge_path` | Fix uses `model_inference` |
 | No test cases or Figma refs | `VG4` skipped explicitly |
 | Preview unsupported | Build only; preview `skipped` with reason |
 | jetbrains / Figma MCP unavailable | Gradle + filesystem; record gap |

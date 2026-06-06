@@ -128,6 +128,19 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 - **`incremental_build` is forbidden** in `migration-verification` during migrator runs.
 - **Full compile/build/preview/behavioral tests** are delegated to **`kmp-test-validator`** after `migration_report.*` handoff package **`V0`** is ready.
 
+### Target KMP Edit Mandate (mandatory)
+
+- **Purpose**: `android-project-analyst` **P6** supplies Legacy Android understanding only. The migrator MUST translate that understanding into **concrete edits** in the existing KMP target at `kmp_target_project_path`.
+- **Analysis alone is not migration**: planning gates, prep handoffs, TPA alignment, and representations do **not** satisfy migration without target file changes where tasks require implementation.
+- **Edit-owning roles** (each MUST record paths under `kmp_target_project_path`):
+  - `migration-prep` → `migration_prep.json` → `changed_files[]` (optional scaffold when planning allows)
+  - `module-implementation` `ui` / `logic` → `module_implementation_ui.json` / `module_implementation_logic.json` → `changed_files[]`, `target_edit_summary`
+  - `module-node-review-fix` `fix` → `module_node_fix.json` → `changed_files[]`
+  - `global-migration-phase` `integrate` → `global_system_integration.json` → `integration_changed_files[]`, `entry_point_wiring[]`
+- **Read-only on target**: `target-project-assistant`, `migration-planning-gate`, `migration-verification`, `global-migration-phase` `align`, `completion-report`.
+- **Fail closed**: when `migration_planning_gate.json` → `planning.tasks[]` includes file-changing work for a module, package **M3** is false if both `module_implementation_ui.json` and `module_implementation_logic.json` have empty `changed_files[]` or paths resolve outside `kmp_target_project_path`.
+- **Aggregation**: `migration_report.json` MUST include `target_changed_files[]` — deduplicated union of all module and global integrate target paths with `owning_role` and `migration_module_id` (or `global` for integrate).
+
 ---
 
 ## Write Order (Leader Schedule)
@@ -184,8 +197,9 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | `migration-planning-gate/migration_planning_gate.json` |
 | `migration-prep/migration_prep.json` |
 | `module-implementation/ui/module_implementation_ui.json`, `module-implementation/logic/module_implementation_logic.json` + approved reviews |
-| `migration_verification.json` with all required `check_ids` passed |
-| `module_completion_record.json` with `ui_restoration` and `logic_restoration` passed |
+| **Target edits**: when planning tasks require file changes, both UI and logic implementation artifacts MUST have non-empty `changed_files[]` under `kmp_target_project_path` |
+| `migration_verification.json` with all required `check_ids` passed (including `target_files_exist` when `changed_files` non-empty) |
+| `module_completion_record.json` with `ui_restoration` and `logic_restoration` passed and `target_changed_files[]` listing module target paths |
 
 ### Package `M4` — All modules migrated
 
@@ -199,7 +213,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | Required paths |
 |---|
 | Package `M4` |
-| `global/node-results/global-migration-phase/integrate/global_system_integration.json` |
+| `global/node-results/global-migration-phase/integrate/global_system_integration.json` with non-empty `integration_changed_files[]` when cross-module glue or entry-point wiring is required |
 | `global_migration_representation.json` |
 
 ### Package `M6` — Post-integration alignment passed
@@ -215,7 +229,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | Required paths |
 |---|
 | Package `M6` |
-| `report/migration_report.json` |
+| `report/migration_report.json` with non-empty `target_changed_files[]` when any scheduled module required implementation |
 | `global_migration_representation.json` |
 | analyst `SPEC/*` paths recorded in `run_manifest.json` |
 
@@ -262,8 +276,10 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 {
   "migration_module_id": "",
   "legacy_module_id": "",
+  "kmp_target_project_path": "",
   "completion_status": "completed | needs_rerun | blocked",
   "verification_ref": "",
+  "target_changed_files": [{ "path": "", "owning_role": "migration-prep | module-implementation | module-node-review-fix", "mode": "ui | logic | fix | null" }],
   "ui_restoration": { "status": "passed | failed", "gaps": [] },
   "logic_restoration": { "status": "passed | failed", "gaps": [] },
   "upstream_match": { "module_representation_path": "", "matched_claims": [], "missing_claims": [] },
@@ -274,6 +290,7 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 
 ### `migration_verification.json` — required `check_ids` (migrator only)
 
+- `target_files_exist` — every path in aggregated module `changed_files[]` exists on disk under `kmp_target_project_path`
 - `source_set` — files in allowed source sets
 - `syntax_check` — Kotlin/syntax validity on changed files (static; no full project compile)
 - `api_contract` — API/model shape vs planning + analyst data contracts
@@ -313,12 +330,14 @@ Human/agent-readable synthesis of align mode; includes `entry_point_alignment_re
 
 1. Verify analyst package `P6` before `MG0` completes.
 2. Dispatch `target-project-assistant` for all target-project questions; other roles MUST reference TPA artifacts instead of re-analyzing target ad hoc.
-3. Write `module_completion_record.json` after each module passes `migration-verification`.
-4. Run `global-migration-phase` `integrate` only after package `M4`.
-5. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
-6. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
-7. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
-8. **MUST** invoke `kmp-test-validator` when `V0` is true (MG17). Do not end the migration workflow without validator dispatch or explicit validator blockers in `migration_report.json`.
+3. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
+4. Write `module_completion_record.json` after each module passes `migration-verification`; include aggregated `target_changed_files[]` for the module.
+5. Run `global-migration-phase` `integrate` only after package `M4`; integrate MUST edit target glue when assembly requires it.
+6. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
+7. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
+8. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
+9. Aggregate all module and global integrate target paths into `migration_report.json` → `target_changed_files[]`.
+10. **MUST** invoke `kmp-test-validator` when `V0` is true (MG17). Do not end the migration workflow without validator dispatch or explicit validator blockers in `migration_report.json`.
 
 ## Invalid Artifact Handling
 
@@ -331,3 +350,6 @@ Human/agent-readable synthesis of align mode; includes `entry_point_alignment_re
 | `module_completion_record` failed | Re-enter module loop from routed node |
 | `post_integration_alignment` omissions | Rerun listed modules or `global-migration-phase integrate` |
 | Full build requested during migrator | Reject — route to `kmp-test-validator` |
+| Planning complete but `changed_files[]` empty when tasks require edits | `needs_rerun` → `module-implementation` or `migration-prep` |
+| `changed_files` paths outside `kmp_target_project_path` | `blocked` — reject artifact; rerun owning role |
+| `target_files_exist` failed | `needs_rerun` → owning edit role |

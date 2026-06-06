@@ -1,10 +1,10 @@
 ---
 name: android-to-kmp-migrator
 description: |
-  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target using upstream analyst P6 artifacts, target-project-assistant alignment, planning/prep/implementation roles, global integrate+align phase, and mandatory kmp-test-validator handoff — without full-project build during migration.
-  Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting then whole-system assembly followed by validation.
-  Do NOT invoke before android-project-analyst completes P6. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
-version: "0.8"
+  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target by editing target KMP source after analyst P6 understanding — planning/prep/implementation roles create and update files under kmp_target_project_path, global integrate wires cross-module glue, then mandatory kmp-test-validator handoff — without full-project build during migration.
+  Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting with real target code changes then whole-system assembly followed by validation.
+  Do NOT invoke before android-project-analyst completes P6. Do NOT treat planning or analysis artifacts alone as migration success — target KMP files MUST be edited. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
+version: "0.9"
 kind: swarm-skill
 disable-model-invocation: false
 roles:
@@ -57,7 +57,7 @@ roles:
 
 # Android To KMP Migrator Swarm Skill
 
-Module-first migrator for Legacy Android → KMP target assembly.
+Module-first migrator for Legacy Android → KMP target assembly. **Upstream analyst P6 is read-only input; this skill's job is to edit the target KMP project** under `kmp_target_project_path`.
 
 **Canonical contract**: [output-contract.md](output-contract.md)
 
@@ -123,6 +123,13 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 ## Shared Rules
 
 - **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
+- **Target KMP edit mandate**: after analyst P6 understanding, migrator roles MUST create or update production files under `kmp_target_project_path`. Planning-only or artifact-only completion is invalid.
+- **Roles that edit target** (record `changed_files[]` or `integration_changed_files[]`):
+  - `migration-prep` — optional scaffold edits (theme, resources, routes, models) when planning allows
+  - `module-implementation` `ui` / `logic` — required per-module UI and logic port
+  - `module-node-review-fix` `fix` — scoped remediation in `allowed_files`
+  - `global-migration-phase` `integrate` — cross-module glue and entry-point wiring
+- **Read-only on target**: `target-project-assistant`, `migration-planning-gate`, `migration-verification`, `global-migration-phase` `align`, `completion-report`.
 - Analyst **P6** required; TPA owns all target Q&A.
 - Mode boundaries non-negotiable: `ui`/`logic`, `integrate`/`align`, `review`/`fix`.
 - No full project build in migrator.

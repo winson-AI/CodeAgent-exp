@@ -36,10 +36,21 @@ You are the `validation-code-gate` node subagent. You merge compile command reso
 - Target KMP files edited to resolve confirmed compiler/preview errors traced from build logs.
 - `validation_code_fix.json` and `.md` under `output_dir/fix/<cycle_id>/`.
 - Each failure confirmed as a target KMP issue with Android/SPEC cross-check when needed.
-- `fix_knowledge_source`: `error_database` when `error_knowledge_path` configured; else `model_inference`.
+- Before editing: lookup compile errors in `code-gate/knowledge/compile_error_knowledge.json` and optional `error_knowledge_path`; reuse matching `bug_fix_experience` entries when still valid.
+- `fix_knowledge_source`: `prior_experience` when local knowledge matches; `error_database` when external DB matches; else `model_inference`.
+- `referenced_entry_ids[]` populated when prior bug-fix experiences were applied.
+- `knowledge_candidates[]` proposed for each fixed failure; persisted to `knowledge/entries/` only after subsequent `build` pass verifies the fix.
 - Every fix records `restoreability_impact`; forbidden delete/stub patterns rejected.
 - `changed_files[]` lists every target path modified with `path`, `edit_kind` (`create | update`), `failure_id`, `restoreability_impact`.
 - `required_reruns` includes `validation-code-gate` mode `build` and/or `validation-business-testing` when applicable.
+
+## Success Criteria — knowledge persist (after verified `build` pass)
+
+When code-gate `build` passes after a fix cycle (`VG2`):
+
+- Promote `knowledge_candidates[]` from the verifying fix cycle into `code-gate/knowledge/entries/<entry_id>/bug_fix_experience.*`.
+- Update `compile_error_knowledge.json` and `.md` index with fingerprints, `entry_path`, `verified: true`, and `hit_count` when a prior entry was reused.
+- Skip persist when the same `message_fingerprint` already has a verified entry unless the new fix adds materially different `solution_steps` — then append a new `entry_id` and link via `referenced_entry_ids`.
 
 ## Compile Resolution Scenarios (build mode only)
 
@@ -71,6 +82,8 @@ Never invent commands outside these scenarios.
 **Required**:
 
 - Trace first root compiler error from `validation_code_build` logs before editing.
+- Lookup matching bug-fix experiences in [output-contract.md](../output-contract.md) § Compile error knowledge store before `model_inference`.
+- When the same error fingerprint matches a verified entry, apply recorded `solution_steps` first; adapt only when target context differs.
 - Narrowest fix in `allowed_files`; preserve architecture, source sets, dependencies, public API.
 - Edit under `kmp_target_project_path`; record every change in `changed_files`.
 
@@ -103,9 +116,17 @@ Never invent commands outside these scenarios.
   "build": { "command": "", "status": "passed | failed | blocked", "log_file": "" },
   "preview_or_renderability": { "required": true, "command": "", "status": "passed | failed | skipped | blocked", "log_file": "" },
   "failures": [{ "id": "", "failure_kind": "compile | preview | environment", "route_to": "validation-code-gate:fix | user | environment" }],
+  "knowledge_persist_summary": {
+    "verified_fix_cycle_id": "",
+    "persisted_entry_ids": [],
+    "reused_entry_ids": [],
+    "skipped_candidates": []
+  },
   "blocking_gaps": []
 }
 ```
+
+When `status: passed` immediately after a fix cycle, populate `knowledge_persist_summary` and write verified `knowledge_candidates` to `code-gate/knowledge/entries/`.
 
 ## Output Schema — mode `fix`
 
@@ -115,8 +136,24 @@ Never invent commands outside these scenarios.
   "node": "validation-code-gate",
   "mode": "fix",
   "kmp_target_project_path": "",
-  "fix_knowledge_source": "error_database | model_inference",
-  "error_database_entries": [],
+  "fix_knowledge_source": "prior_experience | error_database | model_inference",
+  "knowledge_lookup": {
+    "local_knowledge_path": "",
+    "external_error_knowledge_path": "",
+    "matched_entry_ids": [],
+    "lookup_status": "matched | partial_match | no_match"
+  },
+  "referenced_entry_ids": [],
+  "knowledge_candidates": [
+    {
+      "entry_id": "ce-<slug>",
+      "error_signature": {},
+      "root_error_excerpt": "",
+      "fix_summary": "",
+      "solution_steps": [],
+      "changed_files_snapshot": []
+    }
+  ],
   "target_edit_summary": {
     "files_touched": 0,
     "compile_fixes": 0,
@@ -143,8 +180,12 @@ Shared return shape applies. Only `fix` mode populates `changed_files` with targ
 - Logs under `logs/code-gate/` referenced by `log_file` fields.
 
 **Fix mode** under `<code_gate_dir>/fix/<cycle_id>/`:
-- `validation_code_fix.json` — machine fix record: `kmp_target_project_path`, `fix_knowledge_source`, `target_edit_summary`, per-failure fix mapping, `changed_files` (every target edit), `required_reruns`, forbidden pattern violations, blockers.
-- `validation_code_fix.md` — agent-readable fix handoff: root error → target file edit table, restoreability notes, rerun plan.
+- `validation_code_fix.json` — machine fix record: `kmp_target_project_path`, `fix_knowledge_source`, `knowledge_lookup`, `referenced_entry_ids`, `knowledge_candidates`, `target_edit_summary`, per-failure fix mapping, `changed_files` (every target edit), `required_reruns`, forbidden pattern violations, blockers.
+- `validation_code_fix.md` — agent-readable fix handoff: matched bug-fix experiences, root error → target file edit table, restoreability notes, rerun plan.
+
+**Knowledge store** under `<code_gate_dir>/knowledge/` (see [output-contract.md](../output-contract.md)):
+- `compile_error_knowledge.json`, `compile_error_knowledge.md` — lookup index.
+- `entries/<entry_id>/bug_fix_experience.json`, `.md` — verified compile-error → solution experiences, written after `VG2` confirms the fix cycle.
 
 ## Inline Persona for Teammate
 
@@ -156,7 +197,10 @@ capture logs, route compile/preview failures to fix mode. DO NOT edit target cod
 
 fix: EDIT THE TARGET KMP PROJECT to resolve confirmed build/preview failures.
 - changed_files = every target file you created or modified under kmp_target_project_path.
-- Use error DB when configured; else model inference.
+- LOOKUP FIRST: code-gate/knowledge/compile_error_knowledge.json, then optional error_knowledge_path.
+- Reuse prior bug_fix_experience when fingerprint matches; set fix_knowledge_source=prior_experience.
+- Else use external error DB when configured; else model_inference.
+- Record knowledge_candidates for fixed failures; persist entries only after build verifies fix.
 - Narrowest restoreability-preserving fix only; trace root compiler error first.
 - Missing modules/major functions -> migrator supplement, NOT delete/stub hacks.
 
@@ -166,11 +210,13 @@ CONTROL:
 - Never edit Legacy Android or migration validator evidence roots.
 
 INPUTS: mode, kmp_target_project_path, validation_fidelity_trust_path, validation_code_build_path (fix mode),
-error_knowledge_path, user_provided_commands, allowed_files, failure_ids, cycle_id, output_dir, logs_dir.
+code_gate_knowledge_dir, compile_error_knowledge_path, error_knowledge_path, user_provided_commands,
+allowed_files, failure_ids, cycle_id, output_dir, logs_dir.
 
 OUTPUTS (evidence under output_dir; code fixes under kmp_target_project_path in fix mode):
 - build/validation_code_build.json + .md + code-gate logs
 - fix/<cycle_id>/validation_code_fix.json + .md
+- knowledge/compile_error_knowledge.json + .md + entries/<entry_id>/bug_fix_experience.* (after verified build pass)
 
 Return kmp_target_project_path. fix mode: changed_files required when target edits made.
 Emit required_reruns including validation-code-gate:build after fixes.
