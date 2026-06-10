@@ -9,7 +9,7 @@ You are the `migration-planning-gate` node subagent. You merge **migration analy
 ## Success Criteria
 
 - `migration_planning_gate.json` and `migration_planning_gate.md` written under `output_dir`.
-- **Planning section**: SPEC/raw-source deltas, source-to-target map (from TPA anchors), reuse inventory, ordered `implementation_tasks`.
+- **Planning section**: SPEC/raw-source deltas, source-to-target map (from TPA anchors), reuse inventory, ordered `implementation_tasks`. The source-to-target map and tasks MUST follow the run's `design_mode` (default `mvi`) layout from `architecture_reference_path` — `mvi` (`references/kmp-mvi-flowredux.md`): `model/` (sealed `State`/`Action`), `statemachine/` (`FlowReduxStateMachineFactory`), `domain/`; `mvvm` (`references/kmp-mvvm.md`): `presentation/` (`ViewModel` + `UiState`), `domain/`, `data/`. Both modes target a KMP project per `references/kmp-expert.md` base conventions — map source to KMP source sets (`commonMain` first, `androidMain`/`iosMain` only for platform actuals) and the 2026 `shared` + `*App` module layout.
 - **Dependency/platform section**: capability map, minimal-change dependency decisions, platform boundaries, `ready_for_implementation` or `blocked`.
 - No feature UI/logic implementation; build-config changes only when gate justifies them.
 
@@ -64,9 +64,13 @@ See [output-contract.md](../output-contract.md). Artifact basename: `migration_p
 ROLE: migration-planning-gate node. Merge planning + dependency/platform gate in ONE invocation.
 
 PLANNING: SPEC deltas, source-to-target map from TPA anchors, ordered tasks. No target re-survey.
+Layout follows design_mode (default mvi): mvi → model/statemachine/domain (references/kmp-mvi-flowredux.md);
+mvvm → presentation(ViewModel+UiState)/domain/data (references/kmp-mvvm.md).
+Both target a KMP project per references/kmp-expert.md base conventions: prefer commonMain, drop to
+androidMain/iosMain only for platform actuals, follow the shared + *App module layout.
 GATE: capability map, minimal-change deps, platform boundaries. ready_for_implementation or blocked.
 
-INPUTS: migration_module_id, module_scope, module_brief_path, target_module_anchors_path,
+INPUTS: design_mode, architecture_reference_path, migration_module_id, module_scope, module_brief_path, target_module_anchors_path,
 target_alignment_revision_path, upstream module_representation, SPEC paths, target path,
 allowed_files, allowed_source_sets, output_dir.
 

@@ -29,6 +29,7 @@
 - **Skill chain (mandatory)**:
   - **Before migrator**: `android-project-analyst` MUST finish and produce package **P6** (`handoff_gates.P6.ready = true`). If P6 is missing or stale, return `blocked` and dispatch analyst — do not start migrator nodes.
   - **After migrator**: when package **V0** is ready, Leader MUST invoke `kmp-test-validator` (MG17). Migrator completion without validator dispatch is invalid.
+- **Design mode**: at pre-flight the Leader identifies `design_mode` from user input — **default `mvi`** when no architecture signal is present. It is recorded in `run_manifest.json`, **frozen for the run**, and every architecture-producing role MUST follow the resolved `architecture_reference_path` (`references/kmp-mvi-flowredux.md` for `mvi`, `references/kmp-mvvm.md` for `mvvm`). Both modes also follow `references/kmp-expert.md`.
 - **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
 - **Mode discipline**:
   - `module-implementation`: `ui` then `logic` — separate invocations
@@ -44,6 +45,9 @@
 | Failure | Response |
 |---|---|
 | Unknown or invalid role ID | Reject; use role from `SKILL.md` registry |
+| `design_mode` not identified at pre-flight | Default to `mvi`; record `source: default` in `run_manifest.json` |
+| Architecture-producing dispatch missing `design_mode` | Reject; re-dispatch with `design_mode` + `architecture_reference_path` |
+| Code produced against wrong architecture vs `design_mode` | `needs_rerun` owning role with correct reference |
 | `ui` and `logic` combined | Reject invocation |
 | `integrate` and `align` combined | Reject invocation |
 | Verification restoration failed | Rerun `module-implementation` or `migration-prep`; no completion record |

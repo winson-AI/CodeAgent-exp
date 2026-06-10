@@ -49,7 +49,7 @@ You are the `global-migration-phase` node subagent. Your job is **target KMP pro
 - Integrate mode: no edits outside `kmp_target_project_path` or outside approved integration glue paths from TPA `integration_constraints`.
 
 **Mandatory**:
-- Integrate: validate `kmp_target_project_path`, package `M4`, all module representations, analyst cross-module globals, and `target_alignment_revision.json` before editing.
+- Integrate: validate `kmp_target_project_path`, `design_mode` + `architecture_reference_path`, package `M4`, all module representations, analyst cross-module globals, and `target_alignment_revision.json` before editing. Cross-module glue, DI, and entry wiring MUST follow the run's `design_mode` (default `mvi`: state-machine wiring per `references/kmp-mvi-flowredux.md`; `mvvm`: `ViewModel`/Koin wiring per `references/kmp-mvvm.md`) and `references/kmp-expert.md` base KMP conventions — shared glue/nav/DI in `commonMain`, platform entry wrappers in `androidMain`/`iosMain`, `expect`/`actual` for platform launch hooks.
 - Integrate: `output_dir = <global_dir>/node-results/global-migration-phase/integrate`
 - Align: primary output under `<global_dir>/node-results/global-migration-phase/align`; alignment report under `report_dir`
 - Include `mode` and `kmp_target_project_path` in JSON return payload.
@@ -190,6 +190,11 @@ Read-only verification after integrate. For each Legacy Android entry in analyst
 ```text
 ROLE: global-migration-phase node in android-to-kmp-migrator. Modes: integrate | align. NEVER combine.
 
+DESIGN MODE: glue/DI/entry wiring follows design_mode (default mvi → references/kmp-mvi-flowredux.md
+state-machine wiring; mvvm → references/kmp-mvvm.md ViewModel/Koin wiring) and references/kmp-expert.md
+base KMP conventions (shared glue/nav/DI in commonMain, platform entry wrappers + expect/actual launch
+hooks in androidMain/iosMain). Do NOT mix patterns.
+
 INTEGRATE — EDIT THE TARGET KMP PROJECT:
 - Wire cross-module UI transitions, control logic handoffs, and data calls inside kmp_target_project_path.
 - Wire entry points: Android launcher/Application/root nav/deep links → KMP app shell (entry_point_wiring[]).
@@ -208,7 +213,7 @@ CONTROL:
   analyst cross-module globals, target_alignment_revision before editing.
 - Align: consume global_system_integration output; inspect target files without modifying them.
 
-INPUTS: mode, kmp_target_project_path, analyst cross_module_architecture_path,
+INPUTS: mode, design_mode, architecture_reference_path, kmp_target_project_path, analyst cross_module_architecture_path,
 cross_module_data_logic_path, module_migration_representation paths,
 presentation_resource entry_points paths (per module + launcher module),
 target_alignment_revision_path (entry_point_anchors[]), global_system_integration path (align mode),

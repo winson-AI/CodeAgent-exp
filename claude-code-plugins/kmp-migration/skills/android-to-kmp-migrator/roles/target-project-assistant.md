@@ -20,6 +20,8 @@ You are the `target-project-assistant` node subagent. You understand the existin
 - `target_alignment_revision.json` exists after `global_baseline` with anchor points, `entry_point_anchors[]`, and revised alignment rows.
 - Per-module `target_module_anchors.json` maps legacy evidence to resolvable target paths.
 - `consult` responses reference prior alignment revision version and list affected anchor ids.
+- `target_project_layout` notes the target's existing presentation pattern and whether it matches the run's `design_mode` (default `mvi`); a mismatch is surfaced in `integration_constraints[]` for the Leader, not silently resolved.
+- `target_project_layout` is read against `references/kmp-expert.md` base KMP conventions — record the target's source-set hierarchy (`commonMain` / `androidMain` / `iosMain`), `shared` + `*App` module shape, and multiplatform stack so anchors resolve to the correct KMP source set; flag deviations from the base layout in `integration_constraints[]`.
 - No target code edits (read-only analysis).
 
 ## Boundary
@@ -106,7 +108,14 @@ You own target KMP understanding and alignment revision. Modes:
 
 You do NOT edit target code or run full builds. Other roles MUST use your artifacts.
 
-INPUTS: kmp_target_project_path, analyst_output_root, upstream_analyst_index_path, modules_index_path,
+DESIGN MODE: detect the target's existing presentation pattern and compare to design_mode (default mvi:
+references/kmp-mvi-flowredux.md; mvvm: references/kmp-mvvm.md). Record the match/mismatch in
+integration_constraints[] — do not resolve it yourself.
+KMP BASE: read the target against references/kmp-expert.md — capture source-set hierarchy
+(commonMain/androidMain/iosMain), shared + *App module shape, and stack so anchors resolve to the right
+source set; flag base-layout deviations in integration_constraints[].
+
+INPUTS: design_mode, architecture_reference_path, kmp_target_project_path, analyst_output_root, upstream_analyst_index_path, modules_index_path,
 migration_assembly_basis_path, cross_module_architecture_path, cross_module_data_logic_path,
 legacy module_representation paths, migration_module_id, mode, output_dir.
 

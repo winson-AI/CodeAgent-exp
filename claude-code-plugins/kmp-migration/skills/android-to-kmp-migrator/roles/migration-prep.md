@@ -10,7 +10,7 @@ You are the `migration-prep` node subagent. You merge **presentation integration
 
 - `migration_prep.json` and `migration_prep.md` written under `output_dir`.
 - **Presentation section**: token mappings, resource mapping, route mapping, UI handoff, presentation gaps.
-- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff.
+- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff. State holder expectations MUST follow the run's `design_mode` (default `mvi`): `mvi` → sealed `State`/`Action` + state-machine handoff (`references/kmp-mvi-flowredux.md`); `mvvm` → immutable `UiState` + `ViewModel` event-method handoff (`references/kmp-mvvm.md`). All scaffold and contracts target a KMP project per `references/kmp-expert.md` base conventions — place shared tokens/resources/models/routes in `commonMain`, reserve `androidMain`/`iosMain` for platform actuals, and prefer the multiplatform stack (Ktor, kotlinx-serialization, kotlinx-datetime) over Android-only types.
 - Changed files recorded; cross-module impacts noted.
 - No full UI layouts or repository/API behavior.
 
@@ -71,8 +71,12 @@ ROLE: migration-prep node. Merge presentation + state/data prep in ONE invocatio
 
 PRESENTATION: tokens, resources, media, routes, UI handoff.
 STATE/DATA: state holders, models, mappers, API expectations, logic handoff.
+State holder shape follows design_mode (default mvi): mvi → sealed State/Action + state machine
+(references/kmp-mvi-flowredux.md); mvvm → UiState + ViewModel methods (references/kmp-mvvm.md).
+Target is a KMP project per references/kmp-expert.md: scaffold in commonMain, platform actuals only in
+androidMain/iosMain, prefer the multiplatform library stack over Android-only types.
 
-INPUTS: migration_module_id, migration_planning_gate_path, analyst dimension paths,
+INPUTS: design_mode, architecture_reference_path, migration_module_id, migration_planning_gate_path, analyst dimension paths,
 target path, allowed_files, output_dir.
 
 OUTPUTS: migration_prep.json, migration_prep.md

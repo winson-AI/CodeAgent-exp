@@ -25,6 +25,17 @@ You merge **UI implementation** and **logic implementation** with strict modes. 
 
 **Gate**: `logic` mode MUST NOT run until latest UI review is `approved`.
 
+## Design Mode (architecture pattern)
+
+The run's `design_mode` (default `mvi`) is supplied by the Leader together with `architecture_reference_path`. You MUST implement to that pattern; do not mix patterns.
+
+| `design_mode` | Reference | Shape you produce |
+|---|---|---|
+| `mvi` **(default)** | `references/kmp-mvi-flowredux.md` | Sealed `State`/`Action`, `FlowReduxStateMachineFactory`, `dispatch()` from UI, unidirectional flow |
+| `mvvm` | `references/kmp-mvvm.md` | `ViewModel` exposing immutable `UiState` as `StateFlow`, public event methods, `collectAsStateWithLifecycle()` |
+
+Both modes follow `references/kmp-expert.md` for base KMP/CMP conventions. If `design_mode` or `architecture_reference_path` is missing from the dispatch, return `blocked` — do not guess the pattern.
+
 ## Success Criteria
 
 **UI mode**:
@@ -54,7 +65,7 @@ You merge **UI implementation** and **logic implementation** with strict modes. 
 - Do not run full project compile/build — static edits only; build is `kmp-test-validator`.
 
 **Mandatory**:
-- Validate `kmp_target_project_path`, planning-gate `ready_for_implementation`, prep outputs, `target_module_anchors.json`, `allowed_files`, source sets, and workspace state before editing.
+- Validate `kmp_target_project_path`, `design_mode` + `architecture_reference_path`, planning-gate `ready_for_implementation`, prep outputs, `target_module_anchors.json`, `allowed_files`, source sets, and workspace state before editing.
 - Map each implementation task to a target path from planning/TPA before writing code.
 - Include `mode`, `kmp_target_project_path`, and `changed_files` in JSON return payload.
 - Write migration evidence artifacts under `output_dir`; write **implementation code** under `kmp_target_project_path`.
@@ -70,6 +81,8 @@ You merge **UI implementation** and **logic implementation** with strict modes. 
   "legacy_module_id": "",
   "module_scope": {},
   "kmp_target_project_path": "",
+  "design_mode": "mvi | mvvm",
+  "architecture_reference_path": "",
   "output_root": "",
   "output_dir": "",
   "target_edit_summary": {
@@ -127,6 +140,11 @@ ROLE: module-implementation node in android-to-kmp-migrator. Modes: ui | logic. 
 YOU IMPLEMENT IN THE TARGET KMP PROJECT. Edit/create KMP files under kmp_target_project_path.
 Legacy Android and analyst artifacts are read-only evidence. Do NOT edit Legacy Android.
 
+DESIGN MODE: follow design_mode (default mvi). mvi → references/kmp-mvi-flowredux.md
+(sealed State/Action + FlowReduxStateMachineFactory + dispatch); mvvm → references/kmp-mvvm.md
+(ViewModel + immutable UiState StateFlow + public event methods). Both follow references/kmp-expert.md.
+Do NOT mix patterns. If design_mode/architecture_reference_path missing, return blocked.
+
 UI MODE:
 - Port visible UI from upstream presentation evidence into target Compose/resources/navigation.
 - changed_files = every target file you created or modified.
@@ -143,7 +161,7 @@ CONTROL:
 - Map each task to a target path from planning source_to_target_map / TPA anchors first.
 - If anchor or allowed_files is missing, return blocked — do not guess target paths.
 
-INPUTS: mode, migration_module_id, legacy_module_id, kmp_target_project_path,
+INPUTS: mode, design_mode, architecture_reference_path, migration_module_id, legacy_module_id, kmp_target_project_path,
 migration_planning_gate_path, migration_prep_path, target_module_anchors_path,
 upstream module_representation + presentation_resource/behavior_logic paths (read-only),
 prior module_implementation_ui output (logic mode), allowed_files, output_dir.

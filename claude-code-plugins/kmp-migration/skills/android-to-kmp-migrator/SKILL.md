@@ -63,7 +63,7 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 
 ## Protocol Summary
 
-0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); record `dependency_preflight` in `run_manifest.json`.
+0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**; record `dependency_preflight` and `design_mode` in `run_manifest.json`.
 1. Verify analyst **P6**; `run_manifest.json`, `upstream_analyst_index.json`.
 2. Migration inventory + `modules_migration_index.json`.
 3. Workspace state init.
@@ -72,6 +72,23 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 6. **Global phase `integrate`** (cross-module glue + **entry point wiring**) → **`align`** (incl. **entry point alignment** vs Android) + alignment report.
 7. Global representation + completion-report `report` mode.
 8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
+
+## Design Mode (architecture pattern)
+
+The migrator targets one presentation architecture per run, selected at **pre-flight (Step 0)** by the Leader from the **user input**, then frozen for the whole run and recorded in `run_manifest.json` → `design_mode`.
+
+| `design_mode` | Architecture reference | When chosen |
+|---|---|---|
+| `mvi` **(default)** | [references/kmp-mvi-flowredux.md](references/kmp-mvi-flowredux.md) | Default when user input gives no clear signal; or user mentions MVI, FlowRedux, state machine, reducer, intent, unidirectional, sealed `State`/`Action`, `dispatch`, `inState`, `onEnter` |
+| `mvvm` | [references/kmp-mvvm.md](references/kmp-mvvm.md) | User mentions MVVM, shared `ViewModel`, `StateFlow`/`uiState`, `viewModelScope`, `collectAsStateWithLifecycle`, KMP-ObservableViewModel, SKIE |
+
+Both modes also follow [references/kmp-expert.md](references/kmp-expert.md) for base KMP/CMP conventions.
+
+**Rules**:
+- **Default is `mvi`** — when the user input contains no explicit or implied architecture signal, the Leader MUST select `mvi`.
+- Record the decision as `design_mode: { value, source: "user_input | default", signals: [] }` in `run_manifest.json` at **MG0**.
+- The Leader passes `design_mode` and the resolved `architecture_reference_path` to every architecture-producing role (planning-gate, prep, module-implementation, module-node-review-fix, global-migration-phase) and to TPA for target-pattern detection.
+- `design_mode` is **fixed for the run**; a mid-run change requires a fresh run, not in-place mutation.
 
 ## Skill Chain (mandatory)
 
@@ -108,6 +125,7 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 | [bind.md](bind.md) | Limits, constraints, failures |
 | [dependencies.yaml](dependencies.yaml) | CLI + optional MCP per role |
 | [roles/](roles/) | Role specs |
+| [references/](references/) | Architecture references: `kmp-mvi-flowredux.md` (MVI, default), `kmp-mvvm.md` (MVVM), `kmp-expert.md` (base KMP/CMP) |
 
 ## Handoff Gates
 
@@ -123,6 +141,7 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 ## Shared Rules
 
 - **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
+- **Design mode**: identified from user input at pre-flight, **default `mvi`**; frozen for the run; architecture-producing roles MUST follow the resolved `architecture_reference_path` (`kmp-mvi-flowredux.md` for `mvi`, `kmp-mvvm.md` for `mvvm`).
 - **Target KMP edit mandate**: after analyst P6 understanding, migrator roles MUST create or update production files under `kmp_target_project_path`. Planning-only or artifact-only completion is invalid.
 - **Roles that edit target** (record `changed_files[]` or `integration_changed_files[]`):
   - `migration-prep` — optional scaffold edits (theme, resources, routes, models) when planning allows

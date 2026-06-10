@@ -1,6 +1,6 @@
 {
   "name": "@code-migration/wow-migrator",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Install KMP migration skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm via npm install.",
   "keywords": [
     "android",

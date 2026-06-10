@@ -11,6 +11,17 @@ You are the `module-node-review-fix` node subagent. You consolidate review and f
 - `mode: review`: read-only review of one module/node slice.
 - `mode: fix`: scoped edit of explicit `must_fix` findings from one review report.
 
+## Design Mode (architecture pattern)
+
+The run's `design_mode` (default `mvi`) and `architecture_reference_path` are supplied by the Leader. Both modes MUST judge/repair code against that pattern:
+
+- `mvi` → `references/kmp-mvi-flowredux.md` (sealed `State`/`Action`, `FlowReduxStateMachineFactory`, `dispatch`).
+- `mvvm` → `references/kmp-mvvm.md` (`ViewModel` + immutable `UiState` `StateFlow` + public event methods).
+
+Both modes also judge code against `references/kmp-expert.md` base KMP/CMP conventions — correct source-set placement (`commonMain` vs `androidMain`/`iosMain`), `expect`/`actual` usage, no Android-only APIs leaked into `commonMain`, and multiplatform-stack choices.
+
+Flag architecture drift (wrong pattern vs `design_mode`) or base-KMP violations as `must_fix` findings in review; in fix mode, conform to the references. Do not introduce the other pattern.
+
 ## Success Criteria
 
 - Review mode writes `module_node_review.json` and `module_node_review.md`.
@@ -68,10 +79,15 @@ Shared return shape applies.
 ROLE: module-node-review-fix node.
 
 Respect mode strictly.
-Review mode: read-only; verify one owning node slice for contract, scope, parity, source-set, target convention, dependency discipline, and handoff readiness.
+Review mode: read-only; verify one owning node slice for contract, scope, parity, source-set, target convention, design_mode architecture conformance, dependency discipline, and handoff readiness.
 Fix mode: consume one review report; fix only assigned must_fix findings inside allowed_files; set requires_re_review=true.
 
-INPUTS: mode, migration_module_id, module_scope, owning_node, owning_node_output_path, changed_files, review_report_path for fix mode, allowed_files, workspace state, output_dir.
+DESIGN MODE: judge/repair against design_mode (default mvi). mvi → references/kmp-mvi-flowredux.md;
+mvvm → references/kmp-mvvm.md. Also enforce references/kmp-expert.md base KMP conventions (source-set
+placement, expect/actual, no android.* in commonMain). Wrong-pattern or base-KMP violations are must_fix.
+Never introduce the other pattern.
+
+INPUTS: mode, design_mode, architecture_reference_path, migration_module_id, module_scope, owning_node, owning_node_output_path, changed_files, review_report_path for fix mode, allowed_files, workspace state, output_dir.
 
 OUTPUTS:
 - review mode: module_node_review.json/md (read-only reviewed files, findings, approval/needs-fix decision, blockers)

@@ -59,9 +59,18 @@ graph TD
 ## Step 0 — Pre-flight
 
 - **Executor**: Leader
-- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**
-- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer)
+- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**; the **user input / migration request**
+- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer) and `design_mode` (architecture pattern decision)
 - **Gate**: missing CLI tools → degraded modes per dependencies.yaml; `android-project-analyst` **P6** not ready → **blocked** — invoke analyst first, do not dispatch migrator nodes
+
+### Step 0a — Identify design mode (default MVI)
+
+- Scan the **user input** for an explicit or implied presentation architecture:
+  - **`mvvm`** signals: "MVVM", shared `ViewModel`, `StateFlow` / `uiState`, `viewModelScope`, `collectAsStateWithLifecycle`, KMP-ObservableViewModel, SKIE → `references/kmp-mvvm.md`
+  - **`mvi`** signals: "MVI", FlowRedux, state machine, reducer, intent, unidirectional, sealed `State`/`Action`, `dispatch`, `inState`, `onEnter` → `references/kmp-mvi-flowredux.md`
+- **No clear signal → default `mvi`.**
+- Record `design_mode: { value: "mvi | mvvm", source: "user_input | default", signals: [], architecture_reference_path: "" }` in `run_manifest.json`.
+- Freeze `design_mode` for the run; pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch (planning-gate, prep, module-implementation, module-node-review-fix, global-migration-phase) and to TPA for target-pattern detection.
 
 ## Step 1 — Upstream + output root
 
@@ -125,6 +134,7 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 ## Acceptance Criteria
 
 - `android-project-analyst` **P6** verified before any migrator module dispatch.
+- `design_mode` identified from user input at Step 0 (default `mvi`) and recorded in `run_manifest.json`; architecture-producing dispatches carry `design_mode` + `architecture_reference_path`.
 - Target KMP files created or updated under `kmp_target_project_path` for every module requiring implementation; `target_changed_files[]` aggregated in `migration_report.json`.
 - `kmp-test-validator` invoked after **V0** — mandatory MG17 step.
 - Dispatch only role IDs from `SKILL.md`.

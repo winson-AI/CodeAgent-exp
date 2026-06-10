@@ -147,7 +147,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 | Step | Gate | Required artifacts before next step |
 |---|---|---|
-| `MG0` | Run lock | `run_manifest.json`, `upstream-index/upstream_analyst_index.json` |
+| `MG0` | Run lock | `run_manifest.json` (incl. `design_mode`), `upstream-index/upstream_analyst_index.json` |
 | `MG1` | Workspace init | global `migration_workspace_state.*` |
 | `MG2` | Migration index | `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json` |
 | `MG3` | Target baseline | global `target-project-assistant/*` (`mode: global_baseline`) + `target_alignment_revision.*` |
@@ -241,6 +241,30 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 ## Key Artifact Content Requirements
 
+### `run_manifest.json` → `design_mode`
+
+Records the presentation architecture pattern, identified from **user input** at pre-flight (Step 0a) and **frozen for the run**. Default is `mvi` when user input gives no clear signal.
+
+```json
+{
+  "design_mode": {
+    "value": "mvi",
+    "source": "default",
+    "signals": [],
+    "architecture_reference_path": "references/kmp-mvi-flowredux.md"
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `value` | `mvi` (default) \| `mvvm` |
+| `source` | `user_input` when a signal was matched; `default` when none |
+| `signals` | matched keywords/phrases from user input (empty when defaulted) |
+| `architecture_reference_path` | `references/kmp-mvi-flowredux.md` for `mvi`, `references/kmp-mvvm.md` for `mvvm` |
+
+The Leader MUST pass `design_mode.value` and `design_mode.architecture_reference_path` into every architecture-producing dispatch (`migration-planning-gate`, `migration-prep`, `module-implementation`, `module-node-review-fix`, `global-migration-phase`) and to `target-project-assistant` for target-pattern detection.
+
 ### `upstream_analyst_index.json`
 
 ```json
@@ -328,7 +352,7 @@ Human/agent-readable synthesis of align mode; includes `entry_point_alignment_re
 
 ## Leader Obligations
 
-1. Verify analyst package `P6` before `MG0` completes.
+1. Verify analyst package `P6` before `MG0` completes; identify `design_mode` from user input (default `mvi`) and write it to `run_manifest.json` at `MG0`, then pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch.
 2. Dispatch `target-project-assistant` for all target-project questions; other roles MUST reference TPA artifacts instead of re-analyzing target ad hoc.
 3. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
 4. Write `module_completion_record.json` after each module passes `migration-verification`; include aggregated `target_changed_files[]` for the module.
@@ -353,3 +377,6 @@ Human/agent-readable synthesis of align mode; includes `entry_point_alignment_re
 | Planning complete but `changed_files[]` empty when tasks require edits | `needs_rerun` → `module-implementation` or `migration-prep` |
 | `changed_files` paths outside `kmp_target_project_path` | `blocked` — reject artifact; rerun owning role |
 | `target_files_exist` failed | `needs_rerun` → owning edit role |
+| `design_mode` missing from `run_manifest.json` at MG0 | `blocked`, `reason: missing` — Leader must identify (default `mvi`) before module dispatch |
+| Architecture-producing dispatch missing `design_mode` / `architecture_reference_path` | Reject dispatch; re-dispatch with `design_mode` injected |
+| Implementation/review uses the wrong architecture vs `design_mode` | `needs_rerun` → owning role with correct `architecture_reference_path` |
