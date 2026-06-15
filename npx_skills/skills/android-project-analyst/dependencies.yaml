@@ -5,7 +5,17 @@
 # Android Studio MCP is optional auxiliary evidence for the Legacy Android source project —
 # it never replaces durable node artifacts or handoff package gates (P0–P6).
 
-skills: []   # No local domain-specific skill packages required for active roles.
+skills:
+  - name: operating-instructions
+    required: true
+    used_by:
+      - Leader
+      - analysis-workspace-state
+      - presentation-resource
+      - project-architecture
+      - data-contract-flow
+      - behavior-logic
+    purpose: Shared baseline conduct layer loaded before analyst pre-flight, module partitioning, node dispatch, evidence synthesis, and final handoff work.
 
 optional_mcp:
   - server: jetbrains

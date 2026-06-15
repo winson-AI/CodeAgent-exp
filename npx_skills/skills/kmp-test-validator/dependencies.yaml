@@ -3,6 +3,16 @@
 # Leader reads this in Workflow Step 0 → run_manifest.json dependency_preflight.
 
 skills:
+  - name: operating-instructions
+    required: true
+    used_by:
+      - Leader
+      - validation-workspace-state
+      - validation-fidelity-gate
+      - validation-code-gate
+      - validation-business-testing
+      - validation-report
+    purpose: Shared baseline conduct layer loaded before validator pre-flight, fidelity/code gates, optional business testing, remediation, and final reporting work.
   - name: ui-reconstruction-score
     required: false
     used_by:
