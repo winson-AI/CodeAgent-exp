@@ -8,6 +8,20 @@
 
 # Skill chain (mandatory — Leader enforces at Step 0 and MG17)
 skills:
+  - name: operating-instructions
+    required: true
+    used_by:
+      - Leader
+      - migration-workspace-state
+      - target-project-assistant
+      - migration-planning-gate
+      - migration-prep
+      - module-implementation
+      - module-node-review-fix
+      - migration-verification
+      - global-migration-phase
+      - completion-report
+    purpose: Shared baseline conduct layer loaded before migrator pre-flight, planning, implementation, review/fix, verification, integration, and reporting work.
   - name: android-project-analyst
     required: true
     phase: prerequisite

@@ -11,27 +11,27 @@ roles:
   - id: analysis-workspace-state
     kind: ai_agent
     purpose: Analysis ledger — module status, node output inventory, stale inputs, rerun/blocker history, artifact readiness, and next actions. No source analysis or SPEC writing.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
   - id: presentation-resource
     kind: ai_agent
     purpose: Presentation and resource owner — screens, UI technologies, navigation, UI modules, local/remote image and media resources, safe downloads, and UI/resource migration implications.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, curl]
   - id: project-architecture
     kind: ai_agent
     purpose: Project architecture owner — Gradle/module topology, architecture style, layer roles, dependency ecosystem, Jetpack/DI/platform services, generated tooling, and Android-only constraints.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: data-contract-flow
     kind: ai_agent
     purpose: Data contract and flow owner — network/local data contracts, models, consumers, repositories, streams, transformations, cache/error/pagination, write-back, and UI state propagation.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: behavior-logic
     kind: ai_agent
     purpose: Behavior and control-flow owner — user actions, lifecycle, state holders, business rules, side effects, state machines, navigation effects, gates, and cross-module interactions.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
 ---
 
@@ -40,6 +40,8 @@ roles:
 This is the agent-facing registry and team definition for the `android-project-analyst` controller (the same-name subagent in `kmp-migration/agents/`). It converts a Legacy Android source project into verified module artifacts, a global project representation, and SPEC artifacts for downstream onboarding, exploration, and migration agents.
 
 **Canonical file recording system**: [output-contract.md](output-contract.md) defines every output path, required content, write order, and downstream **handoff package gates** (`P0`–`P6`). Downstream handlers (`migration-task-adapter`, `android-to-kmp-migrator`, `kmp-test-validator`) trigger only when the declared package artifacts exist, are non-empty, in-path, and not stale. The Leader MUST read `output-contract.md` before the first dispatch and MUST NOT claim completion without updating `handoff_gates` in the workspace ledger and `SPEC/verification.md`.
+
+**Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched analyst role. The Leader MUST read it before pre-flight/module partitioning and include it in each role dispatch as baseline instructions; role files, workflow gates, and output contracts add to it, not replace it.
 
 The team is **module-first Mixed B+C with a workspace-state ledger**: the Leader partitions the project into `analysis_modules`, writes index artifacts and one `modules/<module_id>/` folder per module, maintains `analysis-workspace-state` before downstream consumption, runs three foundation nodes in **parallel** (B) inside each module, then a final **gated specialization** node (C) synthesizes module behavior from verified upstream outputs. The Leader writes a module representation per module, records cross-module architecture and data/logic separately under `global/`, then combines everything into `global_representation.*` and SPEC. The controller owns routing, strict output-path enforcement, reconciliation, workspace-state refreshes, and SPEC integration; nodes own bounded module analysis only.
 

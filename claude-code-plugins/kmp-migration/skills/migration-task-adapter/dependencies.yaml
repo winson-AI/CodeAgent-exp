@@ -1,6 +1,13 @@
 # dependencies.yaml — migration-task-adapter startup check
 
 skills:
+  - name: operating-instructions
+    required: true
+    used_by:
+      - task-route-orchestrator
+      - adapter-workspace-state
+      - adapter-report
+    purpose: Shared baseline conduct layer loaded before adapter routing, workspace-state, orchestration, and reporting work.
   - name: android-project-analyst
     required: false
     used_by:

@@ -11,17 +11,17 @@ roles:
   - id: task-route-orchestrator
     kind: ai_agent
     purpose: Task route and orchestration — mode route (classify intent, paths, downstream sequence) or orchestrate (dispatch contracts, observed downstream outputs). No downstream role work.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: adapter-workspace-state
     kind: ai_agent
     purpose: Workspace ledger — stage inspections, intermediate asset records, path compliance, freshness, reruns. No routing, orchestration, or final verdict.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
   - id: adapter-report
     kind: ai_agent
     purpose: Final adapter report from verified route, orchestration, workspace, stage, and downstream evidence. No new routing or workflow execution.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
 ---
 
@@ -30,6 +30,8 @@ roles:
 Front-door adapter for the KMP Migration Toolkit. It does not replace `android-project-analyst`, `android-to-kmp-migrator`, or `kmp-test-validator`. It classifies the user task, invokes the right downstream workflow, enforces stage gates, records consumed artifacts, and produces a final adapter report.
 
 **Canonical file recording system**: [output-contract.md](output-contract.md) defines every adapter output path, required content, write order, and **handoff package gates** (`A0`–`A6`). The Leader MUST read `output-contract.md` before the first dispatch and MUST NOT claim completion without updating `handoff_gates` in `adapter_workspace_state.json`.
+
+**Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched adapter role. The Leader MUST read it before route/pre-flight work and include it in each role dispatch as baseline instructions; role files and output contracts add to it, not replace it.
 
 ## Task Routes
 

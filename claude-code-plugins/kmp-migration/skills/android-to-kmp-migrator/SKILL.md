@@ -11,47 +11,47 @@ roles:
   - id: migration-workspace-state
     kind: ai_agent
     purpose: Migration ledger — handoff gates M0–V0, plan-vs-code gaps, stale outputs, rerun hooks. No code edits.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
   - id: target-project-assistant
     kind: ai_agent
     purpose: Target KMP owner — global baseline, per-module anchors, alignment revision, consult log.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: migration-planning-gate
     kind: ai_agent
     purpose: Planning and dependency/platform gate — SPEC deltas, source-to-target map, capability map, ready_for_implementation.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: migration-prep
     kind: ai_agent
     purpose: Presentation and state/data prep — tokens, resources, routes, state/models/API expectations.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, curl]
   - id: module-implementation
     kind: ai_agent
     purpose: Target KMP module implementation by mode — edit/create KMP UI files first, then logic after UI approval.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: module-node-review-fix
     kind: ai_agent
     purpose: Review or scoped fix by mode; fresh re-review after every fix.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: migration-verification
     kind: ai_agent
     purpose: Module static checks + UI/logic restoration vs analyst — no full project build.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: global-migration-phase
     kind: ai_agent
     purpose: Target KMP global integrate (edit cross-module glue + entry point wiring) then align (read-only analyst vs target comparison incl. entry points) by mode.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg]
   - id: completion-report
     kind: ai_agent
     purpose: Readiness and migration_report modes; validation handoff to kmp-test-validator.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
 ---
 
@@ -60,6 +60,8 @@ roles:
 Module-first migrator for Legacy Android → KMP target assembly. **Upstream analyst P6 is read-only input; this skill's job is to edit the target KMP project** under `kmp_target_project_path`.
 
 **Canonical contract**: [output-contract.md](output-contract.md)
+
+**Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched migrator role. The Leader MUST read it before pre-flight and include it in each role dispatch as baseline instructions; role files, architecture references, workflow gates, and output contracts add to it, not replace it.
 
 ## Protocol Summary
 

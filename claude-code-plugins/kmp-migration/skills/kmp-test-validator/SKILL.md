@@ -11,27 +11,27 @@ roles:
   - id: validation-workspace-state
     kind: ai_agent
     purpose: Validation ledger — node status, handoff gates VG0–VG5, supplement/remediation cycle counts, stale inputs, blockers. No audit, build, fix, or verdict.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
   - id: validation-fidelity-gate
     kind: ai_agent
     purpose: Fidelity gate — mode trust (pre-build Android/SPEC vs KMP) or restoreability (post-build module/function audit, migrator supplement routing). Read-only.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: validation-code-gate
     kind: ai_agent
     purpose: Code gate — mode build (3-scenario compile/preview) or fix (edit target KMP project to resolve build/preview failures). Only fix mode edits production code.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: validation-business-testing
     kind: ai_agent
     purpose: Optional business testing — behavioral submodule (user test cases) and ui_comparison submodule (Figma) after VG3.
-    skills: []
+    skills: [operating-instructions]
     tools: [rg, git]
   - id: validation-report
     kind: ai_agent
     purpose: Final verdict synthesis — passed/failed/blocked from verified fidelity, code-gate, business-testing, and fix evidence.
-    skills: []
+    skills: [operating-instructions]
     tools: [git]
 ---
 
@@ -42,6 +42,8 @@ This is the agent-facing registry and team definition for the `kmp-test-validato
 The team is a **serial pipeline with two controller loops**: code-gate fix remediation and migrator supplement.
 
 **Canonical file recording system**: [output-contract.md](output-contract.md) defines paths, migrator `V0` inputs, handoff gates `VG0`–`VG5`, and mode contracts. The Leader MUST read `output-contract.md` before the first dispatch.
+
+**Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched validator role. The Leader MUST read it before pre-flight and include it in each role dispatch as baseline instructions; role files, workflow gates, and output contracts add to it, not replace it.
 
 ## Protocol Summary
 
