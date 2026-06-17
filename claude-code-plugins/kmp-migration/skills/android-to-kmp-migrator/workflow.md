@@ -94,11 +94,11 @@ graph TD
 |---|---|---|
 | 5a | TPA `module_anchors` | Package **M2** per module |
 | 5b | `migration-planning-gate` | Planning + dep/platform in one pass |
-| 5c | `migration-prep` | Presentation + state/data in one pass |
+| 5c | `migration-prep` | Presentation + state/data + `analytics_expectations[]` |
 | 5d | `module-node-review-fix` | After prep if file-changing |
 | 5e | `module-implementation` `ui` | Edit/create target KMP UI files; then review/fix |
-| 5f | `module-implementation` `logic` | Edit/create target KMP logic files after UI approved; then review/fix |
-| 5g | `migration-verification` | Static + restoration; **no full build** |
+| 5f | `module-implementation` `logic` | Edit/create target KMP logic + **埋点** restoration; then review/fix |
+| 5g | `migration-verification` | Static + restoration incl. **analytics_restoration** (埋点 parity); **no full build** |
 | 5h | Leader | `module_completion_record.json` |
 | 5i | `completion-report` `readiness` + module representation | Package **M3** |
 
@@ -109,16 +109,16 @@ Repeat until package **M4**.
 ### 6a Integrate
 
 - **Role**: `global-migration-phase` `mode: integrate`
-- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts) and **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links) under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`
-- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]` and `entry_point_wiring[]`
+- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts), **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links), and **analytics SDK/init/facade** when legacy uses analytics, under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`
+- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]`, `entry_point_wiring[]`, and `analytics_sdk_wiring[]`
 - **Gate**: package **M5**
 
 ### 6b Align
 
 - **Role**: `global-migration-phase` `mode: align`
-- **Action**: read-only comparison including **entry point alignment** — verify each Android entry resolves to the correct KMP shell path, launch flow, and deep-link route
-- **Output**: `global-migration-phase/align/post_integration_alignment.*` with `entry_point_alignment_results[]` and `global_alignment_results.entry_points`, plus `report/alignment_report.*`
-- **Gate**: package **M6**; entry point or cross-module mismatch → `rerun_global_integration` or module loop
+- **Action**: read-only comparison including **entry point alignment** and **analytics alignment** — verify each Android entry resolves to the correct KMP shell path; verify legacy 埋点 inventory matches migrated track/report calls and global analytics SDK wiring
+- **Output**: `global-migration-phase/align/post_integration_alignment.*` with `entry_point_alignment_results[]`, `analytics_alignment_results[]`, `global_alignment_results.entry_points`, `global_alignment_results.analytics`, plus `report/alignment_report.*`
+- **Gate**: package **M6**; entry point, analytics SDK, or cross-module mismatch → `rerun_global_integration` or module loop
 
 ## Step 7 — Report + mandatory validator handoff (MG17)
 
@@ -140,4 +140,5 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 - Dispatch only role IDs from `SKILL.md`.
 - Mode rules: `ui` before `logic`; `integrate` before `align`; `review`/`fix` separate.
 - `migration-verification` never runs `incremental_build`.
+- Per-module and global **analytics_restoration** (埋点) parity verified before **M3** / **M6**; runtime analytics **reporting** deferred to `kmp-test-validator`.
 - `handoff_gates` match output-contract.

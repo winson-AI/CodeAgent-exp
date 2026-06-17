@@ -40,7 +40,7 @@ roles:
     tools: [rg, git]
   - id: migration-verification
     kind: ai_agent
-    purpose: Module static checks + UI/logic restoration vs analyst — no full project build.
+    purpose: Module static checks + UI/logic/analytics (埋点) restoration vs analyst — no full project build.
     skills: [operating-instructions]
     tools: [rg, git]
   - id: global-migration-phase
@@ -70,8 +70,8 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 2. Migration inventory + `modules_migration_index.json`.
 3. Workspace state init.
 4. TPA `global_baseline`.
-5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** → review/fix → verification → completion record → readiness → module representation.
-6. **Global phase `integrate`** (cross-module glue + **entry point wiring**) → **`align`** (incl. **entry point alignment** vs Android) + alignment report.
+5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** (incl. analytics_expectations) → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** (incl. 埋点 restoration) → review/fix → verification (incl. analytics_restoration) → completion record → readiness → module representation.
+6. **Global phase `integrate`** (cross-module glue + **entry point wiring** + **analytics SDK wiring**) → **`align`** (incl. **entry point** and **analytics alignment** vs Android) + alignment report.
 7. Global representation + completion-report `report` mode.
 8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
 

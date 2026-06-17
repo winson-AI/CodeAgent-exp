@@ -116,8 +116,8 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | `VG0` | Migrator `V0` verified; `upstream_migration_index.json` written |
 | `VG1` | `fidelity-gate/trust/validation_fidelity_trust.json` — no unresolved `test_trust_blockers` |
 | `VG2` | `code-gate/build/validation_code_build.json` — `build.status: passed`; preview passed or justified `skipped` |
-| `VG3` | `fidelity-gate/restoreability/validation_restoreability_audit.json` — `restoreability_verdict: passed` |
-| `VG4` | `business-testing/validation_business_testing.json` — submodule outcomes or explicit `skipped` |
+| `VG3` | `fidelity-gate/restoreability/validation_restoreability_audit.json` — `restoreability_verdict: passed`; when `analytics_reporting_required`, `analytics_reporting_summary.verdict: passed | not_applicable` |
+| `VG4` | `business-testing/validation_business_testing.json` — submodule outcomes or explicit `skipped`; `analytics_reporting` MUST run when migrator requires it |
 | `VG5` | `report/kmp_validation_report.json` issued |
 
 **Fail closed**: `passed` requires `VG2` + `VG3`; enabled `VG4` submodules must have no unresolved failures.
@@ -216,7 +216,7 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 
 ### `validation_restoreability_audit.json` (mode `restoreability`)
 
-`migrator_supplement_request` when new migration work required. Controller invokes `android-to-kmp-migrator` — not code-gate `fix`.
+`migrator_supplement_request` when new migration work required. When `migration_report.validation_inputs.analytics_reporting_required`, MUST include `analytics_reporting_results[]` and `analytics_reporting_summary` — failed analytics reporting blocks `restoreability_verdict: passed`. Controller invokes `android-to-kmp-migrator` — not code-gate `fix`.
 
 ### `validation_business_testing.json`
 
@@ -224,10 +224,13 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 {
   "submodules": {
     "behavioral": { "enabled": false, "status": "passed | failed | skipped | blocked" },
-    "ui_comparison": { "enabled": false, "status": "passed | failed | skipped | blocked" }
+    "ui_comparison": { "enabled": false, "status": "passed | failed | skipped | blocked" },
+    "analytics_reporting": { "enabled": false, "status": "passed | failed | skipped | blocked" }
   }
 }
 ```
+
+`analytics_reporting` is **enabled** when migrator `validation_inputs.analytics_reporting_required` is true — not optional skip when legacy scope had 埋点.
 
 ---
 

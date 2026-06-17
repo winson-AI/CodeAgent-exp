@@ -44,8 +44,8 @@ Both modes follow `references/kmp-expert.md` for base KMP/CMP conventions. If `d
 - UI binds to TPA anchors and planning `source_to_target_map`; no business logic beyond compile-safe UI state shells.
 
 **Logic mode**:
-- Target KMP files edited/created for repositories, use cases, ViewModels/state holders, mappers, API clients, and platform `expect`/`actual` boundaries.
-- `module_implementation_logic.json` / `.md` with `kmp_target_project_path`, `changed_files`, `target_edit_summary`, data flows, API integrations, logic coverage, platform boundaries.
+- Target KMP files edited/created for repositories, use cases, ViewModels/state holders, mappers, API clients, platform `expect`/`actual` boundaries, and **analytics/埋点 side effects** (track/report calls, screen-exposure hooks) mapped from upstream `behavior_logic`.
+- `module_implementation_logic.json` / `.md` with `kmp_target_project_path`, `changed_files`, `target_edit_summary`, data flows, API integrations, logic coverage, `analytics_coverage[]` (legacy event → target track call), platform boundaries.
 - Binds to approved UI binding surfaces from UI mode; no Android-only APIs in `commonMain`.
 - No TODO placeholders in production paths.
 
@@ -99,6 +99,19 @@ Both modes follow `references/kmp-expert.md` for base KMP/CMP conventions. If `d
   "data_flows": [],
   "api_integrations": [],
   "logic_coverage": [],
+  "analytics_coverage": [
+    {
+      "legacy_event_id": "",
+      "event_name": "",
+      "trigger": "",
+      "legacy_source_path": "",
+      "target_path": "",
+      "target_symbol": "",
+      "params_mapped": [],
+      "placement": "onActionEffect | viewModel_side_effect | composable_launchedEffect | screen_enter | lifecycle | other",
+      "status": "restored | partial | deferred"
+    }
+  ],
   "diagnostics": [],
   "blocking_gaps": []
 }
@@ -113,8 +126,8 @@ Populate UI fields in `ui` mode; logic fields in `logic` mode. `changed_files` a
 - `module_implementation_ui.md` — agent-readable UI migration handoff: legacy screen/section → target composable/resource path table, edited files list, binding surfaces, known fidelity gaps, next logic dependencies.
 
 **Logic mode** under `<module_root>/node-results/module-implementation/logic/`:
-- `module_implementation_logic.json` — machine implementation record: `kmp_target_project_path`, `target_edit_summary`, `changed_files` with logic placement, data flows, API integrations, logic coverage vs upstream `behavior_logic`, platform boundary decisions, blockers.
-- `module_implementation_logic.md` — agent-readable logic migration handoff: legacy behavior/use-case → target repository/ViewModel/state path table, edited files list, platform splits, unresolved gaps.
+- `module_implementation_logic.json` — machine implementation record: `kmp_target_project_path`, `target_edit_summary`, `changed_files` with logic placement, data flows, API integrations, logic coverage vs upstream `behavior_logic`, `analytics_coverage[]` vs legacy 埋点, platform boundary decisions, blockers.
+- `module_implementation_logic.md` — agent-readable logic migration handoff: legacy behavior/use-case → target repository/ViewModel/state path table, **legacy 埋点 → target track/report table**, edited files list, platform splits, unresolved gaps.
 
 ## Target Edit Rules By Mode
 
@@ -130,6 +143,7 @@ Populate UI fields in `ui` mode; logic fields in `logic` mode. `changed_files` a
 - ViewModels, presenters, or state holders bound to approved UI surfaces.
 - Repositories, data sources, mappers, DTO/domain models.
 - API client integrations and error/loading state propagation.
+- **Analytics/埋点**: restore legacy track/report calls at the same behavioral trigger points — e.g. MVI `onActionEffect` / `onEnter`, MVVM ViewModel side-effect methods after state transitions, screen-enter `LaunchedEffect`, lifecycle hooks. Reuse shared analytics wrapper from prep when present.
 - `expect`/`actual` declarations and platform-specific implementations in `androidMain`/`iosMain` when required.
 
 ## Inline Persona for Teammate
@@ -152,6 +166,7 @@ UI MODE:
 
 LOGIC MODE:
 - Port behavior from upstream behavior_logic evidence into target repositories/ViewModels/state/platform code.
+- Restore legacy 埋点 at matching triggers; record every event in analytics_coverage[].
 - Bind only to approved UI binding surfaces from prior UI mode output.
 - changed_files = every target file you created or modified.
 

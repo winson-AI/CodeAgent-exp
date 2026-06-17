@@ -10,7 +10,7 @@ You are the `migration-prep` node subagent. You merge **presentation integration
 
 - `migration_prep.json` and `migration_prep.md` written under `output_dir`.
 - **Presentation section**: token mappings, resource mapping, route mapping, UI handoff, presentation gaps.
-- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff. State holder expectations MUST follow the run's `design_mode` (default `mvi`): `mvi` → sealed `State`/`Action` + state-machine handoff (`references/kmp-mvi-flowredux.md`); `mvvm` → immutable `UiState` + `ViewModel` event-method handoff (`references/kmp-mvvm.md`). All scaffold and contracts target a KMP project per `references/kmp-expert.md` base conventions — place shared tokens/resources/models/routes in `commonMain`, reserve `androidMain`/`iosMain` for platform actuals, and prefer the multiplatform stack (Ktor, kotlinx-serialization, kotlinx-datetime) over Android-only types.
+- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff, `analytics_expectations[]`. State holder expectations MUST follow the run's `design_mode` (default `mvi`): `mvi` → sealed `State`/`Action` + state-machine handoff (`references/kmp-mvi-flowredux.md`); `mvvm` → immutable `UiState` + `ViewModel` event-method handoff (`references/kmp-mvvm.md`). All scaffold and contracts target a KMP project per `references/kmp-expert.md` base conventions — place shared tokens/resources/models/routes in `commonMain`, reserve `androidMain`/`iosMain` for platform actuals, and prefer the multiplatform stack (Ktor, kotlinx-serialization, kotlinx-datetime) over Android-only types.
 - Changed files recorded; cross-module impacts noted.
 - No full UI layouts or repository/API behavior.
 
@@ -53,7 +53,18 @@ When planning allows prep-time file changes, you MAY create or update target sca
     "state_mappings": [],
     "model_mappings": [],
     "api_contract_expectations": [],
-    "logic_handoff": []
+    "logic_handoff": [],
+    "analytics_expectations": [
+      {
+        "event_id": "",
+        "event_name": "",
+        "trigger": "",
+        "params": [],
+        "legacy_source_path": "",
+        "expected_placement": "onActionEffect | viewModel_side_effect | composable_launchedEffect | screen_enter | lifecycle | global_sdk_init",
+        "sdk_hint": ""
+      }
+    ]
   },
   "changed_files": [],
   "blocking_gaps": []
@@ -70,7 +81,8 @@ See [output-contract.md](../output-contract.md). Artifact basename: `migration_p
 ROLE: migration-prep node. Merge presentation + state/data prep in ONE invocation.
 
 PRESENTATION: tokens, resources, media, routes, UI handoff.
-STATE/DATA: state holders, models, mappers, API expectations, logic handoff.
+STATE/DATA: state holders, models, mappers, API expectations, logic handoff, analytics_expectations
+(legacy 埋点 inventory from behavior_logic side_effects + project_architecture analytics deps).
 State holder shape follows design_mode (default mvi): mvi → sealed State/Action + state machine
 (references/kmp-mvi-flowredux.md); mvvm → UiState + ViewModel methods (references/kmp-mvvm.md).
 Target is a KMP project per references/kmp-expert.md: scaffold in commonMain, platform actuals only in

@@ -52,7 +52,7 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 
 - **Executor**: `validation-fidelity-gate` mode `restoreability`
 - **Prerequisite**: `VG2`
-- **Output**: `fidelity-gate/restoreability/validation_restoreability_audit.*`
+- **Output**: `fidelity-gate/restoreability/validation_restoreability_audit.*` (incl. `analytics_reporting_results[]` when migrator requires analytics reporting)
 - **On gaps**: migrator supplement loop (max 3) → refresh upstream → rerun trust/build as scoped
 - **Gate**: `VG3`
 
@@ -60,7 +60,7 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 
 - **Executor**: `validation-business-testing`
 - **Prerequisite**: `VG3`
-- **Submodules**: `behavioral` (user test cases), `ui_comparison` (Figma refs)
+- **Submodules**: `behavioral` (user test cases), `ui_comparison` (Figma refs), `analytics_reporting` (migrator `analytics_reporting_required` — verify 埋点 reporting on key flows)
 - **Output**: `business-testing/validation_business_testing.*`
 - **Gate**: `VG4` or explicit skip
 

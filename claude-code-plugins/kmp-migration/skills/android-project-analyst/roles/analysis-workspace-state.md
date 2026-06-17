@@ -10,7 +10,7 @@ You are the `analysis-workspace-state` node subagent dispatched by the `android-
 
 - `analysis_workspace_state.json` and `analysis_workspace_state.md` written under `output_dir`, both non-empty.
 - Every known analysis module and node output is normalized into one ledger.
-- Stale inputs are flagged when module briefs, node outputs, module representations, global representation, SPEC paths, source roots, or analysis requirements changed since a dependent artifact was produced.
+- Stale inputs are flagged when module briefs, node outputs, data-flow investigation tracker reports, module representations, global representation, SPEC paths, source roots, or analysis requirements changed since a dependent artifact was produced.
 - Rerun and blocker history are recorded without hiding repeated failures.
 - Next safe controller actions are listed.
 - `handoff_gates` for packages `P0`–`P6` per [output-contract.md](../output-contract.md) are evaluated with `ready` flags and `missing_paths[]`.
@@ -70,7 +70,7 @@ Write only under `output_dir = <output_root>/workspace-state/`. Evaluate handoff
 ## Output Files And Contents
 
 - `analysis_workspace_state.json`: machine-routable ledger of run mode, current controller step, module statuses, node output statuses, artifact inventory, stale upstream inputs, rerun history, blocking gaps, `handoff_gates` (`P0`–`P6` per [output-contract.md](../output-contract.md)), and next safe actions. It must not include UI, architecture, data-flow, or behavior analysis.
-- `analysis_workspace_state.md`: agent-readable ledger handoff with module status table, dimension output inventory per `module_id`, `modules_index.json` and `dimension_index.json` readiness, cross-module global record status, artifact readiness table, stale-input table, rerun/blocker history, and next controller action. It must preserve exact artifact paths and owner nodes.
+- `analysis_workspace_state.md`: agent-readable ledger handoff with module status table, dimension output inventory per `module_id`, data-flow investigation tracker status per module, `modules_index.json` and `dimension_index.json` readiness, cross-module global record status, artifact readiness table, stale-input table, rerun/blocker history, and next controller action. It must preserve exact artifact paths and owner nodes.
 
 ## Inline Persona for Teammate
 
@@ -114,13 +114,17 @@ INPUTS YOU WILL RECEIVE:
 HANDLER (how you process):
 1. Normalize module status and node output status for every known analysis module.
 2. Track artifact inventory for run manifest, module inventory, modules_index.json, module briefs,
-   dimension outputs, dimension_index.json, module representations, cross-module global records,
+   dimension outputs (including `data-contract-flow` → `data_flow_tracker_report.*` plus
+   `data_contract_flow.*`), dimension_index.json, module representations, cross-module global records,
    global representation, and SPEC outputs.
-3. Detect stale upstream inputs when source roots, module briefs, node outputs, representations, or
+3. For each `data-contract-flow` module output, record tracker report paths, `handler_steps`
+   completion summary, open `follow_ups`, and `blocking_gaps`; flag stale when tracker and
+   `data_contract_flow.*` are out of sync or tracker is missing.
+4. Detect stale upstream inputs when source roots, module briefs, node outputs, representations, or
    SPEC inputs changed after dependent artifacts were produced.
-4. Record rerun and blocker history without hiding repeated failures.
-5. Evaluate handoff packages P0–P6 from output-contract.md; set ready flags and missing_paths.
-6. Identify the next safe controller action.
+5. Record rerun and blocker history without hiding repeated failures.
+6. Evaluate handoff packages P0–P6 from output-contract.md; set ready flags and missing_paths.
+7. Identify the next safe controller action.
 
 OUTPUTS (write under output_dir, exact names):
 - analysis_workspace_state.json (machine ledger: module/node/artifact status, stale inputs, reruns, blockers, next actions)

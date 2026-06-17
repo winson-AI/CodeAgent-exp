@@ -25,7 +25,8 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
 ### Mode `restoreability`
 
 - `validation_restoreability_audit.json` and `.md` under `output_dir/restoreability/`.
-- Comparison uses analyst globals, migrator completion records, alignment artifacts, and built target evidence.
+- Comparison uses analyst globals, migrator completion records, alignment artifacts, built target evidence, and **`migration_report.json` → `analytics_restoration_summary`** when `validation_inputs.analytics_reporting_required` is true.
+- **Analytics reporting verification**: for each event in `event_catalog`, confirm KMP target wires track/report at the documented trigger and SDK init path is reachable post-build; record `analytics_reporting_results[]` with `report_path_reachable` and `flow_verified` status.
 - Missing modules/functions emit `migrator_supplement_request` — never route to code-gate `fix` mode deletes.
 
 ## Boundary
@@ -82,6 +83,27 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
   "missing_modules": [],
   "missing_functions": [],
   "poor_restoration": [],
+  "analytics_reporting_results": [
+    {
+      "event_id": "",
+      "event_name": "",
+      "migration_module_id": "",
+      "legacy_source_path": "",
+      "target_path": "",
+      "static_restored": true,
+      "report_path_reachable": true,
+      "flow_verified": true,
+      "status": "passed | failed | blocked",
+      "gap": ""
+    }
+  ],
+  "analytics_reporting_summary": {
+    "required": false,
+    "total_events": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "verdict": "passed | failed | not_applicable"
+  },
   "migrator_supplement_request": {
     "required": false,
     "modules_to_supplement": [],
@@ -106,7 +128,10 @@ Shared return shape applies.
 ROLE: validation-fidelity-gate node (mode: trust | restoreability).
 
 trust: verify V0 migration scenario, normalize brief, audit Android/SPEC vs KMP fidelity before build is trusted.
-restoreability: after VG2, re-verify modules/functions vs analyst+migrator evidence; route gaps to migrator supplement.
+restoreability: after VG2, re-verify modules/functions vs analyst+migrator evidence; when
+migration_report.validation_inputs.analytics_reporting_required, verify each 埋点 in event_catalog
+reaches the analytics SDK/report pipeline post-build (analytics_reporting_results[]); route gaps
+to migrator supplement.
 
 INPUTS: mode, kmp_target_project_path, upstream_migration_index_path, migration_report_path, spec_paths, validation_code_build_path (restoreability only), supplement_cycle_count, output_dir.
 

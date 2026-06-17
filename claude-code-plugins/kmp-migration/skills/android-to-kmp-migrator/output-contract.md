@@ -198,8 +198,8 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | `migration-prep/migration_prep.json` |
 | `module-implementation/ui/module_implementation_ui.json`, `module-implementation/logic/module_implementation_logic.json` + approved reviews |
 | **Target edits**: when planning tasks require file changes, both UI and logic implementation artifacts MUST have non-empty `changed_files[]` under `kmp_target_project_path` |
-| `migration_verification.json` with all required `check_ids` passed (including `target_files_exist` when `changed_files` non-empty) |
-| `module_completion_record.json` with `ui_restoration` and `logic_restoration` passed and `target_changed_files[]` listing module target paths |
+| `migration_verification.json` with all required `check_ids` passed (including `target_files_exist` when `changed_files` non-empty, and `analytics_restoration` passed or `skipped` with evidence) |
+| `module_completion_record.json` with `ui_restoration`, `logic_restoration`, and `analytics_restoration` passed (or analytics `skipped` with evidence) and `target_changed_files[]` listing module target paths |
 
 ### Package `M4` — All modules migrated
 
@@ -221,7 +221,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | Required paths |
 |---|
 | Package `M5` |
-| `global/node-results/global-migration-phase/align/post_integration_alignment.json` with `alignment_verdict: passed \| passed_with_assumptions` and `global_alignment_results.entry_points.verdict: passed \| passed_with_assumptions` |
+| `global/node-results/global-migration-phase/align/post_integration_alignment.json` with `alignment_verdict: passed \| passed_with_assumptions` and `global_alignment_results.entry_points.verdict: passed \| passed_with_assumptions` and `global_alignment_results.analytics.verdict: passed \| passed_with_assumptions \| not_applicable` |
 | `report/alignment_report.json` (includes entry point alignment verdict) |
 
 ### Package `V0` — kmp-test-validator entry (downstream)
@@ -306,6 +306,7 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
   "target_changed_files": [{ "path": "", "owning_role": "migration-prep | module-implementation | module-node-review-fix", "mode": "ui | logic | fix | null" }],
   "ui_restoration": { "status": "passed | failed", "gaps": [] },
   "logic_restoration": { "status": "passed | failed", "gaps": [] },
+  "analytics_restoration": { "status": "passed | failed | skipped", "restored_count": 0, "total_count": 0, "gaps": [] },
   "upstream_match": { "module_representation_path": "", "matched_claims": [], "missing_claims": [] },
   "rerun_required": false,
   "evidence_paths": []
@@ -321,16 +322,19 @@ Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_roo
 - `ui_render` — static UI surface check (Compose structure/resources; no full render pipeline build)
 - `ui_restoration` — migrated UI coverage vs upstream `presentation_resource` + module representation
 - `logic_restoration` — migrated logic coverage vs upstream `behavior_logic` + module representation
+- `analytics_restoration` — legacy 埋点 inventory vs migrated KMP track/report calls and params; `skipped` only when module scope has no analytics with evidence
 
 **Forbidden**: `incremental_build`, `full_project_compile`, `gradle_assemble`.
 
+Runtime analytics **reporting** verification (event actually reaches SDK/report pipeline after build) is delegated to **`kmp-test-validator`** restoreability / business-testing — migrator performs static parity only.
+
 ### `global_system_integration.json`
 
-`kmp_target_project_path`, `target_edit_summary`, `assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `entry_point_wiring[]` (Android entry → KMP shell wiring with `wiring_kind` and `status`), `shared_contracts_applied[]`, `integration_changed_files[]` (target glue paths only), evidence paths from analyst cross-module globals and per-module `presentation_resource` `entry_points[]`. Integrate mode MUST edit the target KMP project and wire app-shell entry points; module body changes belong in `module-implementation`.
+`kmp_target_project_path`, `target_edit_summary`, `assembly_order`, `ui_transition_edges[]`, `control_logic_handoffs[]`, `data_call_edges[]`, `entry_point_wiring[]` (Android entry → KMP shell wiring with `wiring_kind` and `status`), `analytics_sdk_wiring[]` (legacy analytics SDK/init → KMP facade/DI with `status`), `shared_contracts_applied[]`, `integration_changed_files[]` (target glue paths only), evidence paths from analyst cross-module globals and per-module `presentation_resource` `entry_points[]`. Integrate mode MUST edit the target KMP project and wire app-shell entry points and global analytics glue when required; module body changes belong in `module-implementation`.
 
 ### `post_integration_alignment.json` (analysis only — no target edits)
 
-`alignment_verdict`, `module_alignment_results[]`, `global_alignment_results` (including `entry_points.verdict`), `entry_point_alignment_results[]`, `omissions[]`, `poor_restoration[]`, `rerun_modules[]`, `rerun_global_integration` (true when entry point alignment fails), `comparison_evidence[]` (analyst path vs target path pairs). Entry point alignment MUST pass (`global_alignment_results.entry_points.verdict: passed | passed_with_assumptions`) for package **M6**.
+`alignment_verdict`, `module_alignment_results[]`, `global_alignment_results` (including `entry_points.verdict` and `analytics.verdict`), `entry_point_alignment_results[]`, `analytics_alignment_results[]`, `omissions[]`, `poor_restoration[]`, `rerun_modules[]`, `rerun_global_integration` (true when entry point or analytics SDK alignment fails), `comparison_evidence[]` (analyst path vs target path pairs). Entry point alignment MUST pass (`global_alignment_results.entry_points.verdict: passed | passed_with_assumptions`) and analytics alignment MUST pass or be `not_applicable` for package **M6**.
 
 ### `migration_planning_gate.json`
 
@@ -338,15 +342,56 @@ Combined `planning` (spec deltas, source-to-target map, tasks) and `dependency_p
 
 ### `migration_prep.json`
 
-Combined `presentation` (tokens, resources, routes) and `state_data` (state/models/API expectations) sections.
+Combined `presentation` (tokens, resources, routes) and `state_data` (state/models/API expectations, `analytics_expectations[]`) sections.
 
 ### `module_implementation_ui.json` / `module_implementation_logic.json`
 
-UI mode and logic mode outputs under `module-implementation/ui/` and `module-implementation/logic/` respectively. Each MUST record `kmp_target_project_path`, `target_edit_summary`, and `changed_files[]` listing every target KMP path created or modified in that invocation. Legacy Android paths are evidence only — implementation edits occur under `kmp_target_project_path`.
+UI mode and logic mode outputs under `module-implementation/ui/` and `module-implementation/logic/` respectively. Each MUST record `kmp_target_project_path`, `target_edit_summary`, and `changed_files[]` listing every target KMP path created or modified in that invocation. Logic mode MUST include `analytics_coverage[]` when legacy scope contains 埋点. Legacy Android paths are evidence only — implementation edits occur under `kmp_target_project_path`.
 
 ### `alignment_report.json`
 
-Human/agent-readable synthesis of align mode; includes `entry_point_alignment_results` summary; routes reruns to `migration_module_id` or `global-migration-phase integrate` when entry points or cross-module glue fail.
+Human/agent-readable synthesis of align mode; includes `entry_point_alignment_results` summary and `analytics_alignment_results` / `global_alignment_results.analytics` summary; routes reruns to `migration_module_id` or `global-migration-phase integrate` when entry points, analytics SDK, or cross-module glue fail.
+
+### `migration_report.json` — analytics handoff (for kmp-test-validator)
+
+When migration scope includes analytics, `migration_report.json` MUST aggregate:
+
+```json
+{
+  "analytics_restoration_summary": {
+    "total_legacy_events": 0,
+    "restored_events": 0,
+    "partial_events": 0,
+    "missing_events": 0,
+    "global_analytics_verdict": "passed | passed_with_assumptions | failed | not_applicable",
+    "per_module": [
+      {
+        "migration_module_id": "",
+        "verification_ref": "",
+        "status": "passed | failed | skipped",
+        "event_count": 0
+      }
+    ],
+    "event_catalog": [
+      {
+        "event_id": "",
+        "event_name": "",
+        "trigger": "",
+        "legacy_source_path": "",
+        "target_path": "",
+        "migration_module_id": "",
+        "status": "restored | partial | missing"
+      }
+    ]
+  },
+  "validation_inputs": {
+    "analytics_reporting_required": true,
+    "analytics_event_catalog_path": "report/migration_report.json#analytics_restoration_summary.event_catalog"
+  }
+}
+```
+
+`validation_inputs.analytics_reporting_required` is `true` when `total_legacy_events > 0`; `kmp-test-validator` MUST run analytics reporting verification during restoreability / business-testing.
 
 ---
 

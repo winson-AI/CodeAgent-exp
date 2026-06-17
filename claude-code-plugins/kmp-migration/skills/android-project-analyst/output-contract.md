@@ -33,6 +33,8 @@ output_root = <output_dir or ~/.a2c_agents/understand>/android-project-analyst
 │       │   │   ├── project_architecture.json
 │       │   │   └── project_architecture.md
 │       │   ├── data-contract-flow/
+│       │   │   ├── data_flow_tracker_report.json
+│       │   │   ├── data_flow_tracker_report.md
 │       │   │   ├── data_contract_flow.json
 │       │   │   └── data_contract_flow.md
 │       │   └── behavior-logic/
@@ -162,6 +164,8 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | `modules/<module_id>/node-results/presentation-resource/presentation_resource.json` | `presentation-resource` | `module_id`, `screen_inventory`, `ui_layout_view_trees[]` (each with non-empty `tree_text` in `tree_text_format: required-markdown-v1` when `representation_promotion_ready: true`), `navigation_edges`, `cross_module_references[]`, `resource_usage_map`, `representation_promotion`, `evidence_paths` | UI understanding, resource migration, navigation handoff, representation promotion |
 | `modules/<module_id>/node-results/project-architecture/project_architecture.json` | `project-architecture` | `module_id`, `module_topology`, `detected_patterns`, `layer_roles`, `cross_module_dependencies[]`, `migration_constraints`, `evidence_paths` | Architecture migration, dependency/platform gate |
 | `modules/<module_id>/node-results/data-contract-flow/data_contract_flow.json` | `data-contract-flow` | `module_id`, API/model contracts, `end_to_end_flows`, `cross_module_data_links[]`, `evidence_paths` | Data/API migration, repository mapping |
+| `modules/<module_id>/node-results/data-contract-flow/data_flow_tracker_report.json` | `data-contract-flow` | `module_id`, `handler_steps[]`, `coverage_summary`, `follow_ups[]`, `blocking_gaps`, `linked_artifacts` | Investigation coverage gate, workspace ledger, rerun routing |
+| `modules/<module_id>/node-results/data-contract-flow/data_flow_tracker_report.md` | `data-contract-flow` | Step coverage table, coverage summary, open follow-ups, blockers | Agent-readable investigation handoff |
 | `modules/<module_id>/node-results/behavior-logic/behavior_logic.json` | `behavior-logic` | `module_id`, `screen_logic`, `control_flows`, `cross_module_interactions[]`, upstream alignment refs | Behavior/test planning, control-flow migration |
 | `modules/<module_id>/dimension_index.json` | Leader | `module_id`, `dimensions{}` with four entries, each with `node_id`, `output_dir`, `json_path`, `md_path`, `status` | **Per-module completeness gate** — handlers verify all four dimensions before consuming representation |
 | `modules/<module_id>/representation/module_representation.json` | Leader | `module_id`, `ui_representation_md_path`, `dimension_traceability[]`, `presentation_slice.ui_layout_view_trees[]` (verbatim `tree_text` from `presentation_resource.json`), synthesized slices per dimension, `intra_module_gaps`, `readiness` | **Module-level handoff** — migrator loads this for a scoped `module_id` |
@@ -277,14 +281,23 @@ Rules:
       "evidence_count": 0
     },
     "project-architecture": { },
-    "data-contract-flow": { },
+    "data-contract-flow": {
+      "node_id": "data-contract-flow",
+      "output_dir": "",
+      "json_path": "",
+      "md_path": "",
+      "tracker_json_path": "",
+      "tracker_md_path": "",
+      "status": "completed | blocked | missing",
+      "evidence_count": 0
+    },
     "behavior-logic": { }
   },
   "representation_ready": false
 }
 ```
 
-Each dimension entry MUST have resolvable `json_path` and `md_path` before `representation_ready` is true.
+Each dimension entry MUST have resolvable `json_path` and `md_path` before `representation_ready` is true. The `data-contract-flow` entry MUST also have resolvable `tracker_json_path` and `tracker_md_path`.
 
 ### Cross-module global records (migration assembly basis)
 
@@ -364,8 +377,9 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 | `modules/<module_id>/module_brief.json` |
 | `modules/<module_id>/dimension_index.json` (all four dimensions `status: completed`) |
 | all four dimension JSON+MD pairs under `node-results/<dimension>/` |
+| `modules/<module_id>/node-results/data-contract-flow/data_flow_tracker_report.json` and `.md` |
 
-**Fail closed when**: any dimension is `missing`, `blocked`, or paths in `dimension_index.json` do not resolve.
+**Fail closed when**: any dimension is `missing`, `blocked`, or paths in `dimension_index.json` do not resolve; `data-contract-flow` tracker report is missing, empty, or `handler_steps` do not cover all eleven investigation steps.
 
 ### Package `P3` — Module representation handoff
 
@@ -440,6 +454,7 @@ Every node MUST:
 - Use exact filenames from this contract (JSON snake_case basename, dimension folder kebab-case).
 - Include `module_id` in every dimension JSON artifact.
 - Populate cross-module pointer arrays (`cross_module_references`, `cross_module_dependencies`, `cross_module_data_links`, `cross_module_interactions`) with `target_module_id` and `source_paths` so the Leader can build Package `P4` without re-reading source.
+- `data-contract-flow` MUST write and maintain `data_flow_tracker_report.*` during investigation and list all four output files in `output_files`.
 
 ## Invalid Artifact Handling (downstream uniform rule)
 

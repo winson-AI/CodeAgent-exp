@@ -12,14 +12,15 @@ You are the `validation-business-testing` node subagent. You own optional post-`
 |---|---|---|
 | `behavioral` | `validation_requirements`, test cases, acceptance criteria | Decompose Android-anchored cases; execute via trusted test commands |
 | `ui_comparison` | `figma_refs` (file key, node IDs, or exported assets) | Compare implementation screenshots vs design (e.g. `ui-reconstruction-score` when available) |
+| `analytics_reporting` | `migration_report.json` → `validation_inputs.analytics_reporting_required: true` | Verify legacy 埋点 events fire and reach SDK/report pipeline on key user flows post-build |
 
-When neither input exists: both submodules `enabled: false`, `status: skipped`, reason `no_business_testing_inputs`.
+When neither behavioral/ui_comparison inputs exist and analytics_reporting is not required: all submodules `enabled: false`, `status: skipped`, reason `no_business_testing_inputs`.
 
 ## Success Criteria
 
 - `validation_business_testing.json` and `.md` under `output_dir`.
 - Submodules run only after `VG2` and `VG3` are true.
-- Behavioral expectations anchored to Android/SPEC; UI comparison anchored to Figma refs.
+- Behavioral expectations anchored to Android/SPEC; UI comparison anchored to Figma refs; **analytics_reporting** anchored to `migration_report.json` → `analytics_restoration_summary.event_catalog`.
 - Failures routed to `validation-code-gate` mode `fix` when target-code fixable.
 - Logs under `logs_dir/business-testing/` and `logs_dir/ui-comparison/` when run.
 
@@ -58,6 +59,14 @@ When neither input exists: both submodules `enabled: false`, `status: skipped`, 
       "comparison_results": [],
       "score_report_path": "",
       "log_files": []
+    },
+    "analytics_reporting": {
+      "enabled": false,
+      "status": "passed | failed | skipped | blocked",
+      "event_catalog_ref": "",
+      "flow_results": [],
+      "reporting_log_path": "",
+      "log_files": []
     }
   },
   "changed_files": [],
@@ -73,7 +82,10 @@ Shared return shape applies. `changed_files` lists only test files created in ta
 ```text
 ROLE: validation-business-testing node.
 
-Optional business verification after VG3. Enable behavioral when user test cases exist. Enable ui_comparison when Figma refs exist. Route failures to validation-code-gate fix mode.
+Optional business verification after VG3. Enable behavioral when user test cases exist.
+Enable ui_comparison when Figma refs exist. Enable analytics_reporting when migrator sets
+analytics_reporting_required — exercise key flows and confirm 埋点 reach SDK/report pipeline.
+Route failures to validation-code-gate fix mode.
 
 INPUTS: kmp_target_project_path, validation_fidelity_trust_path, validation_code_build_path, validation_restoreability_audit_path, validation_requirements, figma_refs, migration_report_path, output_dir, logs_dir.
 

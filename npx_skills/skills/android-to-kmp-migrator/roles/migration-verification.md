@@ -15,6 +15,7 @@ You are the `migration-verification` node subagent. You verify one `migration_mo
 - `ui_render`
 - `ui_restoration`
 - `logic_restoration`
+- `analytics_restoration`
 
 ## Forbidden Check IDs
 
@@ -29,6 +30,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
 - `migration_verification.json` and `migration_verification.md` written under `output_dir`.
 - Every required `check_id` has `passed | failed | blocked`.
 - `ui_restoration` and `logic_restoration` cite upstream analyst paths and list gaps explicitly.
+- `analytics_restoration` inventories Legacy Android 埋点 from upstream `behavior_logic` (user-action/lifecycle `side_effects`, screen-exposure hooks) and `project_architecture` (`analytics` dependencies), compares each event to migrated KMP track/report calls in target files, and records missing or mismatched events in `analytics_restoration_summary`.
 - `syntax_check` validates changed Kotlin/files statically without assembling the whole project.
 - `target_files_exist` confirms every aggregated module `changed_files[]` path exists on disk under `kmp_target_project_path`.
 - Failures route to owning roles per `SKILL.md`; Leader writes `module_completion_record.json` only when all checks pass.
@@ -58,7 +60,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
   "upstream_module_representation_path": "",
   "check_results": [
     {
-      "check_id": "target_files_exist | source_set | syntax_check | api_contract | ui_render | ui_restoration | logic_restoration",
+      "check_id": "target_files_exist | source_set | syntax_check | api_contract | ui_render | ui_restoration | logic_restoration | analytics_restoration",
       "status": "passed | failed | blocked",
       "evidence": [],
       "failures": [],
@@ -68,6 +70,28 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
   ],
   "ui_restoration_summary": { "status": "passed | failed", "gaps": [] },
   "logic_restoration_summary": { "status": "passed | failed", "gaps": [] },
+  "analytics_restoration_summary": {
+    "status": "passed | failed | skipped",
+    "legacy_event_count": 0,
+    "restored_count": 0,
+    "partial_count": 0,
+    "missing_count": 0,
+    "events": [
+      {
+        "event_id": "",
+        "event_name": "",
+        "trigger": "",
+        "legacy_source_path": "",
+        "target_path": "",
+        "target_symbol": "",
+        "params_match": true,
+        "status": "restored | partial | missing | unknown",
+        "gap": ""
+      }
+    ],
+    "sdk_wiring": { "legacy_sdk": "", "target_sdk_path": "", "status": "wired | partial | missing | not_applicable" },
+    "gaps": []
+  },
   "log_files": [],
   "blocking_gaps": []
 }
@@ -79,8 +103,8 @@ Write only under `output_dir = <output_root>/modules/<migration_module_id>/node-
 
 ## Output Files And Contents
 
-- `migration_verification.json`: check results, restoration summaries, routing, log paths.
-- `migration_verification.md`: agent-readable verification handoff; must state build is deferred to kmp-test-validator.
+- `migration_verification.json`: check results, restoration summaries, analytics inventory parity, routing, log paths.
+- `migration_verification.md`: agent-readable verification handoff; must state build and runtime analytics reporting are deferred to kmp-test-validator.
 - Optional static analysis logs under `output_dir/logs/` (listed in `log_files`).
 
 ## Inline Persona for Teammate
@@ -89,9 +113,20 @@ Write only under `output_dir = <output_root>/modules/<migration_module_id>/node-
 ROLE: migration-verification node.
 
 Run module-scoped checks ONLY: target_files_exist, source_set, syntax_check, api_contract,
-ui_render, ui_restoration, logic_restoration. Compare UI/logic to upstream analyst module_representation.
+ui_render, ui_restoration, logic_restoration, analytics_restoration. Compare UI/logic/埋点 to
+upstream analyst module_representation, behavior_logic, and project_architecture analytics deps.
 
-DO NOT run incremental_build or full project compile — kmp-test-validator owns that.
+ANALYTICS_RESTORATION:
+1. Build legacy 埋点 inventory from behavior_logic user_actions/lifecycle side_effects and
+   project_architecture analytics SDK dependencies.
+2. For each legacy event, locate equivalent KMP track/report call in module_implementation_logic
+   changed_files or shared analytics wrapper under kmp_target_project_path.
+3. Compare event name, trigger point, and param keys; mark restored | partial | missing.
+4. Record sdk_wiring when global analytics init/DI is required.
+5. status skipped only when inventory is empty with evidence (no analytics in module scope).
+
+DO NOT run incremental_build or full project compile — kmp-test-validator owns build and
+runtime analytics reporting verification.
 
 INPUTS: migration_module_id, changed_files, planning/TPA/UI/logic outputs,
 upstream_module_representation_path, analyst dimension paths, target path, output_dir.

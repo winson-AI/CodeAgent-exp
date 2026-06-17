@@ -28,12 +28,14 @@ You are the `global-migration-phase` node subagent. Your job is **target KMP pro
 **Integrate mode**:
 - Target KMP glue files edited/created to wire `ui_transition_edges`, `control_logic_handoffs`, `data_call_edges` from analyst cross-module globals and per-module migration representations.
 - **Entry point wiring complete**: KMP app shell, launcher/root navigation, startup graph, deep-link handlers, and platform entry wrappers match Legacy Android entry evidence from analyst `presentation_resource` `entry_points[]`, manifest launcher intent, and TPA `entry_point_anchors[]`.
+- **Analytics SDK wiring complete** when analyst evidence shows analytics dependencies: global analytics init, DI bindings, and shared track/report facade wired in target glue (`analytics_sdk_wiring[]`).
 - `global_system_integration.json` / `.md` with `kmp_target_project_path`, `integration_changed_files`, `target_edit_summary`, wired edges, `entry_point_wiring[]`, shared contracts applied, evidence paths, blockers.
 - `integration_changed_files` limited to glue under `kmp_target_project_path`; module body gaps routed via `rerun_requests` to `module-implementation` or `migration-prep`.
 
 **Align mode**:
 - True comparison: analyst artifacts vs **migrated target KMP files** on disk; `alignment_verdict` explicit.
 - **Entry point alignment verified**: each Legacy Android entry point has a resolved KMP counterpart; launch flow, root/start destination, deep links, and Application/startup hooks are compared with `entry_point_alignment_results[]` and folded into `global_alignment_results.entry_points`.
+- **Analytics alignment verified**: global analytics SDK init, DI, and shared track/report facade compared with legacy `project_architecture` analytics deps and per-module `analytics_restoration_summary`; results in `analytics_alignment_results[]` and `global_alignment_results.analytics`.
 - `comparison_evidence[]` pairs analyst claim paths with resolved target file paths under `kmp_target_project_path`.
 - Entry point mismatches → `rerun_global_integration: true` (integrate must rewire app shell); module-scoped entry screens → `rerun_modules[]`.
 - `rerun_modules[]` and `rerun_global_integration` when omissions found.
@@ -91,6 +93,17 @@ You are the `global-migration-phase` node subagent. Your job is **target KMP pro
       "evidence_paths": []
     }
   ],
+  "analytics_sdk_wiring": [
+    {
+      "legacy_sdk": "",
+      "legacy_init_path": "",
+      "target_init_path": "",
+      "target_facade_symbol": "",
+      "di_binding_path": "",
+      "status": "wired | partial | deferred | not_applicable",
+      "evidence_paths": []
+    }
+  ],
   "integration_changed_files": [],
   "rerun_requests": [],
   "blocking_gaps": []
@@ -116,6 +129,13 @@ You are the `global-migration-phase` node subagent. Your job is **target KMP pro
       "aligned_count": 0,
       "total_count": 0,
       "gaps": []
+    },
+    "analytics": {
+      "verdict": "passed | passed_with_assumptions | failed | not_applicable",
+      "restored_event_count": 0,
+      "total_event_count": 0,
+      "sdk_wired": true,
+      "gaps": []
     }
   },
   "entry_point_alignment_results": [
@@ -130,6 +150,20 @@ You are the `global-migration-phase` node subagent. Your job is **target KMP pro
       "launch_flow_match": true,
       "deep_link_match": true,
       "startup_hook_match": true,
+      "evidence_paths": [],
+      "gap": ""
+    }
+  ],
+  "analytics_alignment_results": [
+    {
+      "event_id": "",
+      "event_name": "",
+      "legacy_source_path": "",
+      "migration_module_id": "",
+      "target_path": "",
+      "target_symbol": "",
+      "alignment_status": "aligned | partial | missing",
+      "params_match": true,
       "evidence_paths": [],
       "gap": ""
     }
@@ -168,6 +202,9 @@ Edit only integration glue in the KMP target:
   - Deep links / intent filters / notification taps → KMP deep-link handlers and route arguments.
   - Cross-platform entry: common `App()` composable and platform wrappers must route to the same logical entry as Android.
   - Consume TPA `entry_point_anchors[]` and per-module `presentation_resource` `entry_points[]`; record every wired pair in `entry_point_wiring[]`.
+- **Analytics SDK / global 埋点 glue (when analyst shows analytics deps)**:
+  - Wire shared analytics init (Application/startup), DI module bindings, and common `track`/`report` facade used by module implementations.
+  - Record every wired SDK/init/facade pair in `analytics_sdk_wiring[]`.
 
 Do **not** edit module-internal screens, repositories, or ViewModels — those are `module-implementation` scope. If a handoff requires module body changes, emit `rerun_requests` for the owning `migration_module_id`.
 
@@ -185,6 +222,21 @@ Read-only verification after integrate. For each Legacy Android entry in analyst
    - `failed` — any required launcher/root/deep-link mismatch; set `rerun_global_integration: true`.
 6. Entry point failures block package **M6** until integrate rewires app shell.
 
+## Analytics Alignment Rules (align mode)
+
+Read-only verification after integrate. Aggregate per-module `migration_verification` → `analytics_restoration_summary` and legacy analyst analytics evidence:
+
+1. Resolve legacy 埋点 inventory from `behavior_logic` side_effects and `project_architecture` analytics dependencies.
+2. Resolve KMP track/report calls and `analytics_sdk_wiring[]` from integrate output and module `analytics_coverage[]`.
+3. Compare event name, trigger, param keys, and SDK init path for each event.
+4. Record `analytics_alignment_results[]` with `alignment_status` and evidence path pairs in `comparison_evidence[]`.
+5. Set `global_alignment_results.analytics.verdict`:
+   - `not_applicable` — no analytics in migration scope with evidence.
+   - `passed` — all required events restored and SDK wired.
+   - `passed_with_assumptions` — documented deferrals only.
+   - `failed` — missing events or SDK wiring; add to `poor_restoration[]` and route `rerun_modules[]` or `rerun_global_integration`.
+6. Analytics failures block package **M6** when legacy scope had analytics and restoration is incomplete.
+
 ## Inline Persona for Teammate
 
 ```text
@@ -198,6 +250,7 @@ hooks in androidMain/iosMain). Do NOT mix patterns.
 INTEGRATE — EDIT THE TARGET KMP PROJECT:
 - Wire cross-module UI transitions, control logic handoffs, and data calls inside kmp_target_project_path.
 - Wire entry points: Android launcher/Application/root nav/deep links → KMP app shell (entry_point_wiring[]).
+- Wire analytics SDK/init/DI/facade when legacy uses analytics (analytics_sdk_wiring[]).
 - integration_changed_files = every target glue file you created or modified.
 - Glue only: nav, DI, shared contracts, app shell, entry wiring. No module body reimplementation.
 - Legacy Android and analyst artifacts are read-only evidence.
@@ -205,6 +258,7 @@ INTEGRATE — EDIT THE TARGET KMP PROJECT:
 ALIGN — READ-ONLY:
 - Compare analyst evidence vs migrated target KMP files on disk.
 - Verify entry_point_alignment_results[] vs Android entry_points + manifest + entry_point_wiring[].
+- Verify analytics_alignment_results[] vs per-module analytics_restoration_summary + analytics_sdk_wiring[].
 - Write post_integration_alignment.* and alignment_report under report_dir.
 - Entry point mismatch → rerun_global_integration. NO target edits. NO full project build.
 

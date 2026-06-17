@@ -51,6 +51,7 @@
 | `ui` and `logic` combined | Reject invocation |
 | `integrate` and `align` combined | Reject invocation |
 | Verification restoration failed | Rerun `module-implementation` or `migration-prep`; no completion record |
+| Analytics restoration failed (`analytics_restoration` check or `global_alignment_results.analytics` failed) | Rerun `module-implementation` `logic` for missing 埋点; rerun `global-migration-phase integrate` for SDK wiring gaps |
 | Align omissions | Rerun `rerun_modules` or `global-migration-phase integrate` |
 | Entry point alignment failed | `rerun_global_integration` — rewire KMP app shell in integrate mode |
 | Build requested in migrator | Block; route to kmp-test-validator |
