@@ -25,7 +25,8 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
 ### Mode `restoreability`
 
 - `validation_restoreability_audit.json` and `.md` under `output_dir/restoreability/`.
-- Comparison uses analyst globals, migrator completion records, alignment artifacts, built target evidence, and **`migration_report.json` → `analytics_restoration_summary`** when `validation_inputs.analytics_reporting_required` is true.
+- Comparison uses analyst globals, migrator completion records, alignment artifacts, built target evidence, **`post_integration_alignment.json` → `entry_point_alignment_results[]`**, and **`migration_report.json` → `analytics_restoration_summary`** when `validation_inputs.analytics_reporting_required` is true.
+- **Entry point post-build static verification**: for each row in migrator `entry_point_alignment_results[]`, confirm built target still resolves the claimed KMP shell path/symbol; record `entry_point_verification_results[]` with `post_build_status`. Failed entry point static verification blocks `restoreability_verdict: passed`.
 - **Analytics reporting verification**: for each event in `event_catalog`, confirm KMP target wires track/report at the documented trigger and SDK init path is reachable post-build; record `analytics_reporting_results[]` with `report_path_reachable` and `flow_verified` status.
 - Missing modules/functions emit `migrator_supplement_request` — never route to code-gate `fix` mode deletes.
 
@@ -83,6 +84,30 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
   "missing_modules": [],
   "missing_functions": [],
   "poor_restoration": [],
+  "entry_point_verification_results": [
+    {
+      "legacy_entry_id": "",
+      "legacy_name": "",
+      "legacy_source_path": "",
+      "target_path": "",
+      "target_symbol": "",
+      "migrator_alignment_status": "",
+      "post_build_status": "verified | missing_on_disk | route_mismatch | blocked",
+      "launch_flow_match": true,
+      "start_destination_match": true,
+      "startup_hook_match": true,
+      "deep_link_match": true,
+      "status": "passed | failed | blocked",
+      "gap": ""
+    }
+  ],
+  "entry_point_verification_summary": {
+    "required": true,
+    "total_entries": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "verdict": "passed | failed | not_applicable"
+  },
   "analytics_reporting_results": [
     {
       "event_id": "",
@@ -128,12 +153,13 @@ Shared return shape applies.
 ROLE: validation-fidelity-gate node (mode: trust | restoreability).
 
 trust: verify V0 migration scenario, normalize brief, audit Android/SPEC vs KMP fidelity before build is trusted.
-restoreability: after VG2, re-verify modules/functions vs analyst+migrator evidence; when
-migration_report.validation_inputs.analytics_reporting_required, verify each 埋点 in event_catalog
+restoreability: after VG2 and entry_point_launch, re-verify modules/functions vs analyst+migrator evidence;
+re-verify post_integration_alignment entry_point_alignment_results[] on built target disk;
+when migration_report.validation_inputs.analytics_reporting_required, verify each 埋点 in event_catalog
 reaches the analytics SDK/report pipeline post-build (analytics_reporting_results[]); route gaps
 to migrator supplement.
 
-INPUTS: mode, kmp_target_project_path, upstream_migration_index_path, migration_report_path, spec_paths, validation_code_build_path (restoreability only), supplement_cycle_count, output_dir.
+INPUTS: mode, kmp_target_project_path, upstream_migration_index_path, migration_report_path, spec_paths, validation_code_build_path, validation_entry_point_launch_path (restoreability only), supplement_cycle_count, output_dir.
 
 OUTPUTS (per mode):
 - trust/validation_fidelity_trust.json + .md

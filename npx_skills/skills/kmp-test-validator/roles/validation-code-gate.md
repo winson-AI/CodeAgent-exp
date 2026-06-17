@@ -42,7 +42,7 @@ You are the `validation-code-gate` node subagent. You merge compile command reso
 - `knowledge_candidates[]` proposed for each fixed failure; persisted to `knowledge/entries/` only after subsequent `build` pass verifies the fix.
 - Every fix records `restoreability_impact`; forbidden delete/stub patterns rejected.
 - `changed_files[]` lists every target path modified with `path`, `edit_kind` (`create | update`), `failure_id`, `restoreability_impact`.
-- `required_reruns` includes `validation-code-gate` mode `build` and/or `validation-business-testing` when applicable.
+- `required_reruns` includes `validation-code-gate` mode `build`, `validation-business-testing` submodule `entry_point_launch`, and/or other business-testing submodules when applicable.
 
 ## Success Criteria — knowledge persist (after verified `build` pass)
 

@@ -20,7 +20,7 @@ You are the `validation-report` node subagent dispatched by the `kmp-test-valida
 **Forbidden** (prevent role overlap):
 - Do NOT run new tests, builds, or previews, and do NOT fix code.
 - Do NOT re-audit fidelity or re-decompose cases — synthesize the existing verified outputs.
-- Do NOT declare `passed` when fidelity has blocking gaps, `VG2`/`VG3` failed, a required gate failed, migrator supplement is outstanding, or a remediation rerun is missing.
+- Do NOT declare `passed` when fidelity has blocking gaps, `VG2`/`VG3` failed, `entry_point_launch` failed for migration `V0`, a required gate failed, migrator supplement is outstanding, or a remediation rerun is missing.
 
 **Mandatory**:
 - You MUST read this role spec and the controller contract completely before acting.
@@ -40,6 +40,7 @@ You are the `validation-report` node subagent dispatched by the `kmp-test-valida
   "preview_or_renderability_summary": {},
   "restoreability_summary": { "verdict": "passed | failed | blocked", "supplement_cycles": 0, "gaps_remaining": [] },
   "business_testing_summary": {
+    "entry_point_launch": { "enabled": true, "status": "passed | failed | skipped | blocked" },
     "behavioral": { "enabled": false, "status": "passed | failed | skipped | blocked" },
     "ui_comparison": { "enabled": false, "status": "passed | failed | skipped | blocked" }
   },
@@ -90,6 +91,7 @@ INPUTS YOU WILL RECEIVE:
 - validation_restoreability_audit_path: {VALIDATION_RESTOREABILITY_AUDIT_PATH}
 - validation_code_build_paths: {VALIDATION_CODE_BUILD_PATHS}
 - validation_code_fix_paths (when fixes applied): {VALIDATION_CODE_FIX_PATHS}
+- validation_entry_point_launch_path: {VALIDATION_ENTRY_POINT_LAUNCH_PATH}
 - validation_business_testing_paths (when available): {VALIDATION_BUSINESS_TESTING_PATHS}
 - migration_report_path: {MIGRATION_REPORT_PATH}
 - changed_files: {CHANGED_FILES}
@@ -101,7 +103,7 @@ HANDLER (how you process):
 3. Report code-gate build status with compile_resolution_scenario, commands, and log paths.
 4. Report fidelity-gate restoreability verdict, supplement cycles, and remaining gaps.
 5. Report code-gate fix cycles and verify each fix was followed by required reruns.
-6. Report optional business-testing submodule outcomes (behavioral, ui_comparison).
+6. Report entry point launch verification (launcher, startup hooks, start destination, first screen) and optional business-testing submodule outcomes (behavioral, ui_comparison, analytics_reporting).
 7. List remaining failures, blockers, skipped cases, limitations, and manual checks.
 8. Decide final status (passed | failed | blocked) using VG0–VG5 handoff gates.
 

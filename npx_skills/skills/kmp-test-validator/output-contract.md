@@ -13,7 +13,8 @@ Validation starts only when migrator handoff package **`V0`** is ready. Required
 | `migration_output_root/run_manifest.json` | KMP target, analyst SPEC paths, `handoff_gates.V0` |
 | `migration_output_root/report/migration_report.json` | Scope, changed files, module completion |
 | `migration_output_root/global/global_migration_representation.json` | Restoreability baseline |
-| `migration_output_root/global/node-results/global-migration-phase/align/post_integration_alignment.json` | Alignment baseline |
+| `migration_output_root/global/node-results/global-migration-phase/align/post_integration_alignment.json` | Alignment baseline; `entry_point_alignment_results[]` |
+| `migration_output_root/global/node-results/global-migration-phase/integrate/global_system_integration.json` | Entry point wiring baseline; `entry_point_wiring[]` |
 | `migration_output_root/module-index/modules_migration_index.json` | Module lookup |
 | Analyst `SPEC/prd.md`, `design.md`, `plan.md`, `verification.md` | Ground truth |
 
@@ -59,13 +60,17 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 │               └── bug_fix_experience.md
 ├── business-testing/
 │   ├── validation_business_testing.json
-│   └── validation_business_testing.md
+│   ├── validation_business_testing.md
+│   └── entry-point-launch/
+│       ├── validation_entry_point_launch.json
+│       └── validation_entry_point_launch.md
 ├── report/
 │   ├── kmp_validation_report.json
 │   └── kmp_validation_report.md
 └── logs/
     ├── code-gate/
     ├── business-testing/
+    ├── entry-point-launch/
     └── ui-comparison/
 ```
 
@@ -82,6 +87,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | `code_gate_knowledge_dir` | `<code_gate_dir>/knowledge` |
 | `knowledge_entries_dir` | `<code_gate_knowledge_dir>/entries` |
 | `business_testing_dir` | `<output_root>/business-testing` |
+| `entry_point_launch_dir` | `<business_testing_dir>/entry-point-launch` |
 
 ### Role Ownership (mandatory)
 
@@ -91,7 +97,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | Compile/build/preview execution | `validation-code-gate` mode `build` |
 | Compile/test fixes | `validation-code-gate` mode `fix` (only production-code editor) |
 | Post-build restoreability | `validation-fidelity-gate` mode `restoreability` |
-| Optional business tests / Figma UI | `validation-business-testing` |
+| Optional business tests / Figma UI / entry launch | `validation-business-testing` |
 | Missing modules → migrator supplement | Leader loop (not code-gate fix) |
 
 ---
@@ -102,8 +108,9 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 2. `validation-workspace-state` — initialize; refresh after each group.
 3. `validation-fidelity-gate` mode `trust` → `VG1`.
 4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` (lookup `compile_error_knowledge.*` and optional `error_knowledge_path`) → rerun `build` (max 3 fix cycles); on `VG2` pass after a fix cycle, persist verified bug-fix experiences under `code-gate/knowledge/entries/`.
+4.5. `validation-business-testing` submodule `entry_point_launch` after `VG2` — mandatory for migration `V0`; on failure → code-gate mode `fix` → rerun `build` and entry point launch.
 5. `validation-fidelity-gate` mode `restoreability` → `VG3`; on `needs_migrator_supplement` → migrator supplement (max 3) → refresh upstream → rerun affected stages.
-6. `validation-business-testing` when user inputs exist → `VG4` or explicit skip.
+6. `validation-business-testing` optional submodules when user inputs exist → `VG4` or explicit skip.
 7. On business failures → code-gate mode `fix` → rerun `build` and/or business-testing.
 8. `validation-report` → `VG5`.
 
@@ -117,10 +124,10 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | `VG1` | `fidelity-gate/trust/validation_fidelity_trust.json` — no unresolved `test_trust_blockers` |
 | `VG2` | `code-gate/build/validation_code_build.json` — `build.status: passed`; preview passed or justified `skipped` |
 | `VG3` | `fidelity-gate/restoreability/validation_restoreability_audit.json` — `restoreability_verdict: passed`; when `analytics_reporting_required`, `analytics_reporting_summary.verdict: passed | not_applicable` |
-| `VG4` | `business-testing/validation_business_testing.json` — submodule outcomes or explicit `skipped`; `analytics_reporting` MUST run when migrator requires it |
+| `VG4` | `business-testing/validation_business_testing.json` — `submodules.entry_point_launch.status: passed` for migration `V0`; optional submodule outcomes or explicit `skipped`; `analytics_reporting` MUST run when migrator requires it |
 | `VG5` | `report/kmp_validation_report.json` issued |
 
-**Fail closed**: `passed` requires `VG2` + `VG3`; enabled `VG4` submodules must have no unresolved failures.
+**Fail closed**: `passed` requires `VG2` + `VG3` + `entry_point_launch` passed for migration `V0`; enabled optional `VG4` submodules must have no unresolved failures.
 
 ---
 
@@ -216,13 +223,71 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 
 ### `validation_restoreability_audit.json` (mode `restoreability`)
 
-`migrator_supplement_request` when new migration work required. When `migration_report.validation_inputs.analytics_reporting_required`, MUST include `analytics_reporting_results[]` and `analytics_reporting_summary` — failed analytics reporting blocks `restoreability_verdict: passed`. Controller invokes `android-to-kmp-migrator` — not code-gate `fix`.
+`migrator_supplement_request` when new migration work required. Post-build **entry point static re-verification**: for each row in migrator `post_integration_alignment.json` → `entry_point_alignment_results[]`, confirm built target evidence still resolves the KMP shell path/symbol and `global_alignment_results.entry_points.verdict` remains `passed | passed_with_assumptions`; record `entry_point_verification_results[]` with `post_build_status`. Failed entry point static verification blocks `restoreability_verdict: passed`. When `migration_report.validation_inputs.analytics_reporting_required`, MUST include `analytics_reporting_results[]` and `analytics_reporting_summary` — failed analytics reporting blocks `restoreability_verdict: passed`. Controller invokes `android-to-kmp-migrator` — not code-gate `fix`.
+
+### `validation_entry_point_launch.json` (submodule `entry_point_launch`)
+
+Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Application/root-nav/deep-link evidence to KMP post-build launch behavior.
+
+```json
+{
+  "status": "passed | failed | blocked",
+  "node": "validation-business-testing",
+  "submodule": "entry_point_launch",
+  "legacy_android_project_path": "",
+  "kmp_target_project_path": "",
+  "alignment_baseline_path": "",
+  "entry_point_wiring_path": "",
+  "launch_environment": {
+    "available": true,
+    "method": "adb | gradle_install | jetbrains_run | static_only",
+    "device_or_emulator": "",
+    "reason_if_unavailable": ""
+  },
+  "entry_point_launch_results": [
+    {
+      "legacy_entry_id": "",
+      "legacy_name": "",
+      "legacy_type": "Activity | Application | NavGraph | DeepLink | Composable",
+      "legacy_source_path": "",
+      "target_path": "",
+      "target_symbol": "",
+      "launch_flow_match": true,
+      "start_destination_match": true,
+      "startup_hook_match": true,
+      "deep_link_match": true,
+      "first_screen_match": true,
+      "status": "passed | failed | blocked",
+      "evidence_paths": [],
+      "launch_log_ref": "",
+      "gap": ""
+    }
+  ],
+  "entry_point_launch_summary": {
+    "total_entries": 0,
+    "passed_count": 0,
+    "failed_count": 0,
+    "verdict": "passed | failed | blocked"
+  },
+  "rerun_requests": [],
+  "blocking_gaps": []
+}
+```
+
+**Launch verification rules**:
+
+1. Resolve each Legacy Android entry from manifest `MAIN`/`LAUNCHER`, analyst `presentation_resource` `entry_points[]`, and migrator `entry_point_alignment_results[]`.
+2. Install/launch KMP Android shell using trusted commands (`user_specified` → `gradle :androidApp:installDebug` / project-equivalent → jetbrains run when available).
+3. Compare launch order, start destination/route, Application/startup hooks, deep-link handlers, and first visible screen against Android evidence.
+4. Mismatch → `failed`; route shell/glue fixable issues to code-gate `fix`; missing migration wiring → `needs_migrator_supplement` via restoreability, not delete/stub fixes.
+5. When launch environment unavailable: `blocked` unless post-build static evidence plus migrator `global_alignment_results.entry_points.verdict: passed` is re-verified on disk — never auto-pass without launch or documented static fallback.
 
 ### `validation_business_testing.json`
 
 ```json
 {
   "submodules": {
+    "entry_point_launch": { "enabled": true, "status": "passed | failed | skipped | blocked" },
     "behavioral": { "enabled": false, "status": "passed | failed | skipped | blocked" },
     "ui_comparison": { "enabled": false, "status": "passed | failed | skipped | blocked" },
     "analytics_reporting": { "enabled": false, "status": "passed | failed | skipped | blocked" }
@@ -230,14 +295,14 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 }
 ```
 
-`analytics_reporting` is **enabled** when migrator `validation_inputs.analytics_reporting_required` is true — not optional skip when legacy scope had 埋点.
+`entry_point_launch` is **enabled** for every migration `V0` handoff — mandatory, not optional skip. `analytics_reporting` is **enabled** when migrator `validation_inputs.analytics_reporting_required` is true — not optional skip when legacy scope had 埋点.
 
 ---
 
 ## Leader Obligations
 
 1. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
-2. Run fidelity-gate `trust` before code-gate `build`; `restoreability` only after `VG2`.
+2. Run fidelity-gate `trust` before code-gate `build`; `entry_point_launch` after `VG2`; `restoreability` only after `entry_point_launch` completes (pass or documented `blocked`).
 3. Route compile failures to code-gate `fix`; route missing modules to migrator supplement.
 4. Initialize `code-gate/knowledge/compile_error_knowledge.json` when missing; persist verified bug-fix experiences after `VG2` pass.
 5. Enable business-testing submodules only with user prerequisites.
@@ -248,6 +313,7 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 | Condition | Action |
 |---|---|
 | Unknown or invalid role ID in return payload | Reject; re-dispatch with role + mode from `SKILL.md` |
-| `restoreability` before `VG2` | `blocked` |
+| `restoreability` before `VG2` or before `entry_point_launch` completes | `blocked` |
 | Fix mode delete/stub violation | `failed`; rerun fix with constraint recorded |
-| Business submodule without user input | `skipped`, not pass-by-omission |
+| Business optional submodule without user input | `skipped`, not pass-by-omission |
+| `entry_point_launch` skipped for migration `V0` | `failed` |

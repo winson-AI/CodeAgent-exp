@@ -59,7 +59,7 @@ optional_inputs:
       - validation-code-gate
       - validation-business-testing
     mode: build
-    purpose: User-specified compile/build/preview/test commands (scenario user_specified).
+    purpose: User-specified compile/build/preview/install/launch commands (scenario user_specified).
   - name: validation_requirements
     required: false
     used_by:
@@ -115,7 +115,9 @@ degraded_modes:
   - trigger: error_knowledge_path missing
     effect: code-gate fix uses local knowledge + model_inference only
   - trigger: no validation_requirements and no figma_refs
-    effect: VG4 skipped — not auto-pass
+    effect: optional VG4 submodules skipped — entry_point_launch still mandatory for V0
+  - trigger: adb/emulator/launch tooling unavailable
+    effect: entry_point_launch blocked unless post-build static entry evidence verified on disk
   - trigger: rg missing
     effect: Grep/Read substitute; record in preflight
   - trigger: jetbrains MCP missing

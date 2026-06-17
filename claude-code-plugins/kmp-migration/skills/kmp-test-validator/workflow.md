@@ -11,11 +11,15 @@ graph TD
   FG1 -->|VG1| CG1[validation-code-gate<br/>mode: build]
   CG1 -->|compile failed| CG2[validation-code-gate<br/>mode: fix]
   CG2 --> CG1
-  CG1 -->|VG2| FG2[validation-fidelity-gate<br/>mode: restoreability]
+  CG1 -->|VG2| EPL[validation-business-testing<br/>entry_point_launch]
+  EPL -->|failures| CG2
+  CG2 --> EPL
+  EPL --> FG2[validation-fidelity-gate<br/>mode: restoreability]
   FG2 -->|needs supplement| MIG[android-to-kmp-migrator<br/>max 3]
   MIG --> FG1
   MIG --> CG1
-  FG2 -->|VG3| BT[validation-business-testing<br/>optional]
+  MIG --> EPL
+  FG2 -->|VG3| BT[validation-business-testing<br/>optional submodules]
   BT -->|failures| CG2
   CG2 --> BT
   BT --> VR[validation-report]
@@ -48,6 +52,16 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - **On `VG2` pass after fix**: persist verified `knowledge_candidates` to `code-gate/knowledge/entries/<entry_id>/bug_fix_experience.*` and update the knowledge index
 - **Gate**: `VG2`
 
+### Step 3.5 — Entry Point Launch Verification (mandatory)
+
+- **Executor**: `validation-business-testing` submodule `entry_point_launch`
+- **Prerequisite**: `VG2`
+- **Anchors**: Legacy Android manifest `MAIN`/`LAUNCHER` intent, analyst per-module `presentation_resource` `entry_points[]`, migrator `post_integration_alignment.json` → `entry_point_alignment_results[]`, `global_system_integration.json` → `entry_point_wiring[]`, TPA `entry_point_anchors[]`
+- **Action**: Install/launch KMP Android shell; verify launcher Activity / root composable, `Application`/startup hooks, NavHost start destination, and deep-link entry handlers match the Legacy Android entry flow order and first-screen routing
+- **Output**: `business-testing/entry-point-launch/validation_entry_point_launch.*`, logs under `logs/entry-point-launch/`; summary folded into `validation_business_testing.json` → `submodules.entry_point_launch`
+- **On failure**: dispatch code-gate mode `fix` → rerun `build` → rerun entry point launch (counts toward fix cycles)
+- **Gate**: `entry_point_launch` MUST `passed` for migration `V0` handoff; `blocked` only when launch environment unavailable and static post-build entry evidence cannot be verified
+
 ### Step 4 — Fidelity Gate `restoreability`
 
 - **Executor**: `validation-fidelity-gate` mode `restoreability`
@@ -59,8 +73,8 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 ### Step 5 — Business Testing (optional)
 
 - **Executor**: `validation-business-testing`
-- **Prerequisite**: `VG3`
-- **Submodules**: `behavioral` (user test cases), `ui_comparison` (Figma refs), `analytics_reporting` (migrator `analytics_reporting_required` — verify 埋点 reporting on key flows)
+- **Prerequisite**: `VG3`; `entry_point_launch` already completed in Step 3.5
+- **Submodules**: `entry_point_launch` (mandatory at Step 3.5), `behavioral` (user test cases), `ui_comparison` (Figma refs), `analytics_reporting` (migrator `analytics_reporting_required` — verify 埋点 reporting on key flows)
 - **Output**: `business-testing/validation_business_testing.*`
 - **Gate**: `VG4` or explicit skip
 
@@ -73,7 +87,7 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 
 | Loop | Max | Trigger |
 |---|---|---|
-| Code fix | 3 | `validation-code-gate` build failed or business-testing failures |
+| Code fix | 3 | `validation-code-gate` build failed, `entry_point_launch` failure, or other business-testing failures |
 | Migrator supplement | 3 | fidelity-gate `restoreability` → `migrator_supplement_request.required` |
 
 ## Acceptance Criteria
@@ -82,5 +96,5 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - Fidelity-gate `trust` before code-gate `build`; `restoreability` after `VG2`.
 - Only code-gate mode `fix` edits production code.
 - Compile errors with verified solutions are stored as bug-fix experiences; same fingerprints reuse prior entries before `model_inference`.
-- Business testing skipped (not passed) when no user inputs.
+- `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules skipped (not passed) when no user inputs.
 - Final verdict evidence-backed from verified artifacts.
