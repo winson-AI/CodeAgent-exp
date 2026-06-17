@@ -35,7 +35,7 @@ Verify migrator `V0`; write `upstream_migration_index.json`; lock `output_root` 
 
 ### Step 1 — Workspace State
 
-Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrator_supplement_cycles`.
+Initialize ledger with `handoff_gates` VG0–VG5, empty **`validation_todo_list[]`**, and **`pipeline_steps[]`**; track `fix_cycles` and `migrator_supplement_cycles`. Refresh after each node group and sync todo/step status from artifacts.
 
 ### Step 2 — Fidelity Gate `trust`
 
@@ -98,3 +98,4 @@ Initialize ledger with `handoff_gates` VG0–VG5; track `fix_cycles` and `migrat
 - Compile errors with verified solutions are stored as bug-fix experiences; same fingerprints reuse prior entries before `model_inference`.
 - `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules skipped (not passed) when no user inputs.
 - Final verdict evidence-backed from verified artifacts.
+- `validation_todo_list` and `pipeline_steps` synced in workspace ledger before `VG5`.

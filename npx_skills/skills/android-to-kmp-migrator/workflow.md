@@ -43,17 +43,20 @@ graph TD
     VER --> MCR[module_completion_record]
     MCR --> READY[completion-report readiness]
     READY --> MODREP[module_migration_representation]
+    MODREP --> WSR[Refresh workspace-state sync todos + steps]
   end
 
   LOOP --> MOD
-  MOD --> M4{Package M4?}
+  MOD --> WSR
+  WSR --> M4{Package M4?}
   M4 -- No --> LOOP
   M4 -- Yes --> GMP1[global-migration-phase mode integrate]
   GMP1 --> GMP2[global-migration-phase mode align]
   GMP2 -->|needs_rerun| LOOP
   GMP2 -->|passed| GLOB[global_migration_representation]
   GLOB --> REPORT[completion-report report]
-  REPORT --> KV[kmp-test-validator V0]
+  REPORT --> WSF[Refresh workspace-state final sync]
+  WSF --> KV[kmp-test-validator V0]
 ```
 
 ## Step 0 — Pre-flight
@@ -82,7 +85,9 @@ graph TD
 
 ## Step 3 — Workspace state
 
-- Init ledger; track handoff gates **M0**–**V0**.
+- Init ledger with `pipeline_steps[]` (all schedule rows `not_started`) and empty `migration_todo_list[]`; track handoff gates **M0**–**V0**
+- **Refresh after**: module inventory, each module node group (sync todos + steps), each module representation, global integrate/align, global report
+- Each refresh MUST update `migration_todo_list[].status` and `pipeline_steps[].status` from verified artifacts — do not advance the controller on stale ledger
 
 ## Step 4 — Target project assistant (global)
 

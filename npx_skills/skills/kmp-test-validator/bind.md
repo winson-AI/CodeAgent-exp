@@ -23,6 +23,7 @@
 - **Compile error knowledge loop**: fix mode looks up `code-gate/knowledge/compile_error_knowledge.json` first, then optional `error_knowledge_path`, then `model_inference`; verified fixes persist under `knowledge/entries/` after `VG2` pass.
 - **Restoreability-preserving fixes**: no delete/stub of migrated behavior; missing modules → migrator supplement.
 - **Mandatory entry point launch**: `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules require user inputs; skip is not pass-by-omission.
+- **State monitor discipline**: `validation-workspace-state` MUST refresh `validation_todo_list[]` and `pipeline_steps[]` after every validator node group; Leader reads `validation_status.pipeline_summary.current_step_id` before next dispatch.
 - **Report-only verdict**: only `validation-report` issues `passed | failed | blocked`.
 
 ## Failure Handling

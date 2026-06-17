@@ -104,9 +104,9 @@ No node may choose its own output path. `presentation-resource` may write downlo
 - **Executor**: `analysis-workspace-state`
 - **Input**: output root, run manifest, current controller step, known module/node/artifact outputs, source change/timestamp evidence, rerun reports, blockers
 - **Action**: initialize and refresh the analysis ledger. Track module status, node output inventory, artifact inventory, stale upstream inputs, rerun history, blockers, and next safe controller actions.
-- **Output**: `analysis_workspace_state.json`, `analysis_workspace_state.md`. JSON is the machine ledger for module status, node output files, artifact inventory, stale upstream inputs, rerun history, blockers, and next actions. Markdown mirrors the ledger as an agent handoff with stale/rerun/blocker tables.
+- **Output**: `analysis_workspace_state.json`, `analysis_workspace_state.md`. JSON includes `analysis_todo_list[]`, `pipeline_steps[]`, `analysis_status`, module/node inventory, stale inputs, reruns, blockers, `handoff_gates`, next actions. Markdown mirrors todo list and pipeline progress tables.
 - **Serial / Parallel**: serial; refreshed after module inventory, Stage A, Stage B, module representation, global representation, and SPEC.
-- **Quality gate**: downstream stages do not consume artifacts marked stale; rerun the responsible module/node or mark the affected module `blocked`.
+- **Quality gate**: downstream stages do not consume artifacts marked stale; todo/step status MUST be synced before next dispatch.
 
 ### Step 3 — Module inventory, modules index, and folder materialization
 
@@ -207,7 +207,7 @@ No node may choose its own output path. `presentation-resource` may write downlo
 Before emitting the completion report, the Leader MUST:
 
 1. Evaluate handoff packages `P0`–`P6` per [output-contract.md](output-contract.md).
-2. Write `handoff_gates` into `analysis_workspace_state.json` (boolean `ready` + `missing_paths[]` per package).
+2. Write `handoff_gates` into `analysis_workspace_state.json` (boolean `ready` + `missing_paths[]` per package); ensure `analysis_todo_list` and `pipeline_steps` reflect final run status.
 3. Add `## Handoff Gates` to `SPEC/verification.md` mirroring the same status.
 4. Set `run_manifest.json` → `handoff_package` to the highest ready package id and list every artifact path in that package.
 5. Set `readiness` in `verification.md` to `blocked` when the intended downstream package is not ready.
@@ -218,6 +218,7 @@ Downstream handlers read package gates only from these files — not from contro
 
 - All dispatched nodes returned outputs matching their role `## Output Schema` (no malformed returns); any `[ROLE MISSING]` is recorded per [bind.md](bind.md).
 - `handoff_gates` in workspace ledger and `SPEC/verification.md` accurately reflect [output-contract.md](output-contract.md) package readiness.
+- `analysis_todo_list` has no required items stuck `pending`/`blocked` when claiming target handoff package; `pipeline_steps` synced through final step.
 - All required node artifacts exist and are non-empty; latest `analysis-workspace-state` has no stale required inputs; all required SPEC artifacts for the selected mode exist and are non-empty.
 - **Path check**: every artifact path is under `output_root`; every node artifact is under `<output_root>/modules/<module_id>/node-results/<node_id>/`; SPEC is under `<output_root>/SPEC`.
 - **Module-first check**: every scheduled module has a module brief, four dimension outputs, `dimension_index.json`, and module representation before cross-module global records are written.

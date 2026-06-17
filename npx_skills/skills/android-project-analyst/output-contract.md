@@ -89,7 +89,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | Step | Gate id | Required artifacts before next step |
 |---|---|---|
 | 0 | `G0` | `run_manifest.json` |
-| 1 | `G1` | `workspace-state/analysis_workspace_state.*` (initialized) |
+| 1 | `G1` | `workspace-state/analysis_workspace_state.*` (initialized `pipeline_steps[]`, empty `analysis_todo_list[]`) |
 | 2 | `G2` | `module-index/module_inventory.*`, `module-index/modules_index.json` |
 | 3 | `G3` | per `module_id`: `module_brief.json` |
 | 4 | `G4` | per `module_id`: all three Stage A dimension JSON+MD pairs |
@@ -115,7 +115,19 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `workspace-state/analysis_workspace_state.json` | `analysis-workspace-state` | `module_status`, `node_status`, `artifact_inventory`, `stale_upstream_inputs`, `rerun_history`, `blocking_gaps`, `next_actions`, `handoff_gates` | **All handlers** — refuse consumption when `stale_upstream_inputs` marks a required artifact stale or `handoff_gates.*.ready` is false |
+| `workspace-state/analysis_workspace_state.json` | `analysis-workspace-state` | `analysis_status`, `analysis_todo_list[]`, `pipeline_steps[]`, `module_status`, `node_status`, `artifact_inventory`, `stale_upstream_inputs`, `rerun_history`, `blocking_gaps`, `next_actions`, `handoff_gates` | **All handlers** — refuse consumption when stale or `handoff_gates.*.ready` is false |
+
+#### `analysis_workspace_state.json` (state monitor)
+
+| Key | Purpose |
+|---|---|
+| `analysis_todo_list[]` | Scope items still to analyze — seeded from `module_inventory` scopes, `module_brief`, `data_flow_tracker_report.handler_steps`, global/SPEC schedule |
+| `pipeline_steps[]` | Leader schedule `G0`–`G9` / gates `P0`–`P6` with synced step `status` |
+| `analysis_status.todo_summary` | Todo counts by status |
+| `analysis_status.pipeline_summary` | Step counts + `current_step_id` |
+| `handoff_gates` | `P0`–`P6` readiness |
+
+`analysis_workspace_state.md` MUST include **Analysis Todo List** and **Pipeline Progress** tables. Leader refreshes workspace-state before dispatching the next step.
 
 ### Module index layer
 
@@ -440,11 +452,12 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 
 Before claiming run completion, the Leader MUST:
 
-1. Write `handoff_gates` into `analysis_workspace_state.json` with boolean `ready` flags for `P0`–`P6` and lists of missing paths per false gate.
-2. Mirror the same `handoff_gates` summary in `SPEC/verification.md` under a `## Handoff Gates` section.
-3. Set `run_manifest.json` → `handoff_package` to the **highest package actually ready** (`P0`..`P6`) and list every artifact path in that package.
-4. Never set `readiness: ready` in `verification.md` when the target downstream package gate is false.
-5. Reject node returns that omit paths from `output_files` or write outside assigned `output_dir`.
+1. Refresh `analysis-workspace-state` after inventory, each module node group, module representation, global phase, and SPEC; keep `analysis_todo_list` and `pipeline_steps` synced before dispatching the next step.
+2. Write `handoff_gates` into `analysis_workspace_state.json` with boolean `ready` flags for `P0`–`P6` and lists of missing paths per false gate.
+3. Mirror the same `handoff_gates` summary in `SPEC/verification.md` under a `## Handoff Gates` section.
+4. Set `run_manifest.json` → `handoff_package` to the **highest package actually ready** (`P0`..`P6`) and list every artifact path in that package.
+5. Never set `readiness: ready` in `verification.md` when the target downstream package gate is false.
+6. Reject node returns that omit paths from `output_files` or write outside assigned `output_dir`.
 
 ## Node Obligations
 

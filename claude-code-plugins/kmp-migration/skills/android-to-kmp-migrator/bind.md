@@ -39,6 +39,7 @@
 - **Analyst P6 gate**: required before dispatch.
 - **Output contract**: [output-contract.md](output-contract.md) paths only.
 - **Handoff gates**: persist **M0**–**M6**, **V0** in workspace ledger.
+- **State monitor discipline**: `migration-workspace-state` MUST refresh `migration_todo_list[]` and `pipeline_steps[]` after every major group. Leader reads `migration_status.pipeline_summary.current_step_id` and pending todos before dispatch; do not skip refresh between node groups.
 
 ## Failure Handling
 

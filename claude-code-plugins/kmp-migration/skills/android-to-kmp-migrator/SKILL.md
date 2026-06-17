@@ -10,7 +10,7 @@ disable-model-invocation: false
 roles:
   - id: migration-workspace-state
     kind: ai_agent
-    purpose: Migration ledger — handoff gates M0–V0, plan-vs-code gaps, stale outputs, rerun hooks. No code edits.
+    purpose: Migration ledger — todo list, pipeline step monitor, handoff gates M0–V0, plan-vs-code gaps, stale outputs, rerun hooks.
     skills: [operating-instructions]
     tools: [git]
   - id: target-project-assistant
@@ -68,7 +68,7 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**; record `dependency_preflight` and `design_mode` in `run_manifest.json`.
 1. Verify analyst **P6**; `run_manifest.json`, `upstream_analyst_index.json`.
 2. Migration inventory + `modules_migration_index.json`.
-3. Workspace state init.
+3. Workspace state init — **`migration_todo_list[]`** + **`pipeline_steps[]`** monitor; refresh after each node group syncs todo/step status.
 4. TPA `global_baseline`.
 5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** (incl. analytics_expectations) → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** (incl. 埋点 restoration) → review/fix → verification (incl. analytics_restoration) → completion record → readiness → module representation.
 6. **Global phase `integrate`** (cross-module glue + **entry point wiring** + **analytics SDK wiring**) → **`align`** (incl. **entry point** and **analytics alignment** vs Android) + alignment report.

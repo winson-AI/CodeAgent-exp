@@ -105,7 +105,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 ## Write Order (Leader Schedule)
 
 1. Verify `V0`; write `run_manifest.json`, `upstream_migration_index.json`.
-2. `validation-workspace-state` — initialize; refresh after each group.
+2. `validation-workspace-state` — initialize `pipeline_steps[]` and `validation_todo_list[]`; refresh after each group and sync todo/step status.
 3. `validation-fidelity-gate` mode `trust` → `VG1`.
 4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` (lookup `compile_error_knowledge.*` and optional `error_knowledge_path`) → rerun `build` (max 3 fix cycles); on `VG2` pass after a fix cycle, persist verified bug-fix experiences under `code-gate/knowledge/entries/`.
 4.5. `validation-business-testing` submodule `entry_point_launch` after `VG2` — mandatory for migration `V0`; on failure → code-gate mode `fix` → rerun `build` and entry point launch.
@@ -132,6 +132,21 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 ---
 
 ## Key Artifact Schemas
+
+### `validation_workspace_state.json` (state monitor)
+
+Owner: `validation-workspace-state`. Path: `workspace-state/validation_workspace_state.json`. Refreshed after each validator node group.
+
+| Key | Purpose |
+|---|---|
+| `validation_todo_list[]` | Checks still to run — seeded from `migration_report`, SPEC, `validation_requirements`, `figma_refs`, mandatory `entry_point_launch`, optional business/analytics submodules |
+| `pipeline_steps[]` | Schedule `VG0`–`VG5` with synced step `status` (incl. fix/supplement loop rows) |
+| `validation_status.todo_summary` | Todo counts by status |
+| `validation_status.pipeline_summary` | Step counts + `current_step_id` |
+| `handoff_gates` | `VG0`–`VG5` readiness |
+| `fix_cycles`, `migrator_supplement_cycles` | Active remediation loop counters |
+
+`validation_workspace_state.md` MUST include **Validation Todo List** and **Pipeline Progress** tables.
 
 ### `validation_fidelity_trust.json` (mode `trust`)
 
@@ -307,6 +322,7 @@ Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Applic
 4. Initialize `code-gate/knowledge/compile_error_knowledge.json` when missing; persist verified bug-fix experiences after `VG2` pass.
 5. Enable business-testing submodules only with user prerequisites.
 6. Maintain `handoff_gates` in workspace ledger and final report.
+7. Refresh `validation-workspace-state` so `validation_todo_list` and `pipeline_steps` reflect status before issuing `VG5` verdict.
 
 ## Invalid Artifact Handling
 

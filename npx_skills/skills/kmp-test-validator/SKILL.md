@@ -10,7 +10,7 @@ disable-model-invocation: false
 roles:
   - id: validation-workspace-state
     kind: ai_agent
-    purpose: Validation ledger — node status, handoff gates VG0–VG5, supplement/remediation cycle counts, stale inputs, blockers. No audit, build, fix, or verdict.
+    purpose: Validation ledger — todo list, pipeline monitor, handoff gates VG0–VG5, supplement/fix cycles, stale inputs, blockers.
     skills: [operating-instructions]
     tools: [git]
   - id: validation-fidelity-gate
@@ -48,7 +48,7 @@ The team is a **serial pipeline with two controller loops**: code-gate fix remed
 ## Protocol Summary
 
 0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root.
-1. **Workspace state** — ledger + `handoff_gates`.
+1. **Workspace state** — ledger + `handoff_gates`; init **`validation_todo_list[]`** + **`pipeline_steps[]`**; refresh and sync after each node group.
 2. **Fidelity gate `trust`** — migration trigger + pre-build fidelity (`VG1`).
 3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); on failure → code gate `fix` (lookup bug-fix knowledge, then fix) → rerun `build` (max 3 cycles); persist verified compile-error experiences after `VG2` pass.
 3.5. **Entry point launch** — mandatory KMP startup entry verification vs Legacy Android (`entry_point_launch`); on failure → code gate `fix` → rerun `build` and entry point launch.
@@ -92,7 +92,7 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 | Owner | Artifacts | Required content |
 |---|---|---|
 | Leader | `run_manifest.json`, `upstream_migration_index.json` | V0 verification, dependency preflight |
-| `validation-workspace-state` | `validation_workspace_state.*` | `handoff_gates` VG0–VG5, cycle counts |
+| `validation-workspace-state` | `validation_workspace_state.*` | `handoff_gates` VG0–VG5, `validation_todo_list`, `pipeline_steps`, cycle counts |
 | `validation-fidelity-gate` | `trust/validation_fidelity_trust.*`, `restoreability/validation_restoreability_audit.*` | Pre-build trust or post-build restoreability per mode |
 | `validation-code-gate` | `build/validation_code_build.*`, `fix/<cycle>/validation_code_fix.*`, `knowledge/compile_error_knowledge.*`, `knowledge/entries/<entry_id>/bug_fix_experience.*`, code-gate logs | Compile scenario + build/preview (build mode); target KMP edits + knowledge lookup/candidates (fix mode); verified bug-fix experiences (after `VG2` pass) |
 | `validation-business-testing` | `validation_business_testing.*`, `entry-point-launch/validation_entry_point_launch.*`, logs | `entry_point_launch` mandatory for V0; optional submodule outcomes or explicit skip |

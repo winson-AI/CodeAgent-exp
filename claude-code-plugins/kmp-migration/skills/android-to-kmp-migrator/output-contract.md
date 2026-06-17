@@ -148,7 +148,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | Step | Gate | Required artifacts before next step |
 |---|---|---|
 | `MG0` | Run lock | `run_manifest.json` (incl. `design_mode`), `upstream-index/upstream_analyst_index.json` |
-| `MG1` | Workspace init | global `migration_workspace_state.*` |
+| `MG1` | Workspace init | global `migration_workspace_state.*` (initial `pipeline_steps[]`, empty `migration_todo_list[]`) |
 | `MG2` | Migration index | `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json` |
 | `MG3` | Target baseline | global `target-project-assistant/*` (`mode: global_baseline`) + `target_alignment_revision.*` |
 | `MG4` | Per-module anchors | per-module `target-project-assistant/target_module_anchors.json` |
@@ -286,6 +286,24 @@ The Leader MUST pass `design_mode.value` and `design_mode.architecture_reference
 
 Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_root`, `upstream_module_representation_path`, `target_anchor_paths`, `completion_status`.
 
+### `migration_workspace_state.json` (state monitor)
+
+Owner: `migration-workspace-state`. Refreshed after inventory, each module node group, module representation, global phase, and report. Path: `global/node-results/migration-workspace-state/migration_workspace_state.json` (global pass); optional per-module slice under `modules/<migration_module_id>/node-results/migration-workspace-state/`.
+
+| Key | Purpose |
+|---|---|
+| `migration_todo_list[]` | Items still to migrate — seeded from `migration_planning_gate` `source_to_target_map` / `implementation_tasks`, prep `analytics_expectations`, global glue; each item has synced `status` |
+| `pipeline_steps[]` | Leader schedule (`MG0`–`MG17` / gates `M0`–`V0`) with synced step `status`, `verified_artifacts`, `missing_artifacts` |
+| `migration_status.todo_summary` | Todo counts: pending / in_progress / completed / blocked / skipped |
+| `migration_status.pipeline_summary` | Step counts + `current_step_id` (first non-completed step) |
+| `handoff_gates` | `M0`–`M6`, `V0` readiness |
+| `validator_handoff` | Validator dispatch status after `V0` |
+| `module_progress[]` | Per-module `stage_status`, `finish_rate`, `next_action` |
+
+`migration_workspace_state.md` MUST include **Migration Todo List** and **Pipeline Progress** tables mirroring the JSON arrays.
+
+Downstream nodes MUST NOT consume artifacts the ledger marks stale. Leader refreshes workspace-state **before** dispatching the next pipeline step so todo and step status stay in sync.
+
 ### `target_alignment_revision.json` (Target-Project-Assistant)
 
 `target_project_layout`, `reusable_components[]`, `anchor_points[]` (legacy scope → target path), `entry_point_anchors[]` (Legacy Android `entry_points[]` + manifest launcher → KMP app-shell path/symbol), `revised_alignment[]`, `integration_constraints[]`, `consultation_log[]`.
@@ -399,14 +417,16 @@ When migration scope includes analytics, `migration_report.json` MUST aggregate:
 
 1. Verify analyst package `P6` before `MG0` completes; identify `design_mode` from user input (default `mvi`) and write it to `run_manifest.json` at `MG0`, then pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch.
 2. Dispatch `target-project-assistant` for all target-project questions; other roles MUST reference TPA artifacts instead of re-analyzing target ad hoc.
-3. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
-4. Write `module_completion_record.json` after each module passes `migration-verification`; include aggregated `target_changed_files[]` for the module.
-5. Run `global-migration-phase` `integrate` only after package `M4`; integrate MUST edit target glue when assembly requires it.
-6. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
-7. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
-8. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
-9. Aggregate all module and global integrate target paths into `migration_report.json` → `target_changed_files[]`.
-10. **MUST** invoke `kmp-test-validator` when `V0` is true (MG17). Do not end the migration workflow without validator dispatch or explicit validator blockers in `migration_report.json`.
+3. Refresh `migration-workspace-state` after inventory, each module node group, each module representation, global phase, and report; ensure `migration_todo_list` and `pipeline_steps` stay synced before dispatching the next step.
+4. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
+5. Write `module_completion_record.json` after each module passes `migration-verification`; include aggregated `target_changed_files[]` for the module.
+6. Run `global-migration-phase` `integrate` only after package `M4`; integrate MUST edit target glue when assembly requires it.
+7. Run `global-migration-phase` `align` only after integrate; **no code changes** in align mode.
+8. Dispatch only role IDs listed in [SKILL.md](SKILL.md).
+9. Set `handoff_gates` (`M0`–`M6`, `V0`) in workspace ledger and `migration_report.json`.
+10. Aggregate all module and global integrate target paths into `migration_report.json` → `target_changed_files[]`.
+11. Refresh workspace ledger with final todo/step sync before claiming **V0**.
+12. **MUST** invoke `kmp-test-validator` when `V0` is true (MG17). Do not end the migration workflow without validator dispatch or explicit validator blockers in `migration_report.json`.
 
 ## Invalid Artifact Handling
 
