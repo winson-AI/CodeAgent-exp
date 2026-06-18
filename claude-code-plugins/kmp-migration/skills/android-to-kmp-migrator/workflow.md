@@ -62,8 +62,8 @@ graph TD
 ## Step 0 — Pre-flight
 
 - **Executor**: Leader
-- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**; the **user input / migration request**
-- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer) and `design_mode` (architecture pattern decision)
+- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**; the **user input / migration request**; optional adapter `partial_migration`
+- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer), `design_mode` (architecture pattern decision), `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight`
 - **Gate**: missing CLI tools → degraded modes per dependencies.yaml; `android-project-analyst` **P6** not ready → **blocked** — invoke analyst first, do not dispatch migrator nodes
 
 ### Step 0a — Identify design mode (default MVI)
@@ -75,13 +75,22 @@ graph TD
 - Record `design_mode: { value: "mvi | mvvm", source: "user_input | default", signals: [], architecture_reference_path: "" }` in `run_manifest.json`.
 - Freeze `design_mode` for the run; pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch (planning-gate, prep, module-implementation, module-node-review-fix, global-migration-phase) and to TPA for target-pattern detection.
 
+### Step 0b — Resolve user task, partial scope, and mock-data preflight
+
+- Record the exact user request in `raw_user_task` and normalize actionable constraints into `user_task_constraints`.
+- If adapter/user input declares partial migration, resolve `partial_migration.migration_module_ids`, `allowed_source_roots`, and `validation_scope` from analyst P6 indexes and `focused_analysis`. If the requested scope cannot be resolved, block instead of broadening to full-project migration.
+- If no explicit partial migration request exists, set `partial_migration.enabled: false` and migrate the whole analyst assembly scope.
+- Allow mock data only when a dependency gap blocks local migration wiring and the user/task permits it. Record `mock_data_preflight.allowed`, reason, scope, allowed modules, expiry condition, and tracking ids. Mock data is temporary migration scaffolding, not production completion.
+
 ## Step 1 — Upstream + output root
 
-- Verify analyst package **P6**; write `upstream_analyst_index.json`.
+- Verify analyst package **P6**; write `upstream_analyst_index.json` including analyst `focused_analysis` snapshot when present.
+- For partial migration, P6 must either already be focused to the requested module/feature or contain enough module-index evidence to restrict migrator inventory without inspecting out-of-scope modules.
 
 ## Step 2 — Migration inventory
 
 - `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json`.
+- For partial migration, inventory only requested modules plus explicitly required integration seams. Out-of-scope modules are dependency pointers, not scheduled implementation work.
 
 ## Step 3 — Workspace state
 
@@ -98,12 +107,12 @@ graph TD
 | Step | Role | Notes |
 |---|---|---|
 | 5a | TPA `module_anchors` | Package **M2** per module |
-| 5b | `migration-planning-gate` | Planning + dep/platform in one pass |
-| 5c | `migration-prep` | Presentation + state/data + `analytics_expectations[]` |
+| 5b | `migration-planning-gate` | Planning + dep/platform in one pass; preserve user constraints, partial boundary, and `mock_data_plan` |
+| 5c | `migration-prep` | Presentation + state/data + `analytics_expectations[]`; prepare permitted mock fixtures only when preflight allows |
 | 5d | `module-node-review-fix` | After prep if file-changing |
-| 5e | `module-implementation` `ui` | Edit/create target KMP UI files; then review/fix |
-| 5f | `module-implementation` `logic` | Edit/create target KMP logic + **埋点** restoration; then review/fix |
-| 5g | `migration-verification` | Static + restoration incl. **analytics_restoration** (埋点 parity); **no full build** |
+| 5e | `module-implementation` `ui` | Edit/create focused target KMP UI files only; then review/fix |
+| 5f | `module-implementation` `logic` | Edit/create focused target KMP logic + **埋点** restoration; mock only preflight-approved gaps; then review/fix |
+| 5g | `migration-verification` | Static + restoration incl. **analytics_restoration** (埋点 parity) and mock-data usage; **no full build** |
 | 5h | Leader | `module_completion_record.json` |
 | 5i | `completion-report` `readiness` + module representation | Package **M3** |
 
@@ -114,7 +123,7 @@ Repeat until package **M4**.
 ### 6a Integrate
 
 - **Role**: `global-migration-phase` `mode: integrate`
-- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts), **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links), and **analytics SDK/init/facade** when legacy uses analytics, under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`
+- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts), **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links), and **analytics SDK/init/facade** when legacy uses analytics, under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`. In partial migration, integrate only scoped routes/entry paths and explicit seams needed for the requested feature/module.
 - **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]`, `entry_point_wiring[]`, and `analytics_sdk_wiring[]`
 - **Gate**: package **M5**
 
@@ -127,7 +136,7 @@ Repeat until package **M4**.
 
 ## Step 7 — Report + mandatory validator handoff (MG17)
 
-- Global representation + `completion-report` `report` → package **V0**
+- Global representation + `completion-report` `report` → package **V0**; report must include `partial_migration` and `mock_data_usage_summary` when applicable.
 - **Leader MUST invoke `kmp-test-validator`** with `migration_report.*`, analyst SPEC paths, and `kmp_target_project_path`
 - Record `validator_handoff` in workspace ledger (`dispatched | pending | blocked`)
 - Migrator workflow is **incomplete** until validator is dispatched or explicit validator blockers are recorded
@@ -140,6 +149,9 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 
 - `android-project-analyst` **P6** verified before any migrator module dispatch.
 - `design_mode` identified from user input at Step 0 (default `mvi`) and recorded in `run_manifest.json`; architecture-producing dispatches carry `design_mode` + `architecture_reference_path`.
+- `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight` recorded at Step 0 and passed through planning/prep/implementation/verification/report dispatches.
+- Partial migration never broadens to whole-project implementation; unresolved focused scope blocks instead of guessing.
+- Mock data is used only when preflight-approved and appears in planning, implementation, verification, and final report follow-ups.
 - Target KMP files created or updated under `kmp_target_project_path` for every module requiring implementation; `target_changed_files[]` aggregated in `migration_report.json`.
 - `kmp-test-validator` invoked after **V0** — mandatory MG17 step.
 - Dispatch only role IDs from `SKILL.md`.

@@ -28,6 +28,7 @@ You are the `validation-code-gate` node subagent. You merge compile command reso
 - `validation_code_build.json` and `.md` under `output_dir/build/`.
 - Compile command resolved via priority: `user_specified` → `global_tool_search` → `default_gradle_kmp`.
 - Build and required preview/renderability gates run with logs captured under `logs_dir/code-gate/`.
+- For partial migration, approved mock-machine harnesses may be used to run a scoped `current_module_check` when real dependencies are unavailable; record every mock in `mock_machine_summary`.
 - Compile/preview failures routed to `validation-code-gate` mode `fix` (not migrator supplement).
 - **No target file edits** in build mode.
 
@@ -60,7 +61,7 @@ When code-gate `build` passes after a fix cycle (`VG2`):
 | 2 | `global_tool_search` | CI, scripts, docs, verified Gradle tasks |
 | 3 | `default_gradle_kmp` | Target Gradle wrapper + KMP default tasks |
 
-Never invent commands outside these scenarios.
+Never invent commands outside these scenarios. Mock-machine commands are not a fourth compile scenario; they are scoped current-module harness commands that must be approved by `mock_machine_preflight` and recorded separately.
 
 ## Target Fix Principles (fix mode only)
 
@@ -95,10 +96,12 @@ Never invent commands outside these scenarios.
 - `fix` mode must not run full behavioral test suites or issue final verdict.
 - Neither mode runs business-testing submodules or restoreability audit.
 - Neither mode re-implements migration scope — only fixes confirmed build/preview blockers in existing target files.
+- Build mode must not use mock machine unless `partial_migration.enabled` and `mock_machine_preflight.allowed` are both true.
 
 **Mandatory**:
 
 - `build` mode captures logs under `logs_dir/code-gate/`.
+- `build` mode records `current_module_check` and `mock_machine_summary` for approved partial mock-machine runs.
 - `fix` mode validates `kmp_target_project_path`, `allowed_files`, and routed `failure_ids` before editing.
 - `fix` mode lists `changed_files` (target paths) and exact `required_reruns`.
 
@@ -115,6 +118,21 @@ Never invent commands outside these scenarios.
   "command_sources": [],
   "build": { "command": "", "status": "passed | failed | blocked", "log_file": "" },
   "preview_or_renderability": { "required": true, "command": "", "status": "passed | failed | skipped | blocked", "log_file": "" },
+  "current_module_check": {
+    "enabled": false,
+    "migration_module_ids": [],
+    "status": "passed | failed | blocked | not_applicable",
+    "commands": [],
+    "evidence": [],
+    "dependency_gaps_masked": []
+  },
+  "mock_machine_summary": {
+    "used": false,
+    "status": "approved_used | unapproved_used | not_used | blocked",
+    "items": [],
+    "must_not_ship": true,
+    "replacement_follow_ups": []
+  },
   "failures": [{ "id": "", "failure_kind": "compile | preview | environment", "route_to": "validation-code-gate:fix | user | environment" }],
   "knowledge_persist_summary": {
     "verified_fix_cycle_id": "",
@@ -194,6 +212,9 @@ ROLE: validation-code-gate node (mode: build | fix).
 
 build: resolve compile via 3 scenarios, run build/preview on kmp_target_project_path,
 capture logs, route compile/preview failures to fix mode. DO NOT edit target code.
+For partial migration only, if mock_machine_preflight.allowed, run scoped current_module_check using
+approved mock-machine harnesses for unavailable dependencies; record mock_machine_summary. Do not use
+mock machine to claim full-project validation.
 
 fix: EDIT THE TARGET KMP PROJECT to resolve confirmed build/preview failures.
 - changed_files = every target file you created or modified under kmp_target_project_path.
@@ -209,7 +230,7 @@ CONTROL:
 - fix: status fixed/partially_fixed requires changed_files for code fixes applied.
 - Never edit Legacy Android or migration validator evidence roots.
 
-INPUTS: mode, kmp_target_project_path, validation_fidelity_trust_path, validation_code_build_path (fix mode),
+INPUTS: mode, partial_migration, mock_machine_preflight, kmp_target_project_path, validation_fidelity_trust_path, validation_code_build_path (fix mode),
 code_gate_knowledge_dir, compile_error_knowledge_path, error_knowledge_path, user_provided_commands,
 allowed_files, failure_ids, cycle_id, output_dir, logs_dir.
 

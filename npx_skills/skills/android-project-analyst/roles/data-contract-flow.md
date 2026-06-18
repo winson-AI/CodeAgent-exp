@@ -183,6 +183,7 @@ INPUTS YOU WILL RECEIVE:
 - module_id (required): {MODULE_ID}
 - module_scope (required): {MODULE_SCOPE}
 - analysis_scope: {ANALYSIS_SCOPE}
+- focused_analysis (optional): {FOCUSED_ANALYSIS}
 - mode (exploration | migration): {MODE}
 - module_brief_path (required): {MODULE_BRIEF_PATH}
 - output_dir (required, exact): {OUTPUT_ROOT}/modules/{MODULE_ID}/node-results/data-contract-flow
@@ -194,7 +195,7 @@ HANDLER (how you process):
 0. Create data_flow_tracker_report.json and .md with status in_progress, module_id,
    investigation_started_at, empty handler_steps aligned to steps 1–11 below, and
    coverage_summary initialized to zero.
-1. Stay inside module_scope; record cross-module data dependencies as cross_module_data_links with target_module_id and source_paths — these feed global/cross_module_data_logic.* during Leader integration
+1. Stay inside module_scope and, when focused_analysis.enabled is true, inside focused_analysis.allowed_source_roots; record cross-module data dependencies as cross_module_data_links with target_module_id and source_paths — these feed global/cross_module_data_logic.* during Leader integration
    without analyzing target modules here. Update tracker step scope_and_cross_module_links.
 2. Identify network stack (Retrofit/OkHttp/Ktor/Volley/GraphQL/custom/generated clients).
    Update tracker step network_stack.

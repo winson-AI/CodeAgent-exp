@@ -2,7 +2,7 @@
 name: android-project-analyst
 description: |
   Module-first Swarm Skill that converts a Legacy Android project into module-indexed artifacts, per-module dimension folders, cross-module architecture/data-logic records, a workspace-state ledger, a global representation, and an integrated SPEC package (PRD/DESIGN/PLAN/verification) under strict output paths.
-  Use when the android-project-analyst controller must understand, document, onboard, or migration-prep an existing Android project by dividing it into modules first, analyzing each module across presentation/architecture/data/behavior dimensions, recording inter-module assembly basis separately, then combining module representations into a full-project representation.
+  Use when the android-project-analyst controller must understand, document, onboard, or migration-prep an existing Android project by dividing it into modules first, analyzing each module across presentation/architecture/data/behavior dimensions, recording inter-module assembly basis separately, then combining module representations into a full-project or focused-scope representation.
   Do NOT use for quick file/symbol lookup, non-Android codebases, or single-agent skill authoring.
 version: "0.8"
 kind: swarm-skill
@@ -39,11 +39,24 @@ roles:
 
 This is the agent-facing registry and team definition for the `android-project-analyst` controller (the same-name subagent in `kmp-migration/agents/`). It converts a Legacy Android source project into verified module artifacts, a global project representation, and SPEC artifacts for downstream onboarding, exploration, and migration agents.
 
-**Canonical file recording system**: [output-contract.md](output-contract.md) defines every output path, required content, write order, and downstream **handoff package gates** (`P0`–`P6`). Downstream handlers (`migration-task-adapter`, `android-to-kmp-migrator`, `kmp-test-validator`) trigger only when the declared package artifacts exist, are non-empty, in-path, and not stale. The Leader MUST read `output-contract.md` before the first dispatch and MUST NOT claim completion without updating `handoff_gates` in the workspace ledger and `SPEC/verification.md`.
+**Canonical file recording system**: [output-contract.md](output-contract.md) defines every output path, required content, write order, and downstream **handoff package gates** (`P0`–`P6`). Downstream handlers (`coding-task-adapter`, `android-to-kmp-migrator`, `kmp-test-validator`) trigger only when the declared package artifacts exist, are non-empty, in-path, and not stale. The Leader MUST read `output-contract.md` before the first dispatch and MUST NOT claim completion without updating `handoff_gates` in the workspace ledger and `SPEC/verification.md`.
 
 **Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched analyst role. The Leader MUST read it before pre-flight/module partitioning and include it in each role dispatch as baseline instructions; role files, workflow gates, and output contracts add to it, not replace it.
 
 The team is **module-first Mixed B+C with a workspace-state ledger**: the Leader partitions the project into `analysis_modules`, writes index artifacts and one `modules/<module_id>/` folder per module, maintains `analysis-workspace-state` before downstream consumption, runs three foundation nodes in **parallel** (B) inside each module, then a final **gated specialization** node (C) synthesizes module behavior from verified upstream outputs. The Leader writes a module representation per module, records cross-module architecture and data/logic separately under `global/`, then combines everything into `global_representation.*` and SPEC. The controller owns routing, strict output-path enforcement, reconciliation, workspace-state refreshes, and SPEC integration; nodes own bounded module analysis only.
+
+## Focused Analysis For Adapter Routes
+
+When invoked by `coding-task-adapter` for an `only_understand_*` request or explicit partial migration, the analyst MUST run in focused mode:
+
+- `run_manifest.json` records `focused_analysis.enabled: true`.
+- The Leader resolves the requested attention module/feature/package/file set into `attention_module_ids` and `allowed_source_roots`.
+- Module inventory schedules only those attention modules plus explicitly justified shared context.
+- Nodes treat `module_scope` and `focused_analysis.allowed_source_roots` as hard boundaries.
+- Cross-module dependencies outside the focus are recorded as pointers, not recursively analyzed.
+- `global_representation.*` and SPEC outputs must state scoped coverage and must not imply full-project understanding.
+
+Without focused input, the analyst performs normal whole-project module-first analysis.
 
 ## Module Partitioning Model
 
@@ -59,7 +72,7 @@ The Leader divides in-scope source into bounded `analysis_modules` and materiali
 Partitioning rules:
 
 - Prefer Gradle modules and feature packages; split one Gradle module into multiple `analysis_modules` when independent features/routes/packages warrant it.
-- Every in-scope source root belongs to exactly one scheduled module or `out_of_scope`.
+- Every in-scope source root belongs to exactly one scheduled module or `out_of_scope`. In focused mode, source roots outside `focused_analysis.allowed_source_roots` are `out_of_scope` unless included as justified shared context.
 - `module_id` is a stable slug reused across inventory, folder names, node outputs, representations, global cross-module records, and migration handoff.
 
 ### Layer 2 — Multi-dimensional understanding inside each module folder

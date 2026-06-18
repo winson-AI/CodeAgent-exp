@@ -33,6 +33,8 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
 - `analytics_restoration` inventories Legacy Android 埋点 from upstream `behavior_logic` (user-action/lifecycle `side_effects`, screen-exposure hooks) and `project_architecture` (`analytics` dependencies), compares each event to migrated KMP track/report calls in target files, and records missing or mismatched events in `analytics_restoration_summary`.
 - `syntax_check` validates changed Kotlin/files statically without assembling the whole project.
 - `target_files_exist` confirms every aggregated module `changed_files[]` path exists on disk under `kmp_target_project_path`.
+- For partial migration, every changed file is inside scoped target anchors or declared integration seams; out-of-scope edits fail verification.
+- Any `mock_data_usage[]` is permitted by `mock_data_preflight`, traceable to `mock_data_plan`, guarded, and marked `must_not_ship`; unapproved mock data fails verification.
 - Failures route to owning roles per `SKILL.md`; Leader writes `module_completion_record.json` only when all checks pass.
 
 ## Boundary
@@ -43,7 +45,7 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
 - Do not declare final migration completion or invoke kmp-test-validator.
 
 **Mandatory**:
-- Validate module outputs, `target_module_anchors.json`, planning outputs, upstream module representation path.
+- Validate module outputs, `target_module_anchors.json`, planning outputs, upstream module representation path, `partial_migration`, and `mock_data_preflight`.
 - Use `output_dir = <output_root>/modules/<migration_module_id>/node-results/migration-verification`.
 - Route failures to: `target-project-assistant`, `migration-planning-gate`, `migration-prep`, `module-implementation`, `module-node-review-fix`.
 
@@ -92,6 +94,20 @@ If a dispatch contract includes forbidden check ids, return `blocked` and cite [
     "sdk_wiring": { "legacy_sdk": "", "target_sdk_path": "", "status": "wired | partial | missing | not_applicable" },
     "gaps": []
   },
+  "partial_scope_verification": {
+    "enabled": false,
+    "status": "passed | failed | not_applicable",
+    "checked_files": [],
+    "out_of_scope_files": [],
+    "integration_seams_checked": []
+  },
+  "mock_data_verification": {
+    "used": false,
+    "status": "passed | failed | not_applicable",
+    "items": [],
+    "unapproved_items": [],
+    "replacement_follow_ups": []
+  },
   "log_files": [],
   "blocking_gaps": []
 }
@@ -115,6 +131,8 @@ ROLE: migration-verification node.
 Run module-scoped checks ONLY: target_files_exist, source_set, syntax_check, api_contract,
 ui_render, ui_restoration, logic_restoration, analytics_restoration. Compare UI/logic/埋点 to
 upstream analyst module_representation, behavior_logic, and project_architecture analytics deps.
+For partial migration, also verify changed files stay inside partial_migration target anchors and
+declared integration seams.
 
 ANALYTICS_RESTORATION:
 1. Build legacy 埋点 inventory from behavior_logic user_actions/lifecycle side_effects and
@@ -128,7 +146,11 @@ ANALYTICS_RESTORATION:
 DO NOT run incremental_build or full project compile — kmp-test-validator owns build and
 runtime analytics reporting verification.
 
-INPUTS: migration_module_id, changed_files, planning/TPA/UI/logic outputs,
+MOCK DATA: if module implementation records mock_data_usage[], confirm each item is allowed by
+mock_data_preflight and traceable to planning mock_data_plan; otherwise fail and route back to
+planning/prep/implementation.
+
+INPUTS: migration_module_id, partial_migration, mock_data_preflight, changed_files, planning/TPA/UI/logic outputs,
 upstream_module_representation_path, analyst dimension paths, target path, output_dir.
 
 OUTPUTS: migration_verification.json, migration_verification.md, optional logs/

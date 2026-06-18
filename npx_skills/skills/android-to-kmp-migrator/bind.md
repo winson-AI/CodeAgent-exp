@@ -30,6 +30,9 @@
   - **Before migrator**: `android-project-analyst` MUST finish and produce package **P6** (`handoff_gates.P6.ready = true`). If P6 is missing or stale, return `blocked` and dispatch analyst — do not start migrator nodes.
   - **After migrator**: when package **V0** is ready, Leader MUST invoke `kmp-test-validator` (MG17). Migrator completion without validator dispatch is invalid.
 - **Design mode**: at pre-flight the Leader identifies `design_mode` from user input — **default `mvi`** when no architecture signal is present. It is recorded in `run_manifest.json`, **frozen for the run**, and every architecture-producing role MUST follow the resolved `architecture_reference_path` (`references/kmp-mvi-flowredux.md` for `mvi`, `references/kmp-mvvm.md` for `mvvm`). Both modes also follow `references/kmp-expert.md`.
+- **User task fidelity**: every role dispatch after pre-flight carries `raw_user_task` and `user_task_constraints`; when user constraints conflict with analyst evidence, record a planning delta or blocker instead of silently overriding either source.
+- **Partial migration invariant**: when `partial_migration.enabled` is true, the requested module/feature/file-set scope is a hard write boundary. Schedule only requested `migration_module_ids` plus explicit integration seams. Do not migrate out-of-scope modules, do not expand to full-project implementation, and reject changed files outside scoped target anchors.
+- **Mock data discipline**: dependency-preflight may permit temporary mock data only for blocked dependencies and only with `mock_data_preflight.allowed: true`. Mock data must be isolated, traceable, marked `must_not_ship`, and reported for replacement before release.
 - **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
 - **Mode discipline**:
   - `module-implementation`: `ui` then `logic` — separate invocations
@@ -55,6 +58,10 @@
 | Analytics restoration failed (`analytics_restoration` check or `global_alignment_results.analytics` failed) | Rerun `module-implementation` `logic` for missing 埋点; rerun `global-migration-phase integrate` for SDK wiring gaps |
 | Align omissions | Rerun `rerun_modules` or `global-migration-phase integrate` |
 | Entry point alignment failed | `rerun_global_integration` — rewire KMP app shell in integrate mode |
+| Partial migration scope unresolved | Block; rerun analyst focused or ask adapter/user to resolve module/feature scope |
+| Partial migration touches out-of-scope target files | Block; rerun owning edit role with scoped anchors/allowed files |
+| Mock data needed but not allowed by preflight | Block dependency gap or request explicit mock allowance; do not invent fixtures |
+| Mock data used but not recorded in report | Block V0 until `mock_data_usage_summary` and follow-ups are written |
 | Build requested in migrator | Block; route to kmp-test-validator |
 | Migrator invoked before analyst P6 | Block; dispatch `android-project-analyst` first |
 | V0 ready but validator not invoked | Block; dispatch `kmp-test-validator` at MG17 |

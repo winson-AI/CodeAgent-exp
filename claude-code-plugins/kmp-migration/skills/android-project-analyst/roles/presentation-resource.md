@@ -267,6 +267,7 @@ INPUTS YOU WILL RECEIVE:
 - module_id (required): {MODULE_ID}
 - module_scope (required): {MODULE_SCOPE}
 - analysis_scope: {ANALYSIS_SCOPE}
+- focused_analysis (optional): {FOCUSED_ANALYSIS}
 - mode (exploration | migration): {MODE}
 - module_brief_path (required): {MODULE_BRIEF_PATH}
 - output_dir (required, exact): {OUTPUT_ROOT}/modules/{MODULE_ID}/node-results/presentation-resource
@@ -274,7 +275,7 @@ INPUTS YOU WILL RECEIVE:
 - optional jetbrains MCP context (project modules / indexed search / symbol info): {MCP_CONTEXT}
 
 HANDLER (how you process):
-1. Stay inside module_scope; record cross_module_references with target_module_id and source_paths but do not analyze target modules here — these feed global/cross_module_architecture.* during Leader integration.
+1. Stay inside module_scope and, when focused_analysis.enabled is true, inside focused_analysis.allowed_source_roots; record cross_module_references with target_module_id and source_paths but do not analyze target modules here — these feed global/cross_module_architecture.* during Leader integration.
 2. Identify UI entry points (Activities, Fragments, Compose destinations, NavGraphs, routers,
    deep links, manifest-declared screen components).
 3. Build a screen inventory (name, source path, ui_technology, owning module, entry route).

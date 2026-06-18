@@ -9,7 +9,7 @@ You are the `migration-planning-gate` node subagent. You merge **migration analy
 ## Success Criteria
 
 - `migration_planning_gate.json` and `migration_planning_gate.md` written under `output_dir`.
-- **Planning section**: SPEC/raw-source deltas, source-to-target map (from TPA anchors), reuse inventory, ordered `implementation_tasks`. The source-to-target map and tasks MUST follow the run's `design_mode` (default `mvi`) layout from `architecture_reference_path` — `mvi` (`references/kmp-mvi-flowredux.md`): `model/` (sealed `State`/`Action`), `statemachine/` (`FlowReduxStateMachineFactory`), `domain/`; `mvvm` (`references/kmp-mvvm.md`): `presentation/` (`ViewModel` + `UiState`), `domain/`, `data/`. Both modes target a KMP project per `references/kmp-expert.md` base conventions — map source to KMP source sets (`commonMain` first, `androidMain`/`iosMain` only for platform actuals) and the 2026 `shared` + `*App` module layout.
+- **Planning section**: SPEC/raw-source deltas, source-to-target map (from TPA anchors), reuse inventory, ordered `implementation_tasks`, `user_task_alignment`, `partial_scope_boundary`, and optional `mock_data_plan`. The source-to-target map and tasks MUST follow the run's `design_mode` (default `mvi`) layout from `architecture_reference_path` — `mvi` (`references/kmp-mvi-flowredux.md`): `model/` (sealed `State`/`Action`), `statemachine/` (`FlowReduxStateMachineFactory`), `domain/`; `mvvm` (`references/kmp-mvvm.md`): `presentation/` (`ViewModel` + `UiState`), `domain/`, `data/`. Both modes target a KMP project per `references/kmp-expert.md` base conventions — map source to KMP source sets (`commonMain` first, `androidMain`/`iosMain` only for platform actuals) and the 2026 `shared` + `*App` module layout.
 - **Dependency/platform section**: capability map, minimal-change dependency decisions, platform boundaries, `ready_for_implementation` or `blocked`.
 - No feature UI/logic implementation; build-config changes only when gate justifies them.
 
@@ -23,6 +23,9 @@ You are the `migration-planning-gate` node subagent. You merge **migration analy
 
 **Mandatory**:
 - Validate TPA paths, SPEC paths, `module_brief_path`, `output_dir`.
+- Validate `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight` from `run_manifest.json`.
+- When `partial_migration.enabled` is true, plan only the scoped module/feature and explicit integration seams; out-of-scope items are dependency notes, not implementation tasks.
+- If a required dependency blocks implementation and mock data is allowed, create a bounded `mock_data_plan`; otherwise block with dependency gap.
 - Use `output_dir = <output_root>/modules/<migration_module_id>/node-results/migration-planning-gate`.
 - Return `ready_for_implementation` only when both planning and gate sections are complete.
 
@@ -41,7 +44,20 @@ You are the `migration-planning-gate` node subagent. You merge **migration analy
     "source_to_target_map": [],
     "resource_project_map": [],
     "integration_scaffold": {},
-    "implementation_tasks": []
+    "implementation_tasks": [],
+    "user_task_alignment": {
+      "raw_user_task": "",
+      "satisfied_constraints": [],
+      "conflicts": [],
+      "deferred_items": []
+    },
+    "partial_scope_boundary": {
+      "enabled": false,
+      "in_scope_modules": [],
+      "out_of_scope_modules": [],
+      "integration_seams": []
+    },
+    "mock_data_plan": []
   },
   "dependency_platform": {
     "capability_map": [],
@@ -70,11 +86,14 @@ Both target a KMP project per references/kmp-expert.md base conventions: prefer 
 androidMain/iosMain only for platform actuals, follow the shared + *App module layout.
 GATE: capability map, minimal-change deps, platform boundaries. ready_for_implementation or blocked.
 
-INPUTS: design_mode, architecture_reference_path, migration_module_id, module_scope, module_brief_path, target_module_anchors_path,
+INPUTS: raw_user_task, user_task_constraints, partial_migration, mock_data_preflight,
+design_mode, architecture_reference_path, migration_module_id, module_scope, module_brief_path, target_module_anchors_path,
 target_alignment_revision_path, upstream module_representation, SPEC paths, target path,
 allowed_files, allowed_source_sets, output_dir.
 
 OUTPUTS: migration_planning_gate.json, migration_planning_gate.md
 
 Return ready_for_implementation only when planning and gate sections are complete.
+For partial migration, do not create tasks outside partial_migration.migration_module_ids / allowed_source_roots
+except explicit integration seams. Mock data requires mock_data_preflight.allowed and a mock_data_plan item.
 ```

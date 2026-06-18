@@ -1,7 +1,7 @@
 ---
 name: android-to-kmp-migrator
 description: |
-  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target by editing target KMP source after analyst P6 understanding — planning/prep/implementation roles create and update files under kmp_target_project_path, global integrate wires cross-module glue, then mandatory kmp-test-validator handoff — without full-project build during migration.
+  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target by editing target KMP source after analyst P6 understanding — planning/prep/implementation roles create and update files under kmp_target_project_path, global integrate wires cross-module glue, explicit partial-migration scopes stay bounded to focused analyst/user input, then mandatory kmp-test-validator handoff — without full-project build during migration.
   Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting with real target code changes then whole-system assembly followed by validation.
   Do NOT invoke before android-project-analyst completes P6. Do NOT treat planning or analysis artifacts alone as migration success — target KMP files MUST be edited. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
 version: "0.9"
@@ -65,12 +65,12 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 
 ## Protocol Summary
 
-0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**; record `dependency_preflight` and `design_mode` in `run_manifest.json`.
+0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**, resolve user-task constraints, partial migration scope, and optional mock-data allowance; record `dependency_preflight`, `design_mode`, `partial_migration`, and `mock_data_preflight` in `run_manifest.json`.
 1. Verify analyst **P6**; `run_manifest.json`, `upstream_analyst_index.json`.
-2. Migration inventory + `modules_migration_index.json`.
+2. Migration inventory + `modules_migration_index.json`; for partial migration include only focused/requested modules plus explicit integration seams.
 3. Workspace state init — **`migration_todo_list[]`** + **`pipeline_steps[]`** monitor; refresh after each node group syncs todo/step status.
 4. TPA `global_baseline`.
-5. **Per module** (assembly_order): TPA `module_anchors` → **planning-gate** → **prep** (incl. analytics_expectations) → review/fix → **implementation `ui`** → review/fix → **implementation `logic`** (incl. 埋点 restoration) → review/fix → verification (incl. analytics_restoration) → completion record → readiness → module representation.
+5. **Per module** (assembly_order or partial scoped order): TPA `module_anchors` → **planning-gate** (incl. user-task alignment, partial boundary, dependency/mock plan) → **prep** (incl. analytics_expectations and allowed mock fixtures) → review/fix → **implementation `ui`** focused target edits → review/fix → **implementation `logic`** focused target edits incl. 埋点 restoration → review/fix → verification (incl. analytics_restoration and mock-data usage checks) → completion record → readiness → module representation.
 6. **Global phase `integrate`** (cross-module glue + **entry point wiring** + **analytics SDK wiring**) → **`align`** (incl. **entry point** and **analytics alignment** vs Android) + alignment report.
 7. Global representation + completion-report `report` mode.
 8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
@@ -145,6 +145,8 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 - **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
 - **Design mode**: identified from user input at pre-flight, **default `mvi`**; frozen for the run; architecture-producing roles MUST follow the resolved `architecture_reference_path` (`kmp-mvi-flowredux.md` for `mvi`, `kmp-mvvm.md` for `mvvm`).
 - **Target KMP edit mandate**: after analyst P6 understanding, migrator roles MUST create or update production files under `kmp_target_project_path`. Planning-only or artifact-only completion is invalid.
+- **User task and focused scope**: `raw_user_task`, `user_task_constraints`, analyst `focused_analysis`, and adapter `partial_migration` are hard dispatch inputs. For partial migration, migrate only requested `migration_module_ids` / allowed source roots plus explicit integration seams; do not broaden to full-project implementation.
+- **Mock data discipline**: mock data may be introduced only when `mock_data_preflight.allowed` is true, must be isolated and tracked, and must be summarized for validator/release follow-up. It cannot hide API mismatches or replace production business logic.
 - **Roles that edit target** (record `changed_files[]` or `integration_changed_files[]`):
   - `migration-prep` — optional scaffold edits (theme, resources, routes, models) when planning allows
   - `module-implementation` `ui` / `logic` — required per-module UI and logic port

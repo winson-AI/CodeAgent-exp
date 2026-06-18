@@ -1,7 +1,7 @@
 # dependencies.yaml — Swarm Skill startup dependency check (android-to-kmp-migrator)
 #
 # Leader reads this in Workflow Step 0 and records results in run_manifest.json
-# → dependency_preflight. All CLI entries are required: false.
+# → dependency_preflight and mock_data_preflight. All CLI entries are required: false.
 # Android Studio MCP is optional auxiliary evidence for the KMP target — it never
 # replaces durable node artifacts or upstream android-project-analyst package P6 inputs.
 # Full KMP project compile/build is NOT a migrator dependency; kmp-test-validator owns that at package V0.
@@ -64,6 +64,34 @@ optional_mcp:
       and file-system reads — not from re-surveying legacy via MCP unless explicitly scoped.
       MCP output is supporting evidence only; node JSON artifacts still require target source paths.
 
+mock_data_preflight:
+  required: false
+  default_allowed: false
+  used_by:
+    - Leader
+    - migration-planning-gate
+    - migration-prep
+    - module-implementation
+    - migration-verification
+    - global-migration-phase
+    - completion-report
+  purpose: |
+    Allows temporary, traceable mock data only when a dependency gap blocks scoped migration
+    wiring (for example unavailable backend, generated API, platform integration, or fixture
+    source data). The Leader records allowance in run_manifest.json -> mock_data_preflight.
+    Mock data must be isolated, marked must_not_ship, verified, and summarized in the final
+    migration_report replacement follow-ups.
+  allow_only_when:
+    - user/task explicitly permits mock data or the controller records an approved dependency gap
+    - the mock preserves the real API/model contract shape
+    - the mock is guarded by debug source set, DI override, fixture source, or build flag
+    - replacement/removal condition is recorded before V0
+  forbidden_when:
+    - it hides API contract mismatch
+    - it replaces production business logic
+    - it broadens partial migration scope
+    - it would ship without must_not_ship tracking
+
 tools:
   - name: rg
     required: false
@@ -115,6 +143,10 @@ degraded_modes:
     effect: migration-workspace-state uses artifact timestamps only; stale detection less precise
   - trigger: curl missing
     effect: migration-prep records resource_gaps for remote media URLs
+  - trigger: dependency data unavailable but mock_data_preflight.default_allowed is false
+    effect: blocked dependency gap unless user/task explicitly permits scoped mock data
+  - trigger: mock data used without run_manifest mock_data_preflight.allowed
+    effect: blocked — remove mock data or rerun preflight with explicit allowance and tracking
   - trigger: jetbrains MCP missing or wrong open project
     effect: TPA and planning-gate use file-system target evidence only; record MCP gap in migration_report or alignment_report
   - trigger: migrator finished but kmp-test-validator not invoked

@@ -11,6 +11,7 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
 - `validation_workspace_state.json` and `validation_workspace_state.md` written under `output_dir`, both non-empty.
 - **`validation_todo_list[]`** lists every check/item that must pass validation (fidelity, build, entry launch, restoreability, analytics, optional business tests, final report) with synced `status`.
 - **`pipeline_steps[]`** mirrors the Leader schedule (`VG0`–`VG5`) and syncs `status` from verified artifacts on every refresh.
+- Partial migration scope and mock-machine current-module checks are tracked explicitly so scoped mock evidence is not mistaken for full-project validation.
 - Every validator node's status normalized into one ledger; changed-file ownership tracked for remediation/reporting attribution.
 - Stale upstream inputs flagged when changed files, SPEC paths, migration report, or validation requirements changed since a node ran.
 - Rerun history recorded without hiding repeated failures; `handoff_gates` VG0–VG5 evaluated; next safe controller action identified.
@@ -28,6 +29,7 @@ You are the `validation-workspace-state` node subagent dispatched by the `kmp-te
 - You MUST read this role spec and the controller-provided contract completely before acting.
 - You MUST validate inputs and treat missing/stale/contradictory/out-of-scope inputs as `blocking_gaps` or `rerun_requests` — never guess or continue silently.
 - You MUST build and refresh `validation_todo_list[]` after upstream migration index and migration report are available; sync each todo's `status` from fidelity, code-gate, business-testing, and report outputs on every refresh.
+- You MUST seed partial-migration and mock-machine todos from `migration_report.partial_migration`, `migration_report.mock_data_usage_summary`, and validator `mock_machine_preflight`.
 - You MUST build and refresh `pipeline_steps[]` from the validator schedule; sync step `status` from artifacts and `handoff_gates` on every refresh.
 - You MUST flag an output stale whenever an upstream artifact it depends on changed after it was produced.
 - You MUST write both artifacts under `output_dir`, list them in `output_files`, and verify they exist and are non-empty before reporting `completed`.
@@ -39,12 +41,13 @@ Machine-routable backlog of validation work. The Leader reads this to see **whic
 **Seed sources**:
 
 1. `upstream_migration_index.json` + `migration_report.json` — scope, `target_changed_files[]`, `analytics_restoration_summary`, `validation_inputs`
+   - Include `partial_migration` and `mock_data_usage_summary` when present.
 2. Analyst `SPEC/*` — product/design/verification requirements
 3. User `validation_requirements`, `figma_refs` when provided
 4. Mandatory migration checks: fidelity trust, build, **entry_point_launch**, restoreability, final report
 5. Optional: `behavioral`, `ui_comparison`, `analytics_reporting` when prerequisites exist
 
-**Todo categories**: `fidelity_trust | build | entry_point_launch | restoreability | analytics_reporting | behavioral | ui_comparison | report`
+**Todo categories**: `fidelity_trust | build | current_module_check | mock_machine | entry_point_launch | restoreability | analytics_reporting | behavioral | ui_comparison | report`
 
 **Todo item rules**:
 
@@ -52,6 +55,7 @@ Machine-routable backlog of validation work. The Leader reads this to see **whic
 - `status`: `pending | in_progress | completed | blocked | skipped`
 - `skipped` only with evidence (optional submodule without user input; analytics `not_applicable`).
 - Link restoreability/analytics todos to `migration_report` event catalog paths when present.
+- Link mock-machine todos to `mock_machine_preflight`, `validation_code_build.mock_machine_summary`, and `validation_restoreability_audit.mock_machine_restoreability[]`.
 - Sync `fix_cycles` and `migrator_supplement_cycles` when todos route to code-gate fix or migrator supplement.
 
 ## Pipeline Step Monitor (schedule sync)
@@ -79,6 +83,20 @@ Machine-routable backlog of validation work. The Leader reads this to see **whic
   "node": "validation-workspace-state",
   "output_root": "",
   "current_controller_step": "",
+  "partial_migration": {
+    "enabled": false,
+    "scope_kind": "full_project | module | feature | screen_flow | package | file_set | mixed | unknown",
+    "current_module_ids": [],
+    "validation_scope": ""
+  },
+  "mock_machine_tracking": {
+    "allowed": false,
+    "used": false,
+    "status": "not_applicable | approved_used | blocked | unapproved_used",
+    "items": [],
+    "replacement_follow_ups": [],
+    "must_not_ship": true
+  },
   "validation_status": {
     "overall_status": "not_started | in_progress | blocked | ready_for_report | passed | failed | unknown",
     "todo_summary": {
@@ -101,7 +119,7 @@ Machine-routable backlog of validation work. The Leader reads this to see **whic
   "validation_todo_list": [
     {
       "todo_id": "",
-      "category": "fidelity_trust | build | entry_point_launch | restoreability | analytics_reporting | behavioral | ui_comparison | report",
+      "category": "fidelity_trust | build | current_module_check | mock_machine | entry_point_launch | restoreability | analytics_reporting | behavioral | ui_comparison | report",
       "title": "",
       "source_ref": "",
       "owner_stage": "",
@@ -154,7 +172,7 @@ Shared controller return shape (all nodes): `status`, `node`, `output_files`, `c
 
 ## Output Files And Contents
 
-- `validation_workspace_state.json`: machine-routable validation ledger with **`validation_todo_list`**, **`pipeline_steps`**, `validation_status`, `handoff_gates`, node status, changed-file ownership, knowledge inventory, stale inputs, reruns, blockers, next actions.
+- `validation_workspace_state.json`: machine-routable validation ledger with **`validation_todo_list`**, **`pipeline_steps`**, `validation_status`, `handoff_gates`, `partial_migration`, `mock_machine_tracking`, node status, changed-file ownership, knowledge inventory, stale inputs, reruns, blockers, next actions.
 - `validation_workspace_state.md`: agent-readable handoff with **## Validation Todo List**, **## Pipeline Progress**, node status, handoff gates, stale/rerun tables, cycle counts, next action.
 
 ### `validation_workspace_state.md` required sections

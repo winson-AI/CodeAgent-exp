@@ -1,6 +1,6 @@
 # dependencies.yaml — Swarm Skill startup dependency check (kmp-test-validator)
 #
-# Leader reads this in Workflow Step 0 → run_manifest.json dependency_preflight.
+# Leader reads this in Workflow Step 0 → run_manifest.json dependency_preflight and mock_machine_preflight.
 
 skills:
   - name: operating-instructions
@@ -70,6 +70,32 @@ optional_inputs:
     used_by:
       - validation-business-testing
     purpose: Enables ui_comparison submodule.
+  - name: mock_machine_preflight
+    required: false
+    default_allowed: false
+    used_by:
+      - validation-workspace-state
+      - validation-code-gate
+      - validation-fidelity-gate
+      - validation-business-testing
+      - validation-report
+    purpose: |
+      For partial migration only, allows a temporary mock-machine harness to pass the
+      current module check when out-of-scope or unavailable dependencies block build,
+      launch, restoreability, or analytics reachability. Examples: fake backend, local
+      service, fixture source set, DI override, test app shell, emulator profile, or
+      static-only launch substitute.
+    allow_only_when:
+      - migration_report.partial_migration.enabled is true
+      - scope is current module or explicit scoped screen flow
+      - real dependency is unavailable or outside the partial migration boundary
+      - harness preserves API/model/event contracts
+      - must_not_ship and replacement follow-up are recorded
+    forbidden_when:
+      - full-project validation is being claimed
+      - mock hides missing migrated logic or API mismatch
+      - mock broadens partial migration scope
+      - replacement/removal condition is absent
 
 optional_mcp:
   - server: jetbrains
@@ -118,6 +144,10 @@ degraded_modes:
     effect: optional VG4 submodules skipped — entry_point_launch still mandatory for V0
   - trigger: adb/emulator/launch tooling unavailable
     effect: entry_point_launch blocked unless post-build static entry evidence verified on disk
+  - trigger: partial module dependency unavailable and mock_machine_preflight.default_allowed is false
+    effect: current module check blocked unless explicit mock-machine allowance is recorded
+  - trigger: mock machine used without approval
+    effect: validation blocked; rerun without mock or rerun preflight with explicit allowance
   - trigger: rg missing
     effect: Grep/Read substitute; record in preflight
   - trigger: jetbrains MCP missing
@@ -126,7 +156,7 @@ degraded_modes:
     effect: ui_comparison uses exported assets or skips with reason
 
 downstream_handoff:
-  - target: migration-task-adapter
+  - target: coding-task-adapter
     package: VG5
     artifacts:
       - report/kmp_validation_report.json

@@ -28,6 +28,7 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
 - Comparison uses analyst globals, migrator completion records, alignment artifacts, built target evidence, **`post_integration_alignment.json` → `entry_point_alignment_results[]`**, and **`migration_report.json` → `analytics_restoration_summary`** when `validation_inputs.analytics_reporting_required` is true.
 - **Entry point post-build static verification**: for each row in migrator `entry_point_alignment_results[]`, confirm built target still resolves the claimed KMP shell path/symbol; record `entry_point_verification_results[]` with `post_build_status`. Failed entry point static verification blocks `restoreability_verdict: passed`.
 - **Analytics reporting verification**: for each event in `event_catalog`, confirm KMP target wires track/report at the documented trigger and SDK init path is reachable post-build; record `analytics_reporting_results[]` with `report_path_reachable` and `flow_verified` status.
+- **Partial mock-machine restoreability**: when partial migration uses an approved mock machine, verify only the current module/feature surface and record the replaced dependency, evidence paths, and release follow-up in `mock_machine_restoreability[]`.
 - Missing modules/functions emit `migrator_supplement_request` — never route to code-gate `fix` mode deletes.
 
 ## Boundary
@@ -38,10 +39,12 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
 - Do not fix code or issue final verdict.
 - Do not run `restoreability` mode before `VG2`.
 - Do not downgrade missing migration evidence to generic KMP testing.
+- Do not use mock-machine evidence to pass full-project restoreability.
 
 **Mandatory**:
 
 - Treat Android/SPEC + analyst/migrator artifacts as authoritative.
+- Validate `partial_migration` and `mock_machine_preflight` before accepting mock-machine evidence.
 - Return `blocked` when migration evidence is missing (`trust`) or plan-gate build not passed (`restoreability`).
 - In `restoreability` mode, return controller status `needs_migrator_supplement` when supplement is required.
 
@@ -129,6 +132,18 @@ You are the `validation-fidelity-gate` node subagent. You merge the migration in
     "failed_count": 0,
     "verdict": "passed | failed | not_applicable"
   },
+  "mock_machine_restoreability": [
+    {
+      "mock_machine_id": "",
+      "migration_module_id": "",
+      "validated_surface": "current_module | screen_flow | entry_point | analytics_reporting",
+      "real_dependency_replaced": "",
+      "evidence_paths": [],
+      "status": "passed | failed | blocked",
+      "release_blocker": true,
+      "replacement_follow_up": ""
+    }
+  ],
   "migrator_supplement_request": {
     "required": false,
     "modules_to_supplement": [],
@@ -158,8 +173,11 @@ re-verify post_integration_alignment entry_point_alignment_results[] on built ta
 when migration_report.validation_inputs.analytics_reporting_required, verify each 埋点 in event_catalog
 reaches the analytics SDK/report pipeline post-build (analytics_reporting_results[]); route gaps
 to migrator supplement.
+For partial migration, approved mock-machine evidence can satisfy only current-module scoped
+restoreability; record mock_machine_restoreability[] and replacement follow-ups. Do not pass full-project
+restoreability with mocks.
 
-INPUTS: mode, kmp_target_project_path, upstream_migration_index_path, migration_report_path, spec_paths, validation_code_build_path, validation_entry_point_launch_path (restoreability only), supplement_cycle_count, output_dir.
+INPUTS: mode, partial_migration, mock_machine_preflight, kmp_target_project_path, upstream_migration_index_path, migration_report_path, spec_paths, validation_code_build_path, validation_entry_point_launch_path (restoreability only), supplement_cycle_count, output_dir.
 
 OUTPUTS (per mode):
 - trust/validation_fidelity_trust.json + .md

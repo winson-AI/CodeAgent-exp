@@ -1,6 +1,6 @@
 # Output Contract: File Recording System And Downstream Trigger Gates
 
-This document is the **canonical path and content contract** for `android-project-analyst`. Downstream handlers (`migration-task-adapter`, `android-to-kmp-migrator`, `kmp-test-validator`, and human/agent orchestrators) **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers** — they do not infer, reconstruct, or proceed from chat summaries.
+This document is the **canonical path and content contract** for `android-project-analyst`. Downstream handlers (`coding-task-adapter`, `android-to-kmp-migrator`, `kmp-test-validator`, and human/agent orchestrators) **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers** — they do not infer, reconstruct, or proceed from chat summaries.
 
 The Leader and every node MUST read this file before writing artifacts. `SKILL.md` and `workflow.md` reference this contract; when they diverge, **this file wins on paths, filenames, and trigger gates**.
 
@@ -107,9 +107,41 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required JSON / content keys | Downstream trigger role |
 |---|---|---|---|
-| `run_manifest.json` | Leader | `source_project_path`, `mode`, `analysis_scope`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path` | **All handlers** — resolves `output_root` and declares which gate package this run claims |
+| `run_manifest.json` | Leader | `source_project_path`, `mode`, `analysis_scope`, `focused_analysis`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path` | **All handlers** — resolves `output_root` and declares which gate package this run claims |
 
 `handoff_package` MUST list absolute paths to the gate entry artifacts the run claims ready (see Handoff Packages below).
+
+#### Focused analysis contract (`only_understand_*` and partial migration)
+
+When invoked by `coding-task-adapter` for `only_understand_*` or route `migration` with `partial_migration.enabled: true`, the analyst run is **focused**. It MUST analyze the requested attention module/feature only, instead of broadening to the full project.
+
+`run_manifest.json` MUST include:
+
+```json
+{
+  "focused_analysis": {
+    "enabled": false,
+    "trigger": "none | only_understand_ui | only_understand_logic | only_understand_architecture | only_understand_overview | partial_migration",
+    "focus_kind": "module | feature | screen_flow | package | file_set | mixed | unknown",
+    "requested_scope": [],
+    "attention_module_ids": [],
+    "allowed_source_roots": [],
+    "excluded_source_roots": [],
+    "dependency_context_policy": "pointers_only | include_required_shared | full_project",
+    "scope_resolution_status": "resolved | needs_resolution | blocked",
+    "scope_gaps": []
+  }
+}
+```
+
+Rules:
+
+- `focused_analysis.enabled: true` only when the adapter or user explicitly supplies focused/partial scope. Whole-project migration keeps it `false`.
+- `attention_module_ids` and `allowed_source_roots` define the maximum source area that nodes may analyze.
+- Cross-module dependencies outside the attention scope MUST be recorded as pointer/context edges (`cross_module_*`) and not recursively analyzed.
+- `dependency_context_policy: include_required_shared` may include a small shared module only when the attention module cannot be understood without it; record why in `scope_gaps` or module inventory notes.
+- If the requested module/feature cannot be resolved, set `scope_resolution_status: blocked` and do not dispatch dimension nodes.
+- `SPEC/*`, global records, and module representations from a focused run MUST state that the handoff is scoped, not full-project.
 
 ### Workspace ledger
 
@@ -133,7 +165,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `module-index/module_inventory.json` | Leader | `analysis_modules[]`, `module_order[]`, `out_of_scope[]`, per-module `module_id`, `module_type`, `source_roots`, `ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `depends_on`, `module_output_root` | **Module scheduling** — authoritative partition; migrator maps `module_id` → source scope |
+| `module-index/module_inventory.json` | Leader | `analysis_modules[]`, `module_order[]`, `out_of_scope[]`, `focused_analysis`, per-module `module_id`, `module_type`, `source_roots`, `ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `depends_on`, `module_output_root`; focused runs schedule only attention modules plus justified context modules | **Module scheduling** — authoritative partition; migrator maps `module_id` → source scope |
 | `module-index/module_inventory.md` | Leader | Boundary evidence and scope notes (no dimension analysis) | Agent-readable scope confirmation |
 | `module-index/modules_index.json` | Leader | `schema_version`, `output_root`, `modules[]` with per-entry `module_id`, `status`, `module_output_root`, `module_brief_path`, `dimension_roots`, `representation_paths`, `depends_on` | **Primary routing index** — downstream handlers resolve module folders only through this file |
 
@@ -143,6 +175,12 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 {
   "schema_version": "1.0",
   "output_root": "",
+  "focused_analysis": {
+    "enabled": false,
+    "attention_module_ids": [],
+    "allowed_source_roots": [],
+    "excluded_source_roots": []
+  },
   "module_order": [],
   "modules": [
     {
@@ -380,9 +418,16 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 
 **Fail closed when**: `modules_index.json` cannot resolve a requested `module_id`, or `module_order` is empty for in-scope work.
 
+For focused runs, also fail closed when `focused_analysis.enabled: true` and:
+
+- no `attention_module_ids` or `allowed_source_roots` are resolved,
+- scheduled modules include source roots outside `allowed_source_roots` without `dependency_context_policy: include_required_shared` justification,
+- the requested attention module/feature is marked `out_of_scope`, or
+- the run silently expands to full-project inventory.
+
 ### Package `P2` — Module dimension completeness
 
-**Trigger for**: module representation consumption, focused UI/logic/architecture handoff from `migration-task-adapter`.
+**Trigger for**: module representation consumption, focused UI/logic/architecture handoff from `coding-task-adapter`.
 
 | Required paths (per `module_id`) |
 |---|
@@ -433,6 +478,8 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 
 **Fail closed when**: `SPEC/verification.md` → `readiness: blocked`.
 
+For focused `only_understand_*` routes, `SPEC/verification.md` and `global_representation.*` MUST mark the package as scoped and list the attention module/feature. Do not present it as whole-project coverage.
+
 ### Package `P6` — Migration SPEC handoff (full pipeline entry)
 
 **Trigger for**: `android-to-kmp-migrator` controller start, migration-mode adapter orchestration.
@@ -445,6 +492,8 @@ Downstream handlers MUST NOT start unless the declared package gate passes. A ga
 | `SPEC/plan.md` |
 
 **Fail closed when**: `readiness` is `blocked`, `plan.md` assembly order disagrees with `migration_assembly_basis.json` without documented conflict in `verification.md`, or `run_manifest.json` → `mode` is not `migration`.
+
+For partial migration analysis, `SPEC/plan.md`, `migration_assembly_basis.*`, and `verification.md` MUST carry the same `focused_analysis` boundaries and `partial_migration_boundaries`; do not schedule modules outside the attention scope except justified shared context.
 
 ---
 
@@ -466,6 +515,7 @@ Every node MUST:
 - Write only under the `output_dir` declared in its dispatch contract.
 - Use exact filenames from this contract (JSON snake_case basename, dimension folder kebab-case).
 - Include `module_id` in every dimension JSON artifact.
+- Treat `module_scope` and `focused_analysis.allowed_source_roots` as hard boundaries. Out-of-scope code may be cited only as a cross-module pointer with source paths, not analyzed.
 - Populate cross-module pointer arrays (`cross_module_references`, `cross_module_dependencies`, `cross_module_data_links`, `cross_module_interactions`) with `target_module_id` and `source_paths` so the Leader can build Package `P4` without re-reading source.
 - `data-contract-flow` MUST write and maintain `data_flow_tracker_report.*` during investigation and list all four output files in `output_files`.
 

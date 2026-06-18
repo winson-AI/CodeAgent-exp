@@ -1,6 +1,6 @@
 # Output Contract: Adapter File Recording, Downstream Roots, And Trigger Gates
 
-This document is the **canonical path and content contract** for `migration-task-adapter`. Downstream controllers and human/agent orchestrators **MUST treat missing, empty, out-of-path, stale, or schema-invalid adapter artifacts as hard blockers** — they do not infer route, stage, or readiness from chat summaries.
+This document is the **canonical path and content contract** for `coding-task-adapter`. Downstream controllers and human/agent orchestrators **MUST treat missing, empty, out-of-path, stale, or schema-invalid adapter artifacts as hard blockers** — they do not infer route, stage, or readiness from chat summaries.
 
 The Leader and every node MUST read this file before writing artifacts. When `SKILL.md` or `workflow.md` diverge, **this file wins on paths, filenames, downstream root recording, and trigger gates**.
 
@@ -25,7 +25,7 @@ Validator artifacts MUST stay under the parallel `validation` root — never und
 Lock one `output_root` before any dispatch:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
+output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
 
 <output_root>/
 ├── run_manifest.json
@@ -58,7 +58,7 @@ output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
 
 | Variable | Resolved path |
 |---|---|
-| `output_root` | `<output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter` |
+| `output_root` | `<output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter` |
 | `downstream_index_dir` | `<output_root>/downstream-index` |
 | `workspace_state_dir` | `<output_root>/workspace-state` |
 | `route_orchestration_dir` | `<output_root>/route-orchestration` |
@@ -120,20 +120,20 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `downstream-index/downstream_workflow_index.json` | `task-route-orchestrator` mode `orchestrate` | `workflows[]` with `workflow_id`, `output_root`, `handoff_package`, `key_artifact_paths[]`, `status` | **adapter-workspace-state**, **adapter-report** — machine lookup for consumed downstream evidence |
+| `downstream-index/downstream_workflow_index.json` | `task-route-orchestrator` mode `orchestrate` | `workflows[]` with `workflow_id`, `output_root`, `handoff_package`, `key_artifact_paths[]`, `status`, `scope`, `partial_migration` | **adapter-workspace-state**, **adapter-report** — machine lookup for consumed downstream evidence |
 
 ### Workspace ledger
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `workspace-state/adapter_workspace_state.json` | `adapter-workspace-state` | `stage_status`, `artifact_inventory`, `path_compliance`, `freshness_checks`, `stale_upstream_inputs`, `rerun_history`, `blocking_gaps`, `handoff_gates`, `next_actions` | **All adapter roles** — refuse consumption when required artifacts are stale or `handoff_gates.*.ready` is false |
+| `workspace-state/adapter_workspace_state.json` | `adapter-workspace-state` | `stage_status`, `partial_migration_status`, `artifact_inventory`, `path_compliance`, `freshness_checks`, `stale_upstream_inputs`, `rerun_history`, `blocking_gaps`, `handoff_gates`, `next_actions` | **All adapter roles** — refuse consumption when required artifacts are stale or `handoff_gates.*.ready` is false |
 
 ### Route and orchestration
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `route-orchestration/route/task_route.json` | `task-route-orchestrator` mode `route` | `route`, `task_kind`, `understand_focus`, `downstream_workflow_sequence`, `blocking_gaps` | **adapter-workspace-state**, **task-route-orchestrator** mode `orchestrate` |
-| `route-orchestration/orchestrate/workflow_orchestration.json` | `task-route-orchestrator` mode `orchestrate` | `downstream_sequence`, `dispatch_contracts[]`, `observed_outputs[]`, `intermediate_asset_record_updates[]`, `rerun_requests`, `blocking_gaps` | **adapter-workspace-state**, **adapter-report** |
+| `route-orchestration/route/task_route.json` | `task-route-orchestrator` mode `route` | `route`, `task_kind`, `understand_focus`, `partial_migration`, `downstream_workflow_sequence`, `blocking_gaps` | **adapter-workspace-state**, **task-route-orchestrator** mode `orchestrate` |
+| `route-orchestration/orchestrate/workflow_orchestration.json` | `task-route-orchestrator` mode `orchestrate` | `partial_migration`, `downstream_sequence`, `dispatch_contracts[]`, `observed_outputs[]`, `intermediate_asset_record_updates[]`, `rerun_requests`, `blocking_gaps` | **adapter-workspace-state**, **adapter-report** |
 
 ### Stage inspections and asset ledger
 
@@ -176,10 +176,46 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 | `only_understand_logic` | analyst `P5` or focused `P2` with `behavior_logic.*` + SPEC |
 | `only_understand_architecture` | analyst `P5` or `P2` with `project_architecture.*` + SPEC |
 | `only_understand_overview` | analyst `P5` |
-| `migration` | analyst `P6` when required, migrator `M6` + `migration_report.*`, **required** validator `VG5` + `kmp_validation_report.*` |
+| `migration` | analyst `P6` when required, migrator `M6` + `migration_report.*`, **required** validator `VG5` + `kmp_validation_report.*`; when `partial_migration.enabled`, all evidence must match the declared partial scope/boundaries |
 | `validation_handoff` | migrator `V0`, validator `VG5` + `kmp_validation_report.*` |
 
 ---
+
+## Partial Migration Contract
+
+Partial migration is represented as route `migration` with `partial_migration.enabled: true`; it is not a separate route and does not make validation optional.
+
+**Trigger rule**: partial migration is enabled only when the user clearly asks to migrate a module, feature, screen flow, package, source root, file set, or other named subset. If the user provides only a source project path or gives no explicit partial requirement, route `migration` as whole-project migration from `source_project_path` with `partial_migration.enabled: false`.
+
+### `partial_migration` minimum shape
+
+```json
+{
+  "enabled": true,
+  "scope_kind": "module | feature | screen_flow | package | file_set | mixed | unknown",
+  "requested_scope": [],
+  "requested_module_ids": [],
+  "allowed_source_roots": [],
+  "excluded_source_roots": [],
+  "requires_module_resolution": false,
+  "validation_scope": "",
+  "boundary_notes": []
+}
+```
+
+Rules:
+
+- `enabled: false` means whole-project migration of the entire input project rooted at `source_project_path`.
+- The default for route `migration` is `enabled: false`, `scope_kind: "full_project"`.
+- Do NOT infer `enabled: true` from currently open files, recently viewed files, a path mentioned as context, or an adapter/controller narrowed view. Only explicit user wording such as "migrate module X", "only migrate feature Y", "partial migrate package Z", or "migrate these files" enables partial migration.
+- If user wording explicitly requests partial migration but the subset cannot be resolved, keep `enabled: true` and block for clarification; do not silently fall back to full-project migration.
+- When `enabled: true`, `task_route.json`, `workflow_orchestration.json`, `downstream_workflow_index.json`, `adapter_workspace_state.json`, and `adapter_report.json` MUST all carry the same scope object or a stricter resolved version.
+- If `requires_module_resolution: true`, orchestration MUST run or consume `android-project-analyst` evidence before dispatching `android-to-kmp-migrator`; unresolved scope blocks `pre_downstream_dispatch`.
+- Migrator dispatch contracts MUST include `migration_scope`, `migration_module_ids`, `allowed_source_roots`, and `partial_migration.enabled`.
+- Validator dispatch contracts MUST include `validation_scope` matching the partial migration slice plus integration seams.
+- Stage `post_migrator` passes for partial migration only when migrator artifacts prove the requested slice completed and record `partial_migration_boundaries` or equivalent scoped evidence. It MUST NOT require unrelated modules outside the partial scope to migrate.
+- Stage `post_validator` remains required and passes only when validator evidence covers the partial slice and integration seams.
+- Final `completed` for partial migration means "requested partial scope migrated and validated"; it must not claim full-project migration.
 
 ## Key Artifact Schemas
 
@@ -189,6 +225,17 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 {
   "task_id": "",
   "route": "",
+  "partial_migration": {
+    "enabled": false,
+    "scope_kind": "full_project | module | feature | screen_flow | package | file_set | mixed | unknown",
+    "requested_scope": [],
+    "requested_module_ids": [],
+    "allowed_source_roots": [],
+    "excluded_source_roots": [],
+    "requires_module_resolution": false,
+    "validation_scope": "",
+    "boundary_notes": []
+  },
   "source_project_path": "",
   "target_project_path": "",
   "output_root": "",
@@ -214,6 +261,8 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
       "handoff_package": "",
       "handoff_ready": true,
       "key_artifact_paths": [],
+      "scope": "",
+      "partial_migration": {},
       "status": "completed | needs_rerun | blocked | not_invoked"
     }
   ]
@@ -235,7 +284,7 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 
 ### `adapter_report.json` status rules
 
-- `completed` — understand route satisfied; inspections pass; assets recorded. Route `migration` additionally requires validator `VG5` and `kmp_validation_report.*`.
+- `completed` — understand route satisfied; inspections pass; assets recorded. Route `migration` additionally requires validator `VG5` and `kmp_validation_report.*`. If `partial_migration.enabled`, completion is scoped to the declared partial boundaries and the report must say so.
 - `ready_for_validation` — migrator report ready but validator not yet complete; **invalid final status for route `migration`** — migration runs must trigger validator and resolve before `A6`.
 - `needs_rerun` — concrete owner can resolve missing/stale evidence.
 - `failed` — downstream workflow failed with verified evidence.
@@ -253,6 +302,7 @@ Before claiming adapter completion, the Leader MUST:
 4. Never invoke `adapter-report` before `A5` is true.
 5. Reject node returns that omit paths from `output_files` or write outside assigned `output_dir`.
 6. For route `migration`, invoke `kmp-test-validator` after migrator handoff; record validator output root under parallel `validation` location; do not mark `A4`/`A6` ready without `post_validator` pass.
+7. For partial migration, preserve the same `partial_migration` boundaries in route, downstream dispatches, stage inspections, asset records, and final report; never widen scope silently.
 
 ## Node Obligations
 

@@ -16,7 +16,8 @@ You are the `completion-report` node subagent. You consolidate PRD completion an
 - Readiness mode writes `completion_readiness.json` and `completion_readiness.md`.
 - Report mode writes `migration_report.json` and `migration_report.md`.
 - Readiness checks raw task, PRD/DESIGN/PLAN, module outputs, reviews, verification, invariants, and incomplete markers.
-- Report mode consumes module representations and global representation.
+- Readiness checks partial scope boundaries and mock-data replacement obligations.
+- Report mode consumes module representations and global representation, then writes partial migration and mock-data handoff summaries when applicable.
 
 ## Boundary
 
@@ -30,6 +31,8 @@ Forbidden:
 
 Mandatory:
 - Report mode MUST fail when scheduled modules required implementation but `target_changed_files[]` would be empty.
+- Report mode MUST fail when partial migration artifacts include out-of-scope target edits or unresolved focused scope blockers.
+- Report mode MUST fail when mock data was used but `mock_data_usage_summary` / replacement follow-ups are missing.
 - Validate `mode`, `migration_module_id`, module/global representation paths, workspace state, and exact `output_dir`.
 - Readiness output path is `<module_root>/node-results/completion-report/readiness` or `<global_dir>/node-results/completion-report/readiness`.
 - Report output path is `<output_root>/report`.
@@ -50,6 +53,18 @@ Mandatory:
   "module_representations": [],
   "global_migration_representation": "",
   "validation_inputs": [],
+  "partial_migration": {
+    "enabled": false,
+    "completed_scope": [],
+    "out_of_scope": [],
+    "integration_seams_verified": []
+  },
+  "mock_data_usage_summary": {
+    "used": false,
+    "items": [],
+    "must_replace_before_release": true,
+    "replacement_follow_ups": []
+  },
   "rerun_requests": [],
   "blocking_gaps": []
 }
@@ -61,7 +76,7 @@ Shared return shape applies.
 
 - `completion_readiness.json`: machine-routable readiness artifact containing requirement coverage, migration invariants, module/global representation references when applicable, verification/review status, validation inputs readiness, rerun requests, and blockers.
 - `completion_readiness.md`: agent-readable readiness handoff containing coverage tables, invariant checks, incomplete markers, rerun routing, blockers, and whether representation/report gates may proceed.
-- `migration_report.json`: machine-routable final migration handoff containing migration scope, source/target paths, analyst_output_root, upstream_analyst_index, `handoff_gates` (`M0`–`M6`, `V0`), `handoff_package: V0`, module representations, global representation, `alignment_report` path, `global_system_integration` path, `target_changed_files[]` (deduplicated union of all module and global integrate target paths with `owning_role`), `analytics_restoration_summary` (aggregated 埋点 catalog for validator), changed files by role, coverage summary, validation inputs for kmp-test-validator (incl. `analytics_reporting_required`), `validation_deferred_to: kmp-test-validator`, limitations, blockers.
+- `migration_report.json`: machine-routable final migration handoff containing migration scope, source/target paths, analyst_output_root, upstream_analyst_index, `handoff_gates` (`M0`–`M6`, `V0`), `handoff_package: V0`, module representations, global representation, `alignment_report` path, `global_system_integration` path, `target_changed_files[]` (deduplicated union of all module and global integrate target paths with `owning_role`), `partial_migration`, `mock_data_usage_summary`, `analytics_restoration_summary` (aggregated 埋点 catalog for validator), changed files by role, coverage summary, validation inputs for kmp-test-validator (incl. `analytics_reporting_required`), `validation_deferred_to: kmp-test-validator`, limitations, blockers.
 - `migration_report.md`: agent-readable final migration report for `kmp-test-validator` and follow-up agents, preserving exact artifact paths, changed-file ownership, validation handoff context, limitations, and blockers.
 - Report mode success signals Leader to **mandatorily invoke** `kmp-test-validator` — migration is incomplete without validator dispatch.
 
@@ -74,11 +89,15 @@ Respect mode strictly.
 Readiness mode: check requirements, invariants, reviews, verification, incomplete markers, and rerun needs.
 Report mode: consume module/global representations and write migration_report.json/md for kmp-test-validator.
 
-INPUTS: mode, migration_module_id, module_scope, raw user task, SPEC paths, module outputs or module/global representations, changed files, workspace state, output_dir.
+INPUTS: mode, migration_module_id, module_scope, raw user task, user_task_constraints,
+partial_migration, mock_data_preflight, SPEC paths, module outputs or module/global representations,
+changed files, workspace state, output_dir.
 
 OUTPUTS:
 - readiness mode: completion_readiness.json/md (coverage, invariants, review/verification status, rerun requests, blockers)
 - report mode: migration_report.json/md (validation-ready handoff, representation paths, changed files, coverage, validation inputs)
 
 Return JSON only. Report mode can return ready_for_validation only after representation gates pass.
+For partial migration, preserve completed scope and out-of-scope boundaries in migration_report.
+If mock data was used, include mock_data_usage_summary with must_replace_before_release follow-ups.
 ```

@@ -43,10 +43,11 @@ Machine-routable backlog of analysis work. The Leader reads this to see **what s
 
 **Seed sources** (in priority order):
 
-1. `module_inventory.json` → `analysis_modules[]` scopes (`ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `source_roots`)
-2. `module_brief.json` per `module_id` — refine scope into analyzable units
-3. `data_flow_tracker_report.json` → `handler_steps[]` and open `follow_ups[]` (link via `tracker_step_id` on data-flow todos)
-4. Global schedule: `cross_module_architecture`, `cross_module_data_logic`, `migration_assembly_basis`, `global_representation`, SPEC (`prd`, `design`, `verification`, migration `plan`)
+1. `run_manifest.json` → `focused_analysis` boundaries when present
+2. `module_inventory.json` → `analysis_modules[]` scopes (`ui_scope`, `logic_scope`, `data_scope`, `resource_scope`, `source_roots`)
+3. `module_brief.json` per `module_id` — refine scope into analyzable units
+4. `data_flow_tracker_report.json` → `handler_steps[]` and open `follow_ups[]` (link via `tracker_step_id` on data-flow todos)
+5. Global schedule: `cross_module_architecture`, `cross_module_data_logic`, `migration_assembly_basis`, `global_representation`, SPEC (`prd`, `design`, `verification`, migration `plan`)
 
 **Todo categories**: `presentation | architecture | data_flow | data_flow_step | behavior | representation | global_cross_module | spec`
 
@@ -54,6 +55,7 @@ Machine-routable backlog of analysis work. The Leader reads this to see **what s
 
 - One todo per analyzable unit: screen/section, package slice, API/flow investigation step, behavior surface, module representation, global record, or SPEC document.
 - `todo_id` is stable (`<module_id>:<category>:<slug>` or `global:<category>:<slug>`).
+- Focused runs create todos only for `focused_analysis.attention_module_ids` / `allowed_source_roots`, plus explicitly justified shared context.
 - `owner_stage` / `owner_node` identify which pipeline slice completes the todo.
 - `status` sync:
   - `pending` — in scope, no verified dimension/representation/SPEC output yet
@@ -243,6 +245,7 @@ INPUTS YOU WILL RECEIVE:
 - source_project_path (required): {SOURCE_PROJECT_PATH}
 - target_project_path (or null): {TARGET_PROJECT_PATH}
 - analysis_scope: {ANALYSIS_SCOPE}
+- focused_analysis: {FOCUSED_ANALYSIS}
 - mode: {MODE}
 - output_root: {OUTPUT_ROOT}
 - current_controller_step: {CURRENT_CONTROLLER_STEP}
@@ -259,6 +262,7 @@ HANDLER (how you process):
 1. Normalize module status and node output status for every known analysis module.
 2. Build or refresh pipeline_steps[]; sync status, verified_artifacts, missing_artifacts.
 3. After inventory + module briefs exist, seed analysis_todo_list[] from scopes and global schedule;
+   for focused_analysis, include only attention modules/allowed roots plus justified shared context;
    link data-flow todos to data_flow_tracker_report.handler_steps when present.
 4. Sync each todo status from dimension JSON/MD, tracker reports, representations, SPEC paths.
 5. Track artifact inventory (incl. data_flow_tracker_report.* per module).

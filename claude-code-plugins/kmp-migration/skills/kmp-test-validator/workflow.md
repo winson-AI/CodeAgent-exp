@@ -31,7 +31,7 @@ graph TD
 
 ### Step 0 — Pre-flight
 
-Verify migrator `V0`; write `upstream_migration_index.json`; lock `output_root` (`VG0`).
+Verify migrator `V0`; write `upstream_migration_index.json`; lock `output_root` (`VG0`). If `migration_report.partial_migration.enabled` is true, copy the partial scope into validator `run_manifest.json`; resolve `mock_machine_preflight` only for current-module checks when real dependencies are unavailable.
 
 ### Step 1 — Workspace State
 
@@ -47,7 +47,8 @@ Initialize ledger with `handoff_gates` VG0–VG5, empty **`validation_todo_list[
 
 - **Executor**: `validation-code-gate` mode `build`
 - **Compile scenarios**: `user_specified` → `global_tool_search` → `default_gradle_kmp`
-- **Output**: `code-gate/build/validation_code_build.*`, `logs/code-gate/*`
+- **Partial migration**: when approved by `mock_machine_preflight`, run/record a scoped `current_module_check` with mock-machine harnesses for unavailable dependencies.
+- **Output**: `code-gate/build/validation_code_build.*`, `logs/code-gate/*`, including `current_module_check` and `mock_machine_summary` when applicable
 - **On failure**: dispatch code-gate mode `fix` — lookup `code-gate/knowledge/compile_error_knowledge.json` and optional `error_knowledge_path` for matching bug-fix experiences, then edit target KMP files → rerun `build` (max 3 fix cycles)
 - **On `VG2` pass after fix**: persist verified `knowledge_candidates` to `code-gate/knowledge/entries/<entry_id>/bug_fix_experience.*` and update the knowledge index
 - **Gate**: `VG2`
@@ -66,7 +67,7 @@ Initialize ledger with `handoff_gates` VG0–VG5, empty **`validation_todo_list[
 
 - **Executor**: `validation-fidelity-gate` mode `restoreability`
 - **Prerequisite**: `VG2`
-- **Output**: `fidelity-gate/restoreability/validation_restoreability_audit.*` (incl. `analytics_reporting_results[]` when migrator requires analytics reporting)
+- **Output**: `fidelity-gate/restoreability/validation_restoreability_audit.*` (incl. `analytics_reporting_results[]` when migrator requires analytics reporting, and `mock_machine_restoreability[]` for approved partial current-module checks)
 - **On gaps**: migrator supplement loop (max 3) → refresh upstream → rerun trust/build as scoped
 - **Gate**: `VG3`
 
@@ -99,3 +100,4 @@ Initialize ledger with `handoff_gates` VG0–VG5, empty **`validation_todo_list[
 - `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules skipped (not passed) when no user inputs.
 - Final verdict evidence-backed from verified artifacts.
 - `validation_todo_list` and `pipeline_steps` synced in workspace ledger before `VG5`.
+- Partial migration mock-machine evidence can pass the current module check only when approved, scoped, and reported with release replacement follow-ups.

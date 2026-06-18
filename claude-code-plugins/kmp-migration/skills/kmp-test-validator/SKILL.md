@@ -1,7 +1,7 @@
 ---
 name: kmp-test-validator
 description: |
-  Swarm Skill pipeline that validates Android-to-KMP migration output: workspace ledger, fidelity gate (trust + restoreability modes), code gate (build + fix modes), optional business testing (behavioral + Figma UI submodules), and final validation report.
+  Swarm Skill pipeline that validates Android-to-KMP migration output: workspace ledger, fidelity gate (trust + restoreability modes), code gate (build + fix modes), optional business testing (behavioral + Figma UI submodules), partial-migration current-module mock-machine checks when explicitly allowed, and final validation report.
   Use with the kmp-test-validator controller after android-to-kmp-migrator has produced validation-ready package V0, or when given Android source/SPEC plus a KMP target for migrated behavior validation.
   Do NOT use for generic KMP testing, KMP-only feature work, isolated Gradle troubleshooting, Android analysis, or non-migration refactors.
 version: "0.6"
@@ -47,10 +47,10 @@ The team is a **serial pipeline with two controller loops**: code-gate fix remed
 
 ## Protocol Summary
 
-0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root.
+0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root; resolve partial migration scope and optional `mock_machine_preflight`.
 1. **Workspace state** — ledger + `handoff_gates`; init **`validation_todo_list[]`** + **`pipeline_steps[]`**; refresh and sync after each node group.
 2. **Fidelity gate `trust`** — migration trigger + pre-build fidelity (`VG1`).
-3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); on failure → code gate `fix` (lookup bug-fix knowledge, then fix) → rerun `build` (max 3 cycles); persist verified compile-error experiences after `VG2` pass.
+3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); for partial migration, current-module check may use an approved mock machine; on failure → code gate `fix` (lookup bug-fix knowledge, then fix) → rerun `build` (max 3 cycles); persist verified compile-error experiences after `VG2` pass.
 3.5. **Entry point launch** — mandatory KMP startup entry verification vs Legacy Android (`entry_point_launch`); on failure → code gate `fix` → rerun `build` and entry point launch.
 4. **Fidelity gate `restoreability`** — post-build restoreability (`VG3`); migrator supplement loop (max 3) when required.
 5. **Business testing** — optional behavioral / Figma submodules when user inputs exist (`VG4`).
@@ -121,3 +121,4 @@ See [output-contract.md](output-contract.md) for full layout. No validator artif
 - Fidelity-gate modes are read-only; restoreability routes gaps to migrator supplement.
 - Code-gate `build` uses three compile scenarios only; `fix` reuses `code-gate/knowledge/` bug-fix experiences when fingerprints match, then optional external error DB, then `model_inference`.
 - Business-testing `entry_point_launch` is mandatory for migration `V0`; optional submodules require user inputs; skip is not pass-by-omission.
+- Partial migration mock-machine support is scoped: only current module/feature checks may use approved mock machine evidence; full-project validation cannot be passed by mocks.

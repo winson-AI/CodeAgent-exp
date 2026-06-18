@@ -13,6 +13,7 @@ You are the `migration-workspace-state` node subagent dispatched by the `android
 - Every scheduled `migration_module_id` has a migration progress record with current stage, stage status, finish rate, completed/planned counts, blockers, and next action.
 - **`migration_todo_list[]`** lists every work item that still needs migration (from planning `source_to_target_map`, `implementation_tasks`, prep `analytics_expectations`, and global glue/entry-point items) with synced `status` per item.
 - **`pipeline_steps[]`** mirrors the Leader schedule (`MG0`–`MG17` / gates `M0`–`V0`) and syncs `status` from verified artifacts on every refresh.
+- Partial migration scope and mock-data usage are reflected in todo status, plan-vs-code gaps, and blocker/rerun hooks.
 - Plan-vs-code gaps are recorded by comparing planned migration tasks/source-to-target expectations against implementation outputs, changed files, review status, and verification evidence.
 - Stale outputs (upstream changed after a node ran) are flagged.
 - Rerun hooks are emitted for stale, failed, blocked, missing, or plan-drifted slices with owner node, trigger condition, required inputs, expected outputs, and downstream consumers.
@@ -36,6 +37,8 @@ You are the `migration-workspace-state` node subagent dispatched by the `android
 - You MUST compute `finish_rate` per module from verified planned work units only, using the formula in this role file.
 - You MUST build and refresh `migration_todo_list[]` after planning-gate output exists; sync each todo's `status` from implementation, review, and verification evidence on every refresh.
 - You MUST build and refresh `pipeline_steps[]` from the Leader schedule (`MG0`–`MG17`) and sync step `status` from artifact inventory and `handoff_gates` on every refresh.
+- You MUST mark out-of-scope changed files as blocking gaps when `partial_migration.enabled` is true.
+- You MUST track every mock-data plan/fixture/usage item until verification and report include replacement follow-ups.
 - You MUST record plan-vs-code gaps and rerun hooks instead of silently advancing a module with missing, stale, or contradictory evidence.
 
 ## Module-Scoped Contract
@@ -89,10 +92,11 @@ Machine-routable backlog of migration work items. The Leader and controller read
 
 **Seed sources** (in priority order):
 
-1. `migration_planning_gate.json` → `planning.source_to_target_map[]` and `planning.implementation_tasks[]`
-2. `migration_prep.json` → `state_data.analytics_expectations[]` (category `analytics`)
-3. Analyst `module_representation` / `module_ui_representation.md` screens not yet covered by planning (mark `source: analyst_gap`, route to planning-gate)
-4. Global integrate scope: entry-point wiring, analytics SDK glue, cross-module edges (from `migration_assembly_basis` / cross-module globals)
+1. `run_manifest.json` → `partial_migration`, `user_task_constraints`, `mock_data_preflight`
+2. `migration_planning_gate.json` → `planning.source_to_target_map[]`, `planning.implementation_tasks[]`, `planning.mock_data_plan[]`, `planning.partial_scope_boundary`
+3. `migration_prep.json` → `state_data.analytics_expectations[]` (category `analytics`) and `state_data.mock_data_fixtures[]`
+4. Analyst `module_representation` / `module_ui_representation.md` screens not yet covered by planning (mark `source: analyst_gap`, route to planning-gate)
+5. Global integrate scope: entry-point wiring, analytics SDK glue, cross-module edges (from `migration_assembly_basis` / cross-module globals)
 
 **Todo item rules**:
 
@@ -105,6 +109,8 @@ Machine-routable backlog of migration work items. The Leader and controller read
   - `completed` — target evidence present **and** required review/verification for that category passed
   - `blocked` — `blocking_gaps`, failed verification, or `plan_code_gaps` referencing this todo
   - `skipped` — explicitly out of scope in approved plan with evidence
+- For partial migration, out-of-scope work items are `skipped` only with `partial_scope_boundary` evidence; accidental out-of-scope code is `blocked`.
+- Mock-data todos remain `pending` or `blocked` until replacement follow-up evidence is recorded in final report.
 - Reconcile `migration_todo_list` counts with `module_progress.completed_work_units` and `plan_code_gaps`.
 
 ## Pipeline Step Monitor (schedule sync)
@@ -186,6 +192,21 @@ Rerun hooks are machine-routable triggers the controller can use immediately. Ea
   "output_root": "",
   "output_dir": "",
   "current_controller_step": "",
+  "partial_migration": {
+    "enabled": false,
+    "scope_kind": "full_project | module | feature | screen_flow | package | file_set | mixed | unknown",
+    "migration_module_ids": [],
+    "allowed_source_roots": [],
+    "integration_seams": [],
+    "scope_status": "not_applicable | in_scope | unresolved | violated"
+  },
+  "mock_data_tracking": {
+    "allowed": false,
+    "used": false,
+    "open_items": [],
+    "replacement_follow_ups": [],
+    "must_replace_before_release": true
+  },
   "migration_status": {
     "overall_status": "not_started | in_progress | blocked | ready_for_report | ready_for_validation | unknown",
     "total_modules": 0,
@@ -215,11 +236,11 @@ Rerun hooks are machine-routable triggers the controller can use immediately. Ea
     {
       "todo_id": "",
       "migration_module_id": "",
-      "category": "ui | logic | resource | api | analytics | navigation | data_model | platform | glue | entry_point | other",
+      "category": "ui | logic | resource | api | analytics | navigation | data_model | platform | glue | entry_point | mock_data | other",
       "title": "",
       "legacy_ref": { "path": "", "symbol": "", "kind": "" },
       "target_ref": { "path": "", "symbol": "", "kind": "" },
-      "source": "migration_planning_gate | migration_prep | analyst_representation | global_assembly",
+      "source": "run_manifest | migration_planning_gate | migration_prep | analyst_representation | global_assembly",
       "owner_stage": "",
       "owner_node": "",
       "status": "pending | in_progress | completed | blocked | skipped",
@@ -304,7 +325,7 @@ Rerun hooks are machine-routable triggers the controller can use immediately. Ea
       "gap_id": "",
       "migration_module_id": "",
       "planned_work_unit_id": "",
-      "gap_type": "missing_code | unplanned_code | missing_review | missing_verification | failed_verification | stale_plan | stale_source | unknown",
+      "gap_type": "missing_code | unplanned_code | out_of_scope_code | missing_review | missing_verification | failed_verification | unapproved_mock_data | mock_replacement_missing | stale_plan | stale_source | unknown",
       "planned_evidence": [],
       "coding_evidence": [],
       "impact": "",
@@ -327,7 +348,7 @@ Rerun hooks are machine-routable triggers the controller can use immediately. Ea
     {
       "hook_id": "",
       "migration_module_id": "",
-      "trigger": "missing_output | stale_output | failed_check | blocked_gap | plan_code_gap | review_required | verification_required",
+      "trigger": "missing_output | stale_output | failed_check | blocked_gap | plan_code_gap | partial_scope_violation | mock_data_follow_up | review_required | verification_required",
       "owner_node": "",
       "reason": "",
       "required_inputs": [],

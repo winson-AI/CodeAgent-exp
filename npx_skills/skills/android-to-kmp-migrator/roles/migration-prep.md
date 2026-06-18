@@ -10,7 +10,7 @@ You are the `migration-prep` node subagent. You merge **presentation integration
 
 - `migration_prep.json` and `migration_prep.md` written under `output_dir`.
 - **Presentation section**: token mappings, resource mapping, route mapping, UI handoff, presentation gaps.
-- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff, `analytics_expectations[]`. State holder expectations MUST follow the run's `design_mode` (default `mvi`): `mvi` → sealed `State`/`Action` + state-machine handoff (`references/kmp-mvi-flowredux.md`); `mvvm` → immutable `UiState` + `ViewModel` event-method handoff (`references/kmp-mvvm.md`). All scaffold and contracts target a KMP project per `references/kmp-expert.md` base conventions — place shared tokens/resources/models/routes in `commonMain`, reserve `androidMain`/`iosMain` for platform actuals, and prefer the multiplatform stack (Ktor, kotlinx-serialization, kotlinx-datetime) over Android-only types.
+- **State/data section**: state mappings, model mappings, API contract expectations, logic handoff, `analytics_expectations[]`, and `mock_data_fixtures[]` only when preflight/planning allow them. State holder expectations MUST follow the run's `design_mode` (default `mvi`): `mvi` → sealed `State`/`Action` + state-machine handoff (`references/kmp-mvi-flowredux.md`); `mvvm` → immutable `UiState` + `ViewModel` event-method handoff (`references/kmp-mvvm.md`). All scaffold and contracts target a KMP project per `references/kmp-expert.md` base conventions — place shared tokens/resources/models/routes in `commonMain`, reserve `androidMain`/`iosMain` for platform actuals, and prefer the multiplatform stack (Ktor, kotlinx-serialization, kotlinx-datetime) over Android-only types.
 - Changed files recorded; cross-module impacts noted.
 - No full UI layouts or repository/API behavior.
 
@@ -28,8 +28,10 @@ When planning allows prep-time file changes, you MAY create or update target sca
 
 **Mandatory**:
 - Validate `migration_planning_gate` output, analyst presentation/data/behavior evidence, TPA anchors.
+- Validate `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight`; prep must stay inside the focused module/feature scope.
 - Use `output_dir = <output_root>/modules/<migration_module_id>/node-results/migration-prep`.
 - When `changed_files[]` is non-empty, every path MUST resolve under `kmp_target_project_path`; file-changing prep requires review before `module-implementation`.
+- `mock_data_fixtures[]` may be created only from `migration_planning_gate.mock_data_plan[]`; mark them temporary and `must_not_ship`.
 - `curl` optional for online resource fetch; gaps recorded when unavailable.
 
 ## Output Schema
@@ -64,6 +66,16 @@ When planning allows prep-time file changes, you MAY create or update target sca
         "expected_placement": "onActionEffect | viewModel_side_effect | composable_launchedEffect | screen_enter | lifecycle | global_sdk_init",
         "sdk_hint": ""
       }
+    ],
+    "mock_data_fixtures": [
+      {
+        "mock_id": "",
+        "target_path": "",
+        "replaced_dependency": "",
+        "guarding_strategy": "debug_only | fixture_source_set | DI_override | build_flag",
+        "expiry_condition": "",
+        "must_not_ship": true
+      }
     ]
   },
   "changed_files": [],
@@ -81,17 +93,20 @@ See [output-contract.md](../output-contract.md). Artifact basename: `migration_p
 ROLE: migration-prep node. Merge presentation + state/data prep in ONE invocation.
 
 PRESENTATION: tokens, resources, media, routes, UI handoff.
-STATE/DATA: state holders, models, mappers, API expectations, logic handoff, analytics_expectations
+STATE/DATA: state holders, models, mappers, API expectations, logic handoff, analytics_expectations,
+mock_data_fixtures only when mock_data_preflight + planning mock_data_plan allow them
 (legacy 埋点 inventory from behavior_logic side_effects + project_architecture analytics deps).
 State holder shape follows design_mode (default mvi): mvi → sealed State/Action + state machine
 (references/kmp-mvi-flowredux.md); mvvm → UiState + ViewModel methods (references/kmp-mvvm.md).
 Target is a KMP project per references/kmp-expert.md: scaffold in commonMain, platform actuals only in
 androidMain/iosMain, prefer the multiplatform library stack over Android-only types.
 
-INPUTS: design_mode, architecture_reference_path, migration_module_id, migration_planning_gate_path, analyst dimension paths,
+INPUTS: raw_user_task, user_task_constraints, partial_migration, mock_data_preflight,
+design_mode, architecture_reference_path, migration_module_id, migration_planning_gate_path, analyst dimension paths,
 target path, allowed_files, output_dir.
 
 OUTPUTS: migration_prep.json, migration_prep.md
 
 Return changed_files. File-changing prep requires review before module-implementation.
+Stay inside partial_migration boundaries. Do not invent fixtures when mock_data_preflight.allowed is false.
 ```

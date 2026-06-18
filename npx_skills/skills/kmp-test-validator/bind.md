@@ -23,6 +23,7 @@
 - **Compile error knowledge loop**: fix mode looks up `code-gate/knowledge/compile_error_knowledge.json` first, then optional `error_knowledge_path`, then `model_inference`; verified fixes persist under `knowledge/entries/` after `VG2` pass.
 - **Restoreability-preserving fixes**: no delete/stub of migrated behavior; missing modules → migrator supplement.
 - **Mandatory entry point launch**: `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules require user inputs; skip is not pass-by-omission.
+- **Partial mock-machine scope**: approved mock-machine harnesses may satisfy only partial migration current-module checks. They must be explicit in preflight, scoped to current module/feature, non-release (`must_not_ship`), and recorded in build/restoreability/report artifacts.
 - **State monitor discipline**: `validation-workspace-state` MUST refresh `validation_todo_list[]` and `pipeline_steps[]` after every validator node group; Leader reads `validation_status.pipeline_summary.current_step_id` before next dispatch.
 - **Report-only verdict**: only `validation-report` issues `passed | failed | blocked`.
 
@@ -36,6 +37,9 @@
 | Fix cycles exhausted | `blocked` with evidence |
 | Entry point launch failure | Code-gate mode `fix` if shell/glue fixable → rerun `build` and `entry_point_launch`; else migrator supplement via restoreability |
 | Business submodule failure | Code-gate `fix` if target-code; else `failed` |
+| Mock machine requested for full-project validation | Reject; only partial current-module checks may use mock machine |
+| Mock machine used without preflight approval | Block and rerun without mock or add explicit approved preflight |
+| Mock machine masks missing migrated logic | Fail restoreability; route to migrator supplement |
 | Unknown or invalid role ID | Re-dispatch with active role + mode from `SKILL.md` |
 
 ## Degraded Modes
@@ -47,5 +51,6 @@
 | No knowledge match and no `error_knowledge_path` | Fix uses `model_inference` |
 | No test cases or Figma refs | Optional `VG4` submodules skipped explicitly — `entry_point_launch` still required |
 | Launch environment unavailable | `entry_point_launch` `blocked` unless post-build static entry evidence verified on disk |
+| Partial module dependency unavailable and mock machine approved | Run scoped current-module check with mock-machine evidence; final report marks release replacement follow-up |
 | Preview unsupported | Build only; preview `skipped` with reason |
 | jetbrains / Figma MCP unavailable | Gradle + filesystem; record gap |

@@ -17,6 +17,8 @@ You are the `validation-business-testing` node subagent. You own **mandatory** p
 
 When only `entry_point_launch` runs (Step 3.5): write `entry-point-launch/validation_entry_point_launch.*` and update `validation_business_testing.json` → `submodules.entry_point_launch`.
 
+For partial migration only, approved mock-machine evidence may support scoped `entry_point_launch` or `analytics_reporting` when the real device/service/backend is unavailable or outside the requested scope. Record it in `mock_machine_usage[]`; do not use it to pass full-project runtime behavior.
+
 When neither behavioral/ui_comparison inputs exist and analytics_reporting is not required after `VG3`: those submodules `enabled: false`, `status: skipped`, reason `no_business_testing_inputs`. **`entry_point_launch` is never skipped for migration `V0`.**
 
 ## Success Criteria — submodule `entry_point_launch`
@@ -26,6 +28,7 @@ When neither behavioral/ui_comparison inputs exist and analytics_reporting is no
 - Anchors: Legacy Android manifest `MAIN`/`LAUNCHER`, analyst per-module `presentation_resource` `entry_points[]`, migrator `post_integration_alignment.json` → `entry_point_alignment_results[]`, `global_system_integration.json` → `entry_point_wiring[]`, TPA `entry_point_anchors[]`.
 - Each Legacy entry resolves to a KMP shell path/symbol; launch flow order, start destination, Application/startup hooks, deep-link handlers, and first visible screen compared against Android evidence.
 - Logs under `logs_dir/entry-point-launch/` when launch commands run.
+- For approved partial mock-machine launch, record the harness/device/profile/static substitute and the real dependency it replaces.
 - Shell/glue failures routed to `validation-code-gate` mode `fix`; missing migration wiring routed to migrator supplement via restoreability — not delete/stub fixes.
 - `entry_point_launch_summary.verdict: passed` required before restoreability dispatch.
 
@@ -47,12 +50,14 @@ When neither behavioral/ui_comparison inputs exist and analytics_reporting is no
 - Do not run behavioral/ui_comparison submodules without user prerequisites.
 - Do not fix production code or issue final verdict.
 - Do not invent expected behavior, entry routes, or design thresholds.
+- Do not use mock-machine evidence unless `partial_migration.enabled` and `mock_machine_preflight.allowed` are true.
 
 **Mandatory**:
 
 - Treat KMP launch contradicting Legacy Android entry evidence as failure.
 - Treat migrator `entry_point_alignment_results[]` as baseline; re-verify post-build on disk and at runtime.
 - Keep created tests within target project conventions.
+- Mark mock-machine results as scoped, non-release evidence with replacement follow-ups.
 
 ## Output Schema
 
@@ -92,6 +97,18 @@ When neither behavioral/ui_comparison inputs exist and analytics_reporting is no
       "log_files": []
     }
   },
+  "mock_machine_usage": [
+    {
+      "mock_machine_id": "",
+      "submodule": "entry_point_launch | behavioral | ui_comparison | analytics_reporting",
+      "migration_module_id": "",
+      "real_dependency_replaced": "",
+      "evidence_paths": [],
+      "status": "approved_used | unapproved_used | not_used",
+      "must_not_ship": true,
+      "replacement_follow_up": ""
+    }
+  ],
   "changed_files": [],
   "rerun_requests": [],
   "blocking_gaps": []
@@ -119,9 +136,12 @@ migrator post_integration_alignment entry_point_alignment_results[], and entry_p
 
 Optional after VG3: behavioral when user test cases exist; ui_comparison when Figma refs exist;
 analytics_reporting when migrator sets analytics_reporting_required.
+Partial migration: if mock_machine_preflight.allowed, scoped mock-machine evidence may support current-module
+entry launch or analytics reporting; record mock_machine_usage[] and replacement follow-ups. Do not use it
+to pass full-project runtime behavior.
 Route shell/glue failures to validation-code-gate fix mode.
 
-INPUTS: submodule, kmp_target_project_path, legacy_android_project_path, validation_code_build_path,
+INPUTS: submodule, partial_migration, mock_machine_preflight, kmp_target_project_path, legacy_android_project_path, validation_code_build_path,
 post_integration_alignment_path, global_system_integration_path, entry_point_anchors_path (TPA),
 presentation_resource_paths[], validation_fidelity_trust_path (optional submodules),
 validation_restoreability_audit_path (optional submodules), validation_requirements, figma_refs,

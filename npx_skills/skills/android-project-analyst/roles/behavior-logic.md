@@ -128,6 +128,7 @@ INPUTS YOU WILL RECEIVE:
 - module_id (required): {MODULE_ID}
 - module_scope (required): {MODULE_SCOPE}
 - analysis_scope: {ANALYSIS_SCOPE}
+- focused_analysis (optional): {FOCUSED_ANALYSIS}
 - mode (exploration | migration): {MODE}
 - module_brief_path (required): {MODULE_BRIEF_PATH}
 - presentation_resource_path (required): {PRESENTATION_RESOURCE_PATH}
@@ -136,7 +137,7 @@ INPUTS YOU WILL RECEIVE:
 - output_dir (required, exact): {OUTPUT_ROOT}/modules/{MODULE_ID}/node-results/behavior-logic
 
 HANDLER (how you process):
-1. Stay inside module_scope; record cross_module_interactions with target_module_id and source_paths but do not analyze target modules — these feed global/cross_module_data_logic.* during Leader integration.
+1. Stay inside module_scope and, when focused_analysis.enabled is true, inside focused_analysis.allowed_source_roots; record cross_module_interactions with target_module_id and source_paths but do not analyze target modules — these feed global/cross_module_data_logic.* during Leader integration.
 2. Link presentation modules/screens to state holders (ViewModels/presenters/controllers/stores/
    reducers/interactors/loaders/state classes).
 3. Trace user-triggered control flow (click/input/refresh/pagination/tab/nav-result/deep-link/

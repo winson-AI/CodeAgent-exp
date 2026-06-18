@@ -10,8 +10,8 @@ Validation starts only when migrator handoff package **`V0`** is ready. Required
 
 | Upstream artifact | Purpose |
 |---|---|
-| `migration_output_root/run_manifest.json` | KMP target, analyst SPEC paths, `handoff_gates.V0` |
-| `migration_output_root/report/migration_report.json` | Scope, changed files, module completion |
+| `migration_output_root/run_manifest.json` | KMP target, analyst SPEC paths, `handoff_gates.V0`, partial migration / mock data preflight when present |
+| `migration_output_root/report/migration_report.json` | Scope, changed files, module completion, partial migration, mock-data usage summary |
 | `migration_output_root/global/global_migration_representation.json` | Restoreability baseline |
 | `migration_output_root/global/node-results/global-migration-phase/align/post_integration_alignment.json` | Alignment baseline; `entry_point_alignment_results[]` |
 | `migration_output_root/global/node-results/global-migration-phase/integrate/global_system_integration.json` | Entry point wiring baseline; `entry_point_wiring[]` |
@@ -21,6 +21,34 @@ Validation starts only when migrator handoff package **`V0`** is ready. Required
 Record resolved paths in `run_manifest.json` → `upstream_migration_artifacts`.
 
 **Fail closed**: migrator `V0` false → `blocked`.
+
+When upstream migration is partial, the validator MUST preserve the same scoped module/feature boundary. Out-of-scope modules are dependency context only unless `migration_report.partial_migration.integration_seams_verified[]` explicitly requires validation.
+
+### Partial Migration Mock Machine Contract
+
+For partial migration only, the validator may use a controlled **mock machine** to pass the current module check when real runtime dependencies are unavailable. A mock machine is a temporary validation harness such as a fake backend, local service, DI override, fixture source set, emulator/device profile, test app shell, or static-only launch substitute that lets the scoped module compile/launch/restoreability-check without validating the entire product environment.
+
+```json
+{
+  "mock_machine_preflight": {
+    "allowed": false,
+    "source": "user_input | migrator_mock_data_preflight | validator_dependency_gap | none",
+    "scope": "none | current_module | screen_flow | entry_point | analytics_reporting | local_service | static_only",
+    "current_module_ids": [],
+    "reason": "",
+    "must_not_ship": true,
+    "expiry_condition": "",
+    "approval_evidence": []
+  }
+}
+```
+
+Rules:
+
+- `mock_machine_preflight.allowed: true` is valid only for `partial_migration.enabled: true` and only for the current scoped module/feature check.
+- Mock machine evidence may satisfy `current_module_check` / scoped build, launch, restoreability, or analytics reachability when the real dependency is outside migration scope or unavailable.
+- Mock machine evidence MUST NOT certify full-project behavior, replace missing migrated logic, hide API contract mismatch, or count as release-ready validation.
+- Every use MUST be recorded in `validation_code_build.json`, `validation_restoreability_audit.json`, `validation_business_testing.json`, workspace state, and final report as applicable.
 
 ---
 
@@ -104,7 +132,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 
 ## Write Order (Leader Schedule)
 
-1. Verify `V0`; write `run_manifest.json`, `upstream_migration_index.json`.
+1. Verify `V0`; write `run_manifest.json`, `upstream_migration_index.json`, including `partial_migration` and `mock_machine_preflight` when applicable.
 2. `validation-workspace-state` — initialize `pipeline_steps[]` and `validation_todo_list[]`; refresh after each group and sync todo/step status.
 3. `validation-fidelity-gate` mode `trust` → `VG1`.
 4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` (lookup `compile_error_knowledge.*` and optional `error_knowledge_path`) → rerun `build` (max 3 fix cycles); on `VG2` pass after a fix cycle, persist verified bug-fix experiences under `code-gate/knowledge/entries/`.
@@ -122,8 +150,8 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 |---|---|
 | `VG0` | Migrator `V0` verified; `upstream_migration_index.json` written |
 | `VG1` | `fidelity-gate/trust/validation_fidelity_trust.json` — no unresolved `test_trust_blockers` |
-| `VG2` | `code-gate/build/validation_code_build.json` — `build.status: passed`; preview passed or justified `skipped` |
-| `VG3` | `fidelity-gate/restoreability/validation_restoreability_audit.json` — `restoreability_verdict: passed`; when `analytics_reporting_required`, `analytics_reporting_summary.verdict: passed | not_applicable` |
+| `VG2` | `code-gate/build/validation_code_build.json` — `build.status: passed`; preview passed or justified `skipped`; for partial current-module mock machine runs, `current_module_check.status: passed` and `mock_machine_summary.status: approved_used | not_used` |
+| `VG3` | `fidelity-gate/restoreability/validation_restoreability_audit.json` — `restoreability_verdict: passed`; when `analytics_reporting_required`, `analytics_reporting_summary.verdict: passed | not_applicable`; mock-machine-assisted passes require approved `mock_machine_restoreability[]` evidence |
 | `VG4` | `business-testing/validation_business_testing.json` — `submodules.entry_point_launch.status: passed` for migration `V0`; optional submodule outcomes or explicit `skipped`; `analytics_reporting` MUST run when migrator requires it |
 | `VG5` | `report/kmp_validation_report.json` issued |
 
@@ -145,6 +173,8 @@ Owner: `validation-workspace-state`. Path: `workspace-state/validation_workspace
 | `validation_status.pipeline_summary` | Step counts + `current_step_id` |
 | `handoff_gates` | `VG0`–`VG5` readiness |
 | `fix_cycles`, `migrator_supplement_cycles` | Active remediation loop counters |
+| `partial_migration` | Scoped validation boundary inherited from migrator |
+| `mock_machine_tracking` | Approved/used mock machine evidence and replacement blockers |
 
 `validation_workspace_state.md` MUST include **Validation Todo List** and **Pipeline Progress** tables.
 
@@ -155,6 +185,28 @@ Migration trigger evidence, `fidelity_gaps`, `test_trust_blockers`, normalized v
 ### `validation_code_build.json` (mode `build`)
 
 `compile_resolution_scenario`: `user_specified` → `global_tool_search` → `default_gradle_kmp`. Build/preview status, log paths, failures routed to `validation-code-gate:fix`.
+
+For partial migration with approved mock machine, `validation_code_build.json` MUST include:
+
+```json
+{
+  "current_module_check": {
+    "enabled": false,
+    "migration_module_ids": [],
+    "status": "passed | failed | blocked | not_applicable",
+    "commands": [],
+    "evidence": [],
+    "dependency_gaps_masked": []
+  },
+  "mock_machine_summary": {
+    "used": false,
+    "status": "approved_used | unapproved_used | not_used | blocked",
+    "items": [],
+    "must_not_ship": true,
+    "replacement_follow_ups": []
+  }
+}
+```
 
 ### `validation_code_fix.json` (mode `fix`)
 
@@ -240,6 +292,25 @@ The validator maintains a durable bug-fix experience ledger for compile/preview 
 
 `migrator_supplement_request` when new migration work required. Post-build **entry point static re-verification**: for each row in migrator `post_integration_alignment.json` → `entry_point_alignment_results[]`, confirm built target evidence still resolves the KMP shell path/symbol and `global_alignment_results.entry_points.verdict` remains `passed | passed_with_assumptions`; record `entry_point_verification_results[]` with `post_build_status`. Failed entry point static verification blocks `restoreability_verdict: passed`. When `migration_report.validation_inputs.analytics_reporting_required`, MUST include `analytics_reporting_results[]` and `analytics_reporting_summary` — failed analytics reporting blocks `restoreability_verdict: passed`. Controller invokes `android-to-kmp-migrator` — not code-gate `fix`.
 
+For approved partial mock-machine runs, restoreability may include:
+
+```json
+{
+  "mock_machine_restoreability": [
+    {
+      "mock_machine_id": "",
+      "migration_module_id": "",
+      "validated_surface": "current_module | screen_flow | entry_point | analytics_reporting",
+      "real_dependency_replaced": "",
+      "evidence_paths": [],
+      "status": "passed | failed | blocked",
+      "release_blocker": true,
+      "replacement_follow_up": ""
+    }
+  ]
+}
+```
+
 ### `validation_entry_point_launch.json` (submodule `entry_point_launch`)
 
 Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Application/root-nav/deep-link evidence to KMP post-build launch behavior.
@@ -323,6 +394,7 @@ Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Applic
 5. Enable business-testing submodules only with user prerequisites.
 6. Maintain `handoff_gates` in workspace ledger and final report.
 7. Refresh `validation-workspace-state` so `validation_todo_list` and `pipeline_steps` reflect status before issuing `VG5` verdict.
+8. For partial migration mock-machine checks, ensure every mock-machine item is approved, scoped to the current module, and carried into final report limitations/replacement follow-ups.
 
 ## Invalid Artifact Handling
 
@@ -333,3 +405,6 @@ Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Applic
 | Fix mode delete/stub violation | `failed`; rerun fix with constraint recorded |
 | Business optional submodule without user input | `skipped`, not pass-by-omission |
 | `entry_point_launch` skipped for migration `V0` | `failed` |
+| Mock machine used without `mock_machine_preflight.allowed` | `blocked` |
+| Mock machine used for full-project validation | `failed` — rerun without mock or narrow to partial current-module scope |
+| Mock machine hides missing migrated logic/API mismatch | `failed`; route to migrator supplement or code-gate fix |

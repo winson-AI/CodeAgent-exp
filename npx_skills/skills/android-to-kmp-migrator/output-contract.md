@@ -1,6 +1,6 @@
 # Output Contract: File Recording System, Upstream Inputs, And Downstream Trigger Gates
 
-This document is the **canonical path and content contract** for `android-to-kmp-migrator`. Downstream handlers (`kmp-test-validator`, `migration-task-adapter`) **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers** — they do not infer from chat summaries.
+This document is the **canonical path and content contract** for `android-to-kmp-migrator`. Downstream handlers (`kmp-test-validator`, `coding-task-adapter`) **MUST treat missing, empty, out-of-path, stale, or schema-invalid artifacts as hard blockers** — they do not infer from chat summaries.
 
 The Leader and every node MUST read this file before writing artifacts. When `SKILL.md` or `workflow.md` diverge, **this file wins on paths, filenames, upstream inputs, and trigger gates**.
 
@@ -10,7 +10,7 @@ Migration starts only when analyst handoff package **`P6`** (see `android-projec
 
 | Upstream artifact | Purpose for migrator |
 |---|---|
-| `analyst_output_root/run_manifest.json` | Source path, mode, analyst `handoff_package` |
+| `analyst_output_root/run_manifest.json` | Source path, mode, analyst `handoff_package`, `focused_analysis` boundaries when partial/focused |
 | `analyst_output_root/module-index/modules_index.json` | Legacy `module_id` → folder/dimension paths |
 | `analyst_output_root/module-index/module_inventory.json` | Module schedule, scopes, `depends_on` |
 | `analyst_output_root/global/migration_assembly_basis.json` | Module assembly order, integration checkpoints |
@@ -29,6 +29,8 @@ Per legacy `module_id`, migrator may consume:
 Record all resolved upstream paths in `run_manifest.json` → `upstream_analyst_artifacts`.
 
 **Fail closed**: if analyst `handoff_gates.P6.ready` is false or paths are missing, migrator returns `blocked` — do not start module dispatch. Dispatch or re-run `android-project-analyst` until **P6** is ready.
+
+For partial migration, analyst evidence MUST carry `focused_analysis.enabled: true` with attention modules/source roots that match the user-requested partial scope. If analyst P6 is whole-project but the user requested partial migration, the Leader MUST either resolve the requested modules from analyst indexes without widening implementation, or rerun analyst focused on the requested scope.
 
 ## Skill Chain (mandatory)
 
@@ -147,7 +149,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 | Step | Gate | Required artifacts before next step |
 |---|---|---|
-| `MG0` | Run lock | `run_manifest.json` (incl. `design_mode`), `upstream-index/upstream_analyst_index.json` |
+| `MG0` | Run lock | `run_manifest.json` (incl. `design_mode`, `raw_user_task`, `partial_migration`, `mock_data_preflight`), `upstream-index/upstream_analyst_index.json` |
 | `MG1` | Workspace init | global `migration_workspace_state.*` (initial `pipeline_steps[]`, empty `migration_todo_list[]`) |
 | `MG2` | Migration index | `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json` |
 | `MG3` | Target baseline | global `target-project-assistant/*` (`mode: global_baseline`) + `target_alignment_revision.*` |
@@ -265,6 +267,50 @@ Records the presentation architecture pattern, identified from **user input** at
 
 The Leader MUST pass `design_mode.value` and `design_mode.architecture_reference_path` into every architecture-producing dispatch (`migration-planning-gate`, `migration-prep`, `module-implementation`, `module-node-review-fix`, `global-migration-phase`) and to `target-project-assistant` for target-pattern detection.
 
+### `run_manifest.json` → user task, partial migration, and mock-data preflight
+
+The migrator MUST follow both upstream analyst evidence and the user input. The user task can further constrain the migration scope, architecture mode, target preferences, and whether temporary mock data may be used.
+
+```json
+{
+  "raw_user_task": "",
+  "user_task_constraints": {
+    "requested_behavior": [],
+    "requested_target_preferences": [],
+    "explicit_exclusions": [],
+    "acceptance_notes": []
+  },
+  "partial_migration": {
+    "enabled": false,
+    "scope_kind": "full_project | module | feature | screen_flow | package | file_set | mixed | unknown",
+    "requested_scope": [],
+    "migration_module_ids": [],
+    "allowed_source_roots": [],
+    "excluded_source_roots": [],
+    "focused_analyst_ref": "",
+    "validation_scope": "",
+    "boundary_notes": []
+  },
+  "mock_data_preflight": {
+    "allowed": false,
+    "reason": "",
+    "scope": "none | ui_preview | local_stub | test_fixture | temporary_integration",
+    "allowed_modules": [],
+    "expiry_condition": "",
+    "must_not_ship": true,
+    "tracking_ids": []
+  }
+}
+```
+
+Rules:
+
+- `partial_migration.enabled: true` only when the upstream adapter/user explicitly requested partial migration. Otherwise migrate the full analyst assembly scope.
+- For partial migration, `migration_module_ids` and `allowed_source_roots` are hard boundaries. Module inventory, planning, prep, implementation, verification, global integrate, and report MUST stay inside them except for explicitly declared integration seams.
+- `raw_user_task` and `user_task_constraints` MUST be passed to planning, prep, implementation, verification, global integration, and completion-report. When user input conflicts with analyst evidence, record a blocker or planning delta; do not silently ignore the user.
+- Mock data is allowed only when `mock_data_preflight.allowed: true`, and only for dependency gaps that block local UI/logic wiring (for example unavailable backend/service, absent generated API, unavailable platform integration, or missing fixture data). Mock data MUST be traceable, isolated, marked `must_not_ship`, and routed to verification/report as a replacement gap.
+- Mock data MUST NOT replace business logic, hide API contract mismatch, or be used in final production paths without a recorded removal/real-data follow-up.
+
 ### `upstream_analyst_index.json`
 
 ```json
@@ -272,6 +318,7 @@ The Leader MUST pass `design_mode.value` and `design_mode.architecture_reference
   "analyst_output_root": "",
   "analyst_handoff_package": "P6",
   "analyst_handoff_ready": true,
+  "focused_analysis": {},
   "modules_index_path": "",
   "migration_assembly_basis_path": "",
   "cross_module_architecture_path": "",
@@ -284,7 +331,9 @@ The Leader MUST pass `design_mode.value` and `design_mode.architecture_reference
 
 ### `modules_migration_index.json`
 
-Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_root`, `upstream_module_representation_path`, `target_anchor_paths`, `completion_status`.
+Machine lookup: `migration_module_id` → `legacy_module_id`, `module_output_root`, `upstream_module_representation_path`, `target_anchor_paths`, `completion_status`, `partial_migration_in_scope`.
+
+For partial migration, `modules_migration_index.json` MUST include only requested `migration_module_ids` plus explicit integration seam modules. Out-of-scope modules may be referenced as dependencies but MUST NOT enter the implementation loop.
 
 ### `migration_workspace_state.json` (state monitor)
 
@@ -358,13 +407,50 @@ Runtime analytics **reporting** verification (event actually reaches SDK/report 
 
 Combined `planning` (spec deltas, source-to-target map, tasks) and `dependency_platform` (capability map, platform boundaries) sections. Status `ready_for_implementation` when both complete.
 
+Planning MUST include `user_task_alignment`, `partial_scope_boundary`, and `mock_data_plan` when applicable:
+
+```json
+{
+  "user_task_alignment": {
+    "raw_user_task": "",
+    "satisfied_constraints": [],
+    "conflicts": [],
+    "deferred_items": []
+  },
+  "partial_scope_boundary": {
+    "enabled": false,
+    "in_scope_modules": [],
+    "out_of_scope_modules": [],
+    "integration_seams": []
+  },
+  "mock_data_plan": [
+    {
+      "mock_id": "",
+      "reason": "",
+      "target_path": "",
+      "replaced_dependency": "",
+      "expiry_condition": "",
+      "verification_follow_up": ""
+    }
+  ]
+}
+```
+
 ### `migration_prep.json`
 
 Combined `presentation` (tokens, resources, routes) and `state_data` (state/models/API expectations, `analytics_expectations[]`) sections.
 
+Prep MUST include `mock_data_fixtures[]` only when permitted by `mock_data_preflight` / `migration_planning_gate.mock_data_plan`.
+
 ### `module_implementation_ui.json` / `module_implementation_logic.json`
 
 UI mode and logic mode outputs under `module-implementation/ui/` and `module-implementation/logic/` respectively. Each MUST record `kmp_target_project_path`, `target_edit_summary`, and `changed_files[]` listing every target KMP path created or modified in that invocation. Logic mode MUST include `analytics_coverage[]` when legacy scope contains 埋点. Legacy Android paths are evidence only — implementation edits occur under `kmp_target_project_path`.
+
+Implementation MUST prioritize focused code:
+
+- In partial migration, edit only files mapped to `partial_migration.migration_module_ids`, `allowed_source_roots`, and declared integration seams.
+- Do not touch unrelated target modules to "clean up" or opportunistically refactor.
+- If mock data is used, changed files must include `mock_data_usage[]` with `mock_id`, `target_path`, `guarding_strategy`, and removal condition.
 
 ### `alignment_report.json`
 
@@ -411,11 +497,31 @@ When migration scope includes analytics, `migration_report.json` MUST aggregate:
 
 `validation_inputs.analytics_reporting_required` is `true` when `total_legacy_events > 0`; `kmp-test-validator` MUST run analytics reporting verification during restoreability / business-testing.
 
+For partial migration and/or mock data, `migration_report.json` MUST also include:
+
+```json
+{
+  "partial_migration": {
+    "enabled": false,
+    "scope_kind": "full_project | module | feature | screen_flow | package | file_set | mixed | unknown",
+    "completed_scope": [],
+    "out_of_scope": [],
+    "integration_seams_verified": []
+  },
+  "mock_data_usage_summary": {
+    "used": false,
+    "items": [],
+    "must_replace_before_release": true,
+    "replacement_follow_ups": []
+  }
+}
+```
+
 ---
 
 ## Leader Obligations
 
-1. Verify analyst package `P6` before `MG0` completes; identify `design_mode` from user input (default `mvi`) and write it to `run_manifest.json` at `MG0`, then pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch.
+1. Verify analyst package `P6` before `MG0` completes; identify `design_mode` from user input (default `mvi`); resolve `partial_migration` and `mock_data_preflight`; write all three to `run_manifest.json` at `MG0`, then pass `raw_user_task`, `user_task_constraints`, `partial_migration`, `mock_data_preflight`, `design_mode` + `architecture_reference_path` into every relevant dispatch.
 2. Dispatch `target-project-assistant` for all target-project questions; other roles MUST reference TPA artifacts instead of re-analyzing target ad hoc.
 3. Refresh `migration-workspace-state` after inventory, each module node group, each module representation, global phase, and report; ensure `migration_todo_list` and `pipeline_steps` stay synced before dispatching the next step.
 4. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
@@ -445,3 +551,6 @@ When migration scope includes analytics, `migration_report.json` MUST aggregate:
 | `design_mode` missing from `run_manifest.json` at MG0 | `blocked`, `reason: missing` — Leader must identify (default `mvi`) before module dispatch |
 | Architecture-producing dispatch missing `design_mode` / `architecture_reference_path` | Reject dispatch; re-dispatch with `design_mode` injected |
 | Implementation/review uses the wrong architecture vs `design_mode` | `needs_rerun` → owning role with correct `architecture_reference_path` |
+| Partial migration edits out-of-scope files | `blocked` — reject artifact; rerun owning role with `partial_migration.allowed_source_roots` and allowed target paths |
+| User task constraints missing from dispatch | Reject dispatch; re-dispatch with `raw_user_task` and `user_task_constraints` |
+| Mock data used without preflight allowance | `blocked` — remove mock or rerun preflight with explicit `mock_data_preflight` |

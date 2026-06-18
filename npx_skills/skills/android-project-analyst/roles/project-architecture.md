@@ -139,6 +139,7 @@ INPUTS YOU WILL RECEIVE:
 - module_id (required): {MODULE_ID}
 - module_scope (required): {MODULE_SCOPE}
 - analysis_scope: {ANALYSIS_SCOPE}
+- focused_analysis (optional): {FOCUSED_ANALYSIS}
 - mode (exploration | migration): {MODE}
 - module_brief_path (required): {MODULE_BRIEF_PATH}
 - output_dir (required, exact): {OUTPUT_ROOT}/modules/{MODULE_ID}/node-results/project-architecture
@@ -146,7 +147,7 @@ INPUTS YOU WILL RECEIVE:
 - optional jetbrains MCP context (modules / dependencies / repositories): {MCP_CONTEXT}
 
 HANDLER (how you process):
-1. Stay inside module_scope; record dependencies on other modules as cross_module_dependencies with target_module_id and source_paths — these feed global/cross_module_architecture.* during Leader integration
+1. Stay inside module_scope and, when focused_analysis.enabled is true, inside focused_analysis.allowed_source_roots; record dependencies on other modules as cross_module_dependencies with target_module_id and source_paths — these feed global/cross_module_architecture.* during Leader integration
    without analyzing those target modules here.
 2. Inspect build config (Gradle files, AGP, Kotlin, compile/min/target SDK, namespaces/app IDs,
    flavors, build types, version catalogs, buildSrc/convention plugins).

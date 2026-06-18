@@ -1,7 +1,7 @@
 ---
-name: migration-task-adapter
+name: coding-task-adapter
 description: |
-  Front-door Swarm Skill that classifies Android/KMP migration requests, routes understand/migration/validation tasks to analyst, migrator, and validator workflows, and records stage gates plus asset ledgers before the final adapter report.
+  Front-door Swarm Skill that classifies Android/KMP migration requests, routes understand/migration/validation tasks (including partial migration scopes) to analyst, migrator, and validator workflows, and records stage gates plus asset ledgers before the final adapter report.
   Use when a controller must decide task intent and invoke the correct downstream workflow before detailed analysis, migration, or validation runs.
   Do NOT use for direct source lookup, single-file edits, generic KMP testing without migration context, or standalone implementation work.
 version: "0.2"
@@ -41,7 +41,7 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 | `only_understand_logic` | `android-project-analyst` — behavior/control-flow focus |
 | `only_understand_architecture` | `android-project-analyst` — architecture/ecosystem focus |
 | `only_understand_overview` | `android-project-analyst` — full representation + SPEC |
-| `migration` | analyst (if SPEC stale) → `android-to-kmp-migrator` → **`kmp-test-validator` (required)** |
+| `migration` | analyst (if SPEC stale) → `android-to-kmp-migrator` → **`kmp-test-validator` (required)**; defaults to full project, supports partial scope only when explicitly requested |
 | `validation_handoff` | `kmp-test-validator` when migration evidence exists |
 
 ## Protocol Summary
@@ -49,7 +49,7 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); lock adapter `output_root`.
 1. **Route** — `task-route-orchestrator` mode `route` → `task_route.*`.
 2. **Workspace init** — `adapter-workspace-state` → ledger, first stage inspection, asset records.
-3. **Orchestrate** — `task-route-orchestrator` mode `orchestrate` → downstream dispatch contracts and observed outputs.
+3. **Orchestrate** — `task-route-orchestrator` mode `orchestrate` → downstream dispatch contracts and observed outputs; preserve `partial_migration` boundaries when scoped.
 4. **Stage gates** — refresh `adapter-workspace-state` after each route and downstream boundary.
 5. **Report** — `adapter-report` when `pre_report` stage passes and assets are complete.
 
@@ -76,7 +76,7 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 See [output-contract.md](output-contract.md) for the full folder tree, filename invariants, and handoff packages `A0`–`A6`. Summary path variables:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/task-adapter>/migration-task-adapter
+output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
 downstream_index_dir = <output_root>/downstream-index
 workspace_state_dir = <output_root>/workspace-state
 route_orchestration_dir = <output_root>/route-orchestration
@@ -120,6 +120,8 @@ Any artifact written outside the path tree in `output-contract.md` is **invalid*
 
 - Adapter roles orchestrate only — no Android analysis, migration implementation, validation testing, or code fixes.
 - Route classification happens before downstream workflow selection.
+- Partial migration is route `migration` with `partial_migration.enabled: true` only when the user clearly asks for a module/feature/subset migration. Otherwise migrate the whole input project from `source_project_path`.
+- When partial migration is enabled, scope must be preserved through analyst, migrator, validator, stage inspections, and final report.
 - Every consumed durable artifact must appear in `intermediate_asset_records.*`.
 - Downstream evidence is consumed by path and status only — never invented.
 - Route `migration` MUST invoke `kmp-test-validator` after migrator handoff; adapter cannot claim migration completion without validator evidence and `post_validator` stage pass.
