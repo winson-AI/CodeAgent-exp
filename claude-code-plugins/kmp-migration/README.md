@@ -290,17 +290,13 @@ A **Swarm Skill** (specialization pipeline C + parallel fan-outs B + review→fi
 - `roles/migration-report.md`: final migration report with mappings, changed files, coverage, limitations, manual steps, and validation inputs.
 
 ### `skills/kmp-test-validator`
-A **Swarm Skill** (specialization pipeline C + remediation loop) used by the `kmp-test-validator` controller. `SKILL.md` is the team registry; `workflow.md` holds the staged dispatch topology and gates; `bind.md` holds resource/behavioral constraints (migration-trigger boundary, `max_remediation_cycles`, "never invent a command"); `dependencies.yaml` lists startup tools. The nine node roles live under `roles/`:
+A **Swarm Skill** (5-role reduced pipeline + fix/supplement loops) used by the `kmp-test-validator` controller. `output-contract.md` defines paths and `VG0`–`VG5` gates; `ROLE_REDUCTION.md` documents the 7→5 merge. Active roles under `roles/`:
 
-- `roles/validation-workspace-state.md`: validation node status, changed-file ownership, stale input, rerun history, and blocker ledger.
-- `roles/validation-input-contract.md`: migration-validation trigger verification and normalized validation brief.
-- `roles/android-kmp-fidelity-audit.md`: Android/KMP comparison across UI, logic, data flow, and control flow.
-- `roles/kmp-validation-plan.md`: target KMP structure, source sets, test frameworks, and trusted command discovery.
-- `roles/build-preview-gate.md`: compile/build and Compose preview or renderability validation before behavioral tests.
-- `roles/test-case-decomposition.md`: atomic test/use-case inventory from user input, SPEC, and migration report validation inputs.
-- `roles/test-execution.md`: project-convention test execution and evidence capture.
-- `roles/validation-remediation.md`: focused KMP fixes for confirmed validation failures, followed by required reruns.
-- `roles/validation-report.md`: final fidelity, build, preview, test, remediation, blocker, and status report.
+- `roles/validation-workspace-state.md`: ledger, handoff gates, fix/supplement cycle counts.
+- `roles/validation-fidelity-gate.md`: modes `trust` (pre-build fidelity) and `restoreability` (post-build audit, migrator supplement routing).
+- `roles/validation-code-gate.md`: modes `build` (three-scenario compile/preview) and `fix` (error DB or model, restoreability-preserving).
+- `roles/validation-business-testing.md`: optional `behavioral` and `ui_comparison` submodules when user supplies test cases or Figma refs.
+- `roles/validation-report.md`: final evidence-backed validation verdict.
 
 ## Structure
 

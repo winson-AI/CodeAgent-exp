@@ -11,7 +11,7 @@
       "name": "kmp-migration",
       "source": "./kmp-migration",
       "description": "End-to-end Android to KMP migration toolkit. Agents for analysis, migration, and validation.",
-      "version": "0.1.21"
+      "version": "0.1.30"
     },
     {
       "name": "flow_d2c",

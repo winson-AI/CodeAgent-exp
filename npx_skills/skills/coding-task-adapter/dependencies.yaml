@@ -1,0 +1,44 @@
+# dependencies.yaml — coding-task-adapter startup check
+
+skills:
+  - name: operating-instructions
+    required: true
+    used_by:
+      - task-route-orchestrator
+      - adapter-workspace-state
+      - adapter-report
+    purpose: Shared baseline conduct layer loaded before adapter routing, workspace-state, orchestration, and reporting work.
+  - name: android-project-analyst
+    required: false
+    used_by:
+      - task-route-orchestrator
+    purpose: Downstream for understand routes and pre-migration SPEC.
+  - name: android-to-kmp-migrator
+    required: false
+    used_by:
+      - task-route-orchestrator
+    purpose: Downstream for migration after analyst evidence is fresh.
+  - name: kmp-test-validator
+    required: false
+    used_by:
+      - task-route-orchestrator
+    purpose: Mandatory downstream for route migration after migrator V0/M6; also used by validation_handoff. Validation root is parallel to migration.
+
+tools:
+  - name: rg
+    required: false
+    used_by:
+      - task-route-orchestrator
+    purpose: Optional evidence discovery for routing.
+  - name: git
+    required: false
+    used_by:
+      - task-route-orchestrator
+      - adapter-workspace-state
+      - adapter-report
+    purpose: Changed-file and freshness checks for ledger and report.
+  - name: curl
+    required: false
+    used_by:
+      - task-route-orchestrator
+    purpose: Optional; downstream analyst presentation workflows may fetch remote media.

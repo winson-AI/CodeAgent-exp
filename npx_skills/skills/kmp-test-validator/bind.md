@@ -4,50 +4,53 @@
 
 | Item | Limit | Reason |
 |---|---|---|
-| `max_parallel_teammates` | 1 | The validator is a strict serial pipeline — each node consumes the prior node's verified artifact; no stage fans out in parallel. |
-| `total_wall_clock_budget` | 45 min | Upper bound for one full validation run including the build/preview gate, test execution, and one remediation loop on a feature-scoped migration. |
-| `total_token_budget` | 700k tokens | Budget across all 9 nodes + Leader integration + remediation iterations; prevents one node or loop from exhausting context. |
-| `per_node_token_budget` | 110k tokens | Per node soft cap; `android-kmp-fidelity-audit`, `test-execution`, and `validation-report` may use the upper end. |
-| `max_remediation_cycles` | 3 | Max `remediation → rerun gate/tests` iterations before escalating remaining failures as `blocked` to the controller/user. |
-| `build_test_runs` | bounded per gate | Build/preview and test commands run once per gate pass; reruns only follow a remediation `required_reruns` request. |
+| `max_parallel_teammates` | 1 | Serial pipeline with mode dispatches |
+| `total_wall_clock_budget` | 45 min | Full validation including loops |
+| `total_token_budget` | 600k tokens | Leader + role dispatches + loops |
+| `per_node_token_budget` | 130k tokens | Mode-based roles carry broader context |
+| `max_fix_cycles` | 3 | Max code-gate `fix` → rerun `build`/business-testing iterations |
+| `max_migrator_supplement_cycles` | 3 | Max restoreability gap → migrator supplement iterations |
 
 ## Behavioral Constraints
 
-Team-level rules — distinct from each role's own `## Boundary`.
-
-- **Leader-as-orchestrator only**: the Leader (`kmp-test-validator` controller) gates the migration scenario, dispatches nodes in dependency order, validates return payloads + output files, refreshes workspace state, and routes reruns. The Leader does NOT perform a node's detailed audit, run its tests, or apply its fixes.
-- **Migration-scenario trigger boundary**: this team validates ONLY Android-to-KMP migration output. If `validation-input-contract` cannot confirm migration evidence (KMP target + Android source/SPEC + migration report/completion), the run is `blocked` — it is never downgraded to generic KMP testing, KMP-only feature work, or isolated Gradle troubleshooting.
-- **Hard dependency order (C-pattern)**: input contract → fidelity audit → validation plan → build/preview gate → decomposition → execution → report. Fidelity is audited before tests are trusted; the build/preview gate passes before behavioral tests run. A downstream node references upstream outputs by path and must NOT rebuild them; on missing/stale upstream input it returns `needs_rerun`/`blocked`.
-- **Android/SPEC is ground truth**: a passing test (or green build) that contradicts Android source/SPEC behavior is a validation failure, not a pass.
-- **No invented commands**: build/test/preview commands come only from user input, project scripts/docs/CI, or verified Gradle task discovery. A node that cannot resolve a trustworthy command returns `blocked`.
-- **Scoped remediation, mandatory rerun**: only `validation-remediation` edits target code, confined to `allowed_files`; every fix is followed by its `required_reruns` (build/preview and/or test execution) before it counts as resolved. No fix introduces TODO/FIXME or sample-only production data.
-- **Stale-artifact discipline**: `validation-workspace-state` is refreshed after each node group; `validation-report` runs only when no required input is stale.
-- **Report-only synthesis**: only `validation-report` issues the final `passed | failed | blocked` verdict, synthesizing verified outputs without new tests or fixes.
+- **Leader orchestrates only** — dispatches roles with explicit `mode`; runs both controller loops.
+- **Canonical contract**: [output-contract.md](output-contract.md) wins on paths and `VG0`–`VG5`.
+- **Role schedule**: dispatch only role IDs listed in [SKILL.md](SKILL.md).
+- **Dependency order**: workspace → fidelity-gate `trust` → code-gate `build` → [fix loop] → business-testing `entry_point_launch` → fidelity-gate `restoreability` → [supplement loop] → optional business-testing submodules → report.
+- **Read-only fidelity**: `validation-fidelity-gate` never runs commands or edits code.
+- **Single production editor**: only `validation-code-gate` mode `fix` edits target production code.
+- **Three compile scenarios**: `user_specified` → `global_tool_search` → `default_gradle_kmp`.
+- **Compile error knowledge loop**: fix mode looks up `code-gate/knowledge/compile_error_knowledge.json` first, then optional `error_knowledge_path`, then `model_inference`; verified fixes persist under `knowledge/entries/` after `VG2` pass.
+- **Restoreability-preserving fixes**: no delete/stub of migrated behavior; missing modules → migrator supplement.
+- **Mandatory entry point launch**: `entry_point_launch` runs for every migration `V0` handoff after `VG2`; optional business submodules require user inputs; skip is not pass-by-omission.
+- **Partial mock-machine scope**: approved mock-machine harnesses may satisfy only partial migration current-module checks. They must be explicit in preflight, scoped to current module/feature, non-release (`must_not_ship`), and recorded in build/restoreability/report artifacts.
+- **State monitor discipline**: `validation-workspace-state` MUST refresh `validation_todo_list[]` and `pipeline_steps[]` after every validator node group; Leader reads `validation_status.pipeline_summary.current_step_id` before next dispatch.
+- **Report-only verdict**: only `validation-report` issues `passed | failed | blocked`.
 
 ## Failure Handling
 
-### (a) Teammate failure
-
 | Failure mode | Response |
 |---|---|
-| Node timeout | Retry once with the same contract. On 2nd timeout, mark the node `[ROLE MISSING — node timed out]` in the workspace ledger; downstream nodes that hard-require it return `blocked`. |
-| Malformed output (does not match role `## Output Schema` / shared return, or files missing/empty) | Re-dispatch once with the schema inlined and a "previous output was malformed/missing" preamble. On 2nd failure, mark `[ROLE MISSING — malformed output]`. |
-| Node returns `needs_rerun` / `blocked` (missing or stale upstream input) | Refresh/re-run the named upstream node first, then re-dispatch this node. If unresolvable, record the `blocking_gap`. |
-| `build-preview-gate` or `test-execution` returns `failed` | Route fixable target-code failures to `validation-remediation`; on its `required_reruns`, re-run the affected gate/tests. Non-target failures route to migration node / user / environment. |
-| Remediation loop does not converge in `max_remediation_cycles` | Escalate remaining failures as `blocked` with evidence to the controller/user; do not mark `passed`. |
-| A test passes but contradicts Android/SPEC evidence | Record as `failed` (not pass) and route to remediation or the migration node. |
+| Code-gate `build` compile failed | Code-gate mode `fix` → rerun `build` |
+| Fidelity-gate `restoreability` needs supplement | Leader invokes migrator if under max cycles |
+| Fix uses forbidden delete/stub | Reject; record violation; route supplement or `blocked` |
+| Fix cycles exhausted | `blocked` with evidence |
+| Entry point launch failure | Code-gate mode `fix` if shell/glue fixable → rerun `build` and `entry_point_launch`; else migrator supplement via restoreability |
+| Business submodule failure | Code-gate `fix` if target-code; else `failed` |
+| Mock machine requested for full-project validation | Reject; only partial current-module checks may use mock machine |
+| Mock machine used without preflight approval | Block and rerun without mock or add explicit approved preflight |
+| Mock machine masks missing migrated logic | Fail restoreability; route to migrator supplement |
+| Unknown or invalid role ID | Re-dispatch with active role + mode from `SKILL.md` |
 
-### (b) Input over-scale degradation
+## Degraded Modes
 
-| Trigger condition | Degraded mode |
+| Trigger | Effect |
 |---|---|
-| Whole-project validation scope with a very large test inventory | Scope `test-case-decomposition`/`test-execution` to the migrated modules in scope; mark untested areas explicitly in the report rather than running unrelated suites. |
-| No trustworthy build/test command resolvable | `kmp-validation-plan` / `build-preview-gate` return `blocked`; rely on static fidelity audit + decomposition and surface the command gap (does not auto-pass). |
-| Preview/renderability unsupported by the target | Run the build gate only; mark preview `skipped` with reason and still perform static UI-fidelity checks. |
-| `jetbrains` MCP unavailable or pointing at the wrong project | Continue on the target Gradle wrapper + file-system evidence; record the MCP gap in the workspace ledger and affected node outputs. |
-
-### Escalation rules
-
-- If 50%+ of dispatched nodes return `[ROLE MISSING]`, the run is **FAILED** — emit a partial validation report with a `FAILED: insufficient node coverage` header, status `blocked`, and the missing-evidence list.
-- If `total_wall_clock_budget` is exceeded, halt in-flight nodes, checkpoint via `validation-workspace-state`, emit whatever verified outputs exist, and tag the report `INCOMPLETE: budget exceeded`.
-- If `total_token_budget` is exceeded mid-run, halt new dispatches, let in-flight nodes finish, checkpoint, and emit a partial report tagged `INCOMPLETE: token budget exceeded`.
+| Migrator V0 not ready | `blocked` |
+| No local knowledge index yet | Leader initializes empty `compile_error_knowledge.json` |
+| No knowledge match and no `error_knowledge_path` | Fix uses `model_inference` |
+| No test cases or Figma refs | Optional `VG4` submodules skipped explicitly — `entry_point_launch` still required |
+| Launch environment unavailable | `entry_point_launch` `blocked` unless post-build static entry evidence verified on disk |
+| Partial module dependency unavailable and mock machine approved | Run scoped current-module check with mock-machine evidence; final report marks release replacement follow-up |
+| Preview unsupported | Build only; preview `skipped` with reason |
+| jetbrains / Figma MCP unavailable | Gradle + filesystem; record gap |

@@ -1,180 +1,161 @@
-# Workflow: Legacy Android SPEC + target KMP project → migrated, validation-ready KMP code
+# Workflow: Analyst P6 → module-first migration → kmp-test-validator
 
-This Swarm Skill is a **specialization pipeline (C) with embedded parallel fan-outs (B) and review→fix loops**. The `android-to-kmp-migrator` controller (Leader) verifies the trigger, dispatches nodes in a hard dependency order, gates every handoff, runs a mandatory review→fix→re-review loop after any node changes files, routes guard/parity/fidelity/build failures back to the responsible node, and invokes `kmp-test-validator` only after the migration report returns `ready_for_validation`. Implementation outputs must be fully implemented — TODO placeholders are not acceptable.
+See [output-contract.md](output-contract.md) and active role IDs in [SKILL.md](SKILL.md).
+
+## Skill Chain (mandatory)
+
+| Phase | Skill | Gate | Leader rule |
+|---|---|---|---|
+| Prerequisite | `android-project-analyst` | **P6** | MUST finish before `android-to-kmp-migrator` is invoked. Missing/stale P6 → `blocked`; dispatch analyst first. |
+| Migration | `android-to-kmp-migrator` | **M0**–**V0** | Runs only after P6 verified; ends with `migration_report.*` and **V0** ready. |
+| Post-migration | `kmp-test-validator` | **V0** | MUST be invoked after migrator completes **V0** (MG17). Do not end the migration workflow without validator dispatch. |
+
+## Target KMP Edit Flow
+
+After analyst **P6** understanding (read-only), the migrator **edits** `kmp_target_project_path`:
+
+1. **Per module**: `migration-prep` (optional scaffold) → `module-implementation` `ui` → `logic` (required target edits) → review/fix remediation as needed.
+2. **Global**: `global-migration-phase` `integrate` edits cross-module glue and entry-point wiring.
+3. **Align** is read-only verification — reruns integrate or module implementation when target edits are missing or wrong.
+
+Planning and TPA artifacts route edits; they do not replace implementation.
 
 ## Overview
 
 ```mermaid
 graph TD
-  L0[Leader: Step 0 pre-flight deps] --> WS[migration-workspace-state]
-  WS --> SD[legacy-spec-delta-review]
-  SD --> TP[target-project-understand]
-  TP -->|KMP evidence?| GT{target is KMP?}
-  GT -- No --> BLK[Stop: blocked, missing target evidence]
-  GT -- Yes --> AL[migration-alignment]
-  AL --> DEP{dependency-resolution<br/>minimal-change gate}
-  DEP -- blocked --> BLK
-  DEP -- ready_for_implementation --> PREP
+  L0[Pre-flight deps] --> UP[Verify analyst P6]
+  UP --> INV[migration inventory]
+  INV --> WS[migration-workspace-state]
+  WS --> TPA0[target-project-assistant global_baseline]
+  TPA0 --> LOOP[For each migration_module_id]
 
-  subgraph PREP[Stage Prep — parallel B]
-    TH[theme-design-system-mapping]
-    RS[resource-migration]
-    NV[navigation-migration]
-    PA[platform-api-replacement]
-    SM[state-model-mapping]
+  subgraph MOD[Per-module pipeline]
+    TPA1[target-project-assistant module_anchors]
+    TPA1 --> PG[migration-planning-gate]
+    PG --> PREP[migration-prep]
+    PREP --> RF1[review/fix]
+    RF1 --> UI[module-implementation mode ui]
+    UI --> RF2[review/fix]
+    RF2 --> LOGIC[module-implementation mode logic]
+    LOGIC --> RF3[review/fix]
+    RF3 --> VER[migration-verification]
+    VER --> MCR[module_completion_record]
+    MCR --> READY[completion-report readiness]
+    READY --> MODREP[module_migration_representation]
+    MODREP --> WSR[Refresh workspace-state sync todos + steps]
   end
 
-  PREP --> RFa{review→fix loop<br/>per changed slice}
-  RFa -->|approved| UI[ui-mockup-implementation]
-  UI --> RFb{review→fix loop}
-  RFb -->|approved| DL[dataflow-logic-implementation]
-  DL --> RFc{review→fix loop}
-
-  RFc -->|approved| VER
-
-  subgraph VER[Stage Verify — parallel B]
-    SG[source-set-placement-guard]
-    AP[api-contract-parity]
-    RF[ui-render-fidelity-check]
-    IB[incremental-build-check]
-  end
-
-  VER -->|failure routed| RESP[Re-dispatch responsible node] --> RFa
-  VER -->|all passed| PC[prd-completion-check]
-  PC -- needs_rerun --> RESP
-  PC -- blocked --> BLK
-  PC -- ready_for_validation --> MR[migration-report]
-  MR -- ready_for_validation --> KV[Leader invokes kmp-test-validator]
-  MR -- blocked --> BLK
-
-  WS -. refreshed after major completions .-> PC
+  LOOP --> MOD
+  MOD --> WSR
+  WSR --> M4{Package M4?}
+  M4 -- No --> LOOP
+  M4 -- Yes --> GMP1[global-migration-phase mode integrate]
+  GMP1 --> GMP2[global-migration-phase mode align]
+  GMP2 -->|needs_rerun| LOOP
+  GMP2 -->|passed| GLOB[global_migration_representation]
+  GLOB --> REPORT[completion-report report]
+  REPORT --> WSF[Refresh workspace-state final sync]
+  WSF --> KV[kmp-test-validator V0]
 ```
 
-The review→fix loop (`RFa/RFb/RFc`) is: `module-node-migration-review` → if `needs_fix`, `module-node-migration-fix` → mandatory re-review → repeat until `approved` or `blocked`. The `migration-workspace-state` ledger is refreshed after major node completions to flag stale upstream artifacts.
-
-## Detailed Steps
-
-### Step 0 — Pre-flight: dependency check
+## Step 0 — Pre-flight
 
 - **Executor**: Leader
-- **Input**: [dependencies.yaml](dependencies.yaml)
-- **Action**: verify each `tools[]` entry is available; the target Gradle wrapper drives builds.
-- **Output**: pre-flight note to the user
-- **Quality gate**: all deps `required: false`; the run proceeds with degraded behavior recorded. User decides go/no-go on anything missing; Leader does not auto-skip nodes.
+- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**; the **user input / migration request**; optional adapter `partial_migration`
+- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer), `design_mode` (architecture pattern decision), `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight`
+- **Gate**: missing CLI tools → degraded modes per dependencies.yaml; `android-project-analyst` **P6** not ready → **blocked** — invoke analyst first, do not dispatch migrator nodes
 
-### Step 1 — Trigger verification + shared brief + workspace state
+### Step 0a — Identify design mode (default MVI)
 
-- **Executor**: Leader, then `migration-workspace-state`
-- **Input**: `kmp_target_project_path`, `legacy_android_project_path` (or null), `migration_scope`, `spec_dir`, optional `output_dir` (default `~/.a2c_agents/migration/`), optional `jetbrains` MCP context
-- **Action**: confirm the migration trigger and Legacy SPEC context; build the shared brief; initialize/refresh the workspace-state ledger.
-- **Output**: shared brief + `migration_workspace_state.*`
-- **Serial / Parallel**: serial
-- **Quality gate**: Legacy SPEC context present (or `android-project-analyst` is invoked first); else stop with a user-visible blocker.
+- Scan the **user input** for an explicit or implied presentation architecture:
+  - **`mvvm`** signals: "MVVM", shared `ViewModel`, `StateFlow` / `uiState`, `viewModelScope`, `collectAsStateWithLifecycle`, KMP-ObservableViewModel, SKIE → `references/kmp-mvvm.md`
+  - **`mvi`** signals: "MVI", FlowRedux, state machine, reducer, intent, unidirectional, sealed `State`/`Action`, `dispatch`, `inState`, `onEnter` → `references/kmp-mvi-flowredux.md`
+- **No clear signal → default `mvi`.**
+- Record `design_mode: { value: "mvi | mvvm", source: "user_input | default", signals: [], architecture_reference_path: "" }` in `run_manifest.json`.
+- Freeze `design_mode` for the run; pass `design_mode` + `architecture_reference_path` into every architecture-producing dispatch (planning-gate, prep, module-implementation, module-node-review-fix, global-migration-phase) and to TPA for target-pattern detection.
 
-### Step 2 — Analysis chain: delta review → target understand → alignment
+### Step 0b — Resolve user task, partial scope, and mock-data preflight
 
-- **Executor**: `legacy-spec-delta-review` → `target-project-understand` → `migration-alignment`
-- **Input**: SPEC paths, target path, shared brief; alignment additionally consumes delta-review + target-understanding outputs
-- **Action**: verify SPEC coverage vs raw source; understand the target & reuse inventory; build the source-to-target map, integration scaffold, and ordered tasks.
-- **Output**: `spec_delta_review.*`, `target_project_understanding.*` + `target_migration_context.md`, `migration_alignment.*` + `migration_implementation_map.md`
-- **Serial / Parallel**: serial (each consumes the prior)
-- **Quality gate**: `target-project-understand` must confirm a KMP project, else `blocked`. Each return is `completed`/`blocked` with verified non-empty `output_files`, else re-dispatch.
+- Record the exact user request in `raw_user_task` and normalize actionable constraints into `user_task_constraints`.
+- If adapter/user input declares partial migration, resolve `partial_migration.migration_module_ids`, `allowed_source_roots`, and `validation_scope` from analyst P6 indexes and `focused_analysis`. If the requested scope cannot be resolved, block instead of broadening to full-project migration.
+- If no explicit partial migration request exists, set `partial_migration.enabled: false` and migrate the whole analyst assembly scope.
+- Allow mock data only when a dependency gap blocks local migration wiring and the user/task permits it. Record `mock_data_preflight.allowed`, reason, scope, allowed modules, expiry condition, and tracking ids. Mock data is temporary migration scaffolding, not production completion.
 
-### Step 3 — Dependency gate
+## Step 1 — Upstream + output root
 
-- **Executor**: `dependency-resolution`
-- **Input**: target-understanding + alignment + SPEC paths
-- **Action**: map required capabilities to baseline/reuse, apply the minimal-change gate, justify any build-config change.
-- **Output**: `dependency_resolution.*`
-- **Serial / Parallel**: serial — blocks all implementation
-- **Quality gate**: status must be `ready_for_implementation`; `blocked` halts implementation with the unmet capability. Implementation nodes do NOT run until this passes.
+- Verify analyst package **P6**; write `upstream_analyst_index.json` including analyst `focused_analysis` snapshot when present.
+- For partial migration, P6 must either already be focused to the requested module/feature or contain enough module-index evidence to restrict migrator inventory without inspecting out-of-scope modules.
 
-### Step 4 — Stage Prep (parallel, B-pattern)
+## Step 2 — Migration inventory
 
-- **Executor**: `theme-design-system-mapping`, `resource-migration`, `navigation-migration`, `platform-api-replacement`, `state-model-mapping`
-- **Input**: alignment + dependency outputs + relevant Legacy understanding paths
-- **Action**: prepare visual tokens, resources, routes, platform abstractions, and state/models before UI.
-- **Output**: each node's `*.json`/`*.md` + changed target files
-- **Serial / Parallel**: parallel — slices are dispatch-time fixed
-- **Quality gate**: each return verified (output + changed files); any node that changed files enters the Step 5 review→fix loop before its slice is consumed downstream.
+- `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json`.
+- For partial migration, inventory only requested modules plus explicitly required integration seams. Out-of-scope modules are dependency pointers, not scheduled implementation work.
 
-### Step 5 — Review→fix loop (after any file-changing node)
+## Step 3 — Workspace state
 
-- **Executor**: `module-node-migration-review` → `module-node-migration-fix` (conditional) → re-review
-- **Input**: owning-node output, changed files, upstream evidence, workspace state
-- **Action**: review one slice; if `needs_fix`, apply only assigned `must_fix` findings inside `allowed_files`, then mandatorily re-review.
-- **Output**: `module_node_migration_review.*`, `module_node_migration_fix.*` (when fixes ran)
-- **Serial / Parallel**: serial per slice; runs after Prep (5a), after UI (5b), and after dataflow/logic (5c)
-- **Quality gate**: loop until review returns `approved` or `blocked`. A fix output with `requires_re_review: true` MUST be followed by a re-review before any downstream gate consumes the slice; max fix↔review cycles per [bind.md](bind.md).
+- Init ledger with `pipeline_steps[]` (all schedule rows `not_started`) and empty `migration_todo_list[]`; track handoff gates **M0**–**V0**
+- **Refresh after**: module inventory, each module node group (sync todos + steps), each module representation, global integrate/align, global report
+- Each refresh MUST update `migration_todo_list[].status` and `pipeline_steps[].status` from verified artifacts — do not advance the controller on stale ledger
 
-### Step 6 — UI implementation → review→fix loop
+## Step 4 — Target project assistant (global)
 
-- **Executor**: `ui-mockup-implementation`, then Step 5 loop (5b)
-- **Input**: alignment, dependency, theme, resource, navigation, target outputs
-- **Action**: implement the visible UI surface first, exposing binding surfaces; no TODO placeholders.
-- **Output**: `ui_impl_result.*` + changed UI/resource files
-- **Serial / Parallel**: serial — runs after Prep approved
-- **Quality gate**: every in-scope visible requirement implemented or explicitly `blocked`; slice approved via 5b before logic runs.
+- `mode: global_baseline` → `target_alignment_revision.*`
 
-### Step 7 — Dataflow/logic implementation → review→fix loop
+## Step 5 — Per-module pipeline
 
-- **Executor**: `dataflow-logic-implementation`, then Step 5 loop (5c)
-- **Input**: alignment, dependency, navigation, platform, state, resource, and UI outputs
-- **Action**: implement models/repositories/APIs/logic bound to UI surfaces; no Android-only leak into `commonMain`; no TODO placeholders.
-- **Output**: `dataflow_logic_impl_result.*` + changed logic/data/API files
-- **Serial / Parallel**: serial — runs after UI approved
-- **Quality gate**: slice approved via 5c before verification.
+| Step | Role | Notes |
+|---|---|---|
+| 5a | TPA `module_anchors` | Package **M2** per module |
+| 5b | `migration-planning-gate` | Planning + dep/platform in one pass; preserve user constraints, partial boundary, and `mock_data_plan` |
+| 5c | `migration-prep` | Presentation + state/data + `analytics_expectations[]`; prepare permitted mock fixtures only when preflight allows |
+| 5d | `module-node-review-fix` | After prep if file-changing |
+| 5e | `module-implementation` `ui` | Edit/create focused target KMP UI files only; then review/fix |
+| 5f | `module-implementation` `logic` | Edit/create focused target KMP logic + **埋点** restoration; mock only preflight-approved gaps; then review/fix |
+| 5g | `migration-verification` | Static + restoration incl. **analytics_restoration** (埋点 parity) and mock-data usage; **no full build** |
+| 5h | Leader | `module_completion_record.json` |
+| 5i | `completion-report` `readiness` + module representation | Package **M3** |
 
-### Step 8 — Stage Verify (parallel, B-pattern) with failure routing
+Repeat until package **M4**.
 
-- **Executor**: `source-set-placement-guard`, `api-contract-parity`, `ui-render-fidelity-check`, `incremental-build-check`
-- **Input**: changed files + the relevant implementation/prep/target outputs
-- **Action**: check source-set placement, API parity, UI render, and an incremental build.
-- **Output**: each node's `*.json`/`*.md` (+ build logs)
-- **Serial / Parallel**: parallel
-- **Quality gate**: each `passed`/`failed`/`blocked`. Any `failed`/violation is routed to the responsible implementation node, which re-runs and re-enters the review→fix loop. `blocked` (e.g., no trustworthy build command) is surfaced, not invented.
+## Step 6 — Global migration phase
 
-### Step 9 — PRD completion check
+### 6a Integrate
 
-- **Executor**: `prd-completion-check`
-- **Input**: raw user task + PRD/SPEC + all node outputs + review/fix outputs + verification outputs + changed files
-- **Action**: judge requirement coverage, completion areas, migration invariants, incomplete markers, review-fix readiness, and guard/parity/fidelity/build results.
-- **Output**: `prd_completion_check.*`
-- **Serial / Parallel**: serial
-- **Quality gate**: `ready_for_validation` → Step 10; `needs_rerun` → route requests to responsible nodes (re-enter the relevant stage + loop); `blocked` → stop with missing evidence.
+- **Role**: `global-migration-phase` `mode: integrate`
+- **Action**: edit target KMP cross-module glue (nav, DI, shared contracts), **wire app-shell entry points** (launcher, Application/startup, root NavHost start destination, deep links), and **analytics SDK/init/facade** when legacy uses analytics, under `kmp_target_project_path`, using TPA `entry_point_anchors[]` and analyst `presentation_resource` `entry_points[]`. In partial migration, integrate only scoped routes/entry paths and explicit seams needed for the requested feature/module.
+- **Output**: `global-migration-phase/integrate/global_system_integration.*` with `integration_changed_files[]`, `entry_point_wiring[]`, and `analytics_sdk_wiring[]`
+- **Gate**: package **M5**
 
-### Step 10 — Final: migration report → validation handoff
+### 6b Align
 
-- **Executor**: `migration-report`, then Leader
-- **Input**: workspace state, all node outputs, review/fix outputs, completion check
-- **Action**: synthesize the final report and validation inputs; Leader invokes `kmp-test-validator` only when the report returns `ready_for_validation`.
-- **Output**: `migration_report.*` + the controller completion summary below
+- **Role**: `global-migration-phase` `mode: align`
+- **Action**: read-only comparison including **entry point alignment** and **analytics alignment** — verify each Android entry resolves to the correct KMP shell path; verify legacy 埋点 inventory matches migrated track/report calls and global analytics SDK wiring
+- **Output**: `global-migration-phase/align/post_integration_alignment.*` with `entry_point_alignment_results[]`, `analytics_alignment_results[]`, `global_alignment_results.entry_points`, `global_alignment_results.analytics`, plus `report/alignment_report.*`
+- **Gate**: package **M6**; entry point, analytics SDK, or cross-module mismatch → `rerun_global_integration` or module loop
 
-#### Final Report Format
+## Step 7 — Report + mandatory validator handoff (MG17)
 
-```json
-{
-  "status": "ready_for_validation | blocked",
-  "migration_scope": "...",
-  "kmp_target_project_path": "...",
-  "legacy_android_project_path": "... or null",
-  "changed_files_by_node": [],
-  "source_to_target_summary": [],
-  "coverage_summary": { "ui": "", "resources": "", "navigation": "", "platform": "", "state_models": "", "data_api": "", "logic": "" },
-  "module_node_review_summary": [],
-  "validation_inputs": [],
-  "limitations": [],
-  "manual_steps": [],
-  "blocking_gaps": []
-}
-```
+- Global representation + `completion-report` `report` → package **V0**; report must include `partial_migration` and `mock_data_usage_summary` when applicable.
+- **Leader MUST invoke `kmp-test-validator`** with `migration_report.*`, analyst SPEC paths, and `kmp_target_project_path`
+- Record `validator_handoff` in workspace ledger (`dispatched | pending | blocked`)
+- Migrator workflow is **incomplete** until validator is dispatched or explicit validator blockers are recorded
+
+## TPA consult
+
+Any target question → TPA `mode: consult` (append `consultation_log`).
 
 ## Acceptance Criteria
 
-- Every dispatched node returned output matching its role `## Output Schema` and the shared return shape; any `[ROLE MISSING]` is recorded per [bind.md](bind.md).
-- **Gate check (C-pattern)**: the dependency gate passed before implementation; UI ran before logic; each stage ran only after the prior stage's slices were `approved`.
-- **Loop check**: every file-changing node has an `approved` latest review; every fix output was followed by a re-review for the same scope.
-- **Coverage check (B-pattern)**: all Prep slices and all four Verify checks accounted for; failures routed to the responsible node, not absorbed by the Leader.
-- Migration invariants hold: no Android-only API in `commonMain`, expect/actual complete, dependency gate respected, single KMP project, cross-module integration wired.
-- No changed file contains a TODO/placeholder presented as completion output.
-- `migration-report` returns `ready_for_validation` only when `prd-completion-check` is ready; `kmp-test-validator` is invoked only afterward. If `blocked`, the final response lists blockers and exact missing evidence.
+- `android-project-analyst` **P6** verified before any migrator module dispatch.
+- `design_mode` identified from user input at Step 0 (default `mvi`) and recorded in `run_manifest.json`; architecture-producing dispatches carry `design_mode` + `architecture_reference_path`.
+- `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight` recorded at Step 0 and passed through planning/prep/implementation/verification/report dispatches.
+- Partial migration never broadens to whole-project implementation; unresolved focused scope blocks instead of guessing.
+- Mock data is used only when preflight-approved and appears in planning, implementation, verification, and final report follow-ups.
+- Target KMP files created or updated under `kmp_target_project_path` for every module requiring implementation; `target_changed_files[]` aggregated in `migration_report.json`.
+- `kmp-test-validator` invoked after **V0** — mandatory MG17 step.
+- Dispatch only role IDs from `SKILL.md`.
+- Mode rules: `ui` before `logic`; `integrate` before `align`; `review`/`fix` separate.
+- `migration-verification` never runs `incremental_build`.
+- Per-module and global **analytics_restoration** (埋点) parity verified before **M3** / **M6**; runtime analytics **reporting** deferred to `kmp-test-validator`.
+- `handoff_gates` match output-contract.

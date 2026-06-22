@@ -1,203 +1,159 @@
 ---
 name: android-to-kmp-migrator
 description: |
-  20-role pipeline Swarm Skill (C+B) that migrates Legacy Android into an existing KMP target project: analysis, dependency gate, parallel prep, UI-then-logic implementation, review→fix loops, verification, and a migration report.
-  Use with the android-to-kmp-migrator controller to port Android UI, resources, navigation, state, and logic into one KMP project, then hand to kmp-test-validator.
-  Do NOT use for Legacy Android analysis, KMP-only feature work, quick lookups, or non-migration refactors.
-version: "0.2"
+  Module-first Swarm Skill that migrates Legacy Android into an existing KMP target by editing target KMP source after analyst P6 understanding — planning/prep/implementation roles create and update files under kmp_target_project_path, global integrate wires cross-module glue, explicit partial-migration scopes stay bounded to focused analyst/user input, then mandatory kmp-test-validator handoff — without full-project build during migration.
+  Use only after android-project-analyst has finished and package P6 is ready, when the user wants module-first porting with real target code changes then whole-system assembly followed by validation.
+  Do NOT invoke before android-project-analyst completes P6. Do NOT treat planning or analysis artifacts alone as migration success — target KMP files MUST be edited. Do NOT treat migrator completion as final without invoking kmp-test-validator at V0. Do NOT use for Legacy Android analysis only, KMP-only feature work, or non-migration refactors.
+version: "0.9"
 kind: swarm-skill
-disable-model-invocation: true
+disable-model-invocation: false
 roles:
   - id: migration-workspace-state
     kind: ai_agent
-    purpose: State ledger — node status, changed-file ownership, stale outputs, rerun/blocker history, next actions. No code analysis or edits.
-    skills: []
+    purpose: Migration ledger — todo list, pipeline step monitor, handoff gates M0–V0, plan-vs-code gaps, stale outputs, rerun hooks.
+    skills: [operating-instructions]
     tools: [git]
-  - id: legacy-spec-delta-review
+  - id: target-project-assistant
     kind: ai_agent
-    purpose: Cross-check Legacy SPEC vs raw source for missing coverage and contradictions; classify and route deltas. Raw source wins.
-    skills: []
+    purpose: Target KMP owner — global baseline, per-module anchors, alignment revision, consult log.
+    skills: [operating-instructions]
     tools: [rg]
-  - id: target-project-understand
+  - id: migration-planning-gate
     kind: ai_agent
-    purpose: First migration node — verify KMP target, capture baseline env, detect relevant sub-module, build reuse inventory and constraints.
-    skills: []
+    purpose: Planning and dependency/platform gate — SPEC deltas, source-to-target map, capability map, ready_for_implementation.
+    skills: [operating-instructions]
     tools: [rg]
-  - id: migration-alignment
+  - id: migration-prep
     kind: ai_agent
-    purpose: Build source-to-target map, integration scaffold, and ordered implementation tasks; record SPEC/Design/Plan deltas. No implementation.
-    skills: []
-    tools: [rg]
-  - id: dependency-resolution
-    kind: ai_agent
-    purpose: Minimal-change build gate — map capabilities to baseline/reuse, justify any build-config change. Returns dependency readiness.
-    skills: []
-    tools: [rg]
-  - id: theme-design-system-mapping
-    kind: ai_agent
-    purpose: Map Legacy visual tokens to target design-system tokens/components, reuse-first; produce UI guidance and visual gaps.
-    skills: []
-    tools: [rg]
-  - id: resource-migration
-    kind: ai_agent
-    purpose: Migrate or model local & online resources into target KMP conventions, preserving semantics; record resource gaps.
-    skills: []
+    purpose: Presentation and state/data prep — tokens, resources, routes, state/models/API expectations.
+    skills: [operating-instructions]
     tools: [rg, curl]
-  - id: navigation-migration
+  - id: module-implementation
     kind: ai_agent
-    purpose: Migrate routes, parameters, back behavior, deep links, and result passing into target navigation; record route gaps.
-    skills: []
+    purpose: Target KMP module implementation by mode — edit/create KMP UI files first, then logic after UI approval.
+    skills: [operating-instructions]
     tools: [rg]
-  - id: platform-api-replacement
+  - id: module-node-review-fix
     kind: ai_agent
-    purpose: Replace Android-only APIs with target-safe abstractions or expect/actual; keep Android-only code out of commonMain.
-    skills: []
-    tools: [rg]
-  - id: state-model-mapping
-    kind: ai_agent
-    purpose: Map state holders and DTO/domain/UI models to target structures, preserving state semantics; hand off to the logic node.
-    skills: []
-    tools: [rg]
-  - id: ui-mockup-implementation
-    kind: ai_agent
-    purpose: Implement migrated UI layout/components/states/resources first in the target project; expose binding surfaces. No business logic.
-    skills: []
-    tools: [rg]
-  - id: dataflow-logic-implementation
-    kind: ai_agent
-    purpose: Implement architecture, data flow, API integration, navigation effects, lifecycle, and business logic bound to UI surfaces.
-    skills: []
-    tools: [rg]
-  - id: module-node-migration-review
-    kind: ai_agent
-    purpose: Read-only review of one migration slice for contract/scope/parity/conventions/handoff; classify and route must-fix findings.
-    skills: []
+    purpose: Review or scoped fix by mode; fresh re-review after every fix.
+    skills: [operating-instructions]
     tools: [rg, git]
-  - id: module-node-migration-fix
+  - id: migration-verification
     kind: ai_agent
-    purpose: Apply assigned must-fix findings inside allowed files only; preserve conventions; require mandatory re-review.
-    skills: []
+    purpose: Module static checks + UI/logic/analytics (埋点) restoration vs analyst — no full project build.
+    skills: [operating-instructions]
     tools: [rg, git]
-  - id: source-set-placement-guard
+  - id: global-migration-phase
     kind: ai_agent
-    purpose: Verify KMP source-set placement; catch Android-only APIs in shared code and missing/duplicate actuals; route violations.
-    skills: []
-    tools: [rg, git]
-  - id: api-contract-parity
-    kind: ai_agent
-    purpose: Diff migrated KMP API contracts vs Legacy API/data evidence; classify and route mismatches. No fixes.
-    skills: []
+    purpose: Target KMP global integrate (edit cross-module glue + entry point wiring) then align (read-only analyst vs target comparison incl. entry points) by mode.
+    skills: [operating-instructions]
     tools: [rg]
-  - id: ui-render-fidelity-check
+  - id: completion-report
     kind: ai_agent
-    purpose: Verify migrated screens render and cover visual states/resources/theme; route UI failures. Static coverage when no render command.
-    skills: []
-    tools: [rg]
-  - id: incremental-build-check
-    kind: ai_agent
-    purpose: Run the smallest trustworthy target build/check; parse failures and route to responsible nodes. Early gate, not final validation.
-    skills: []
-    tools: [git]
-  - id: prd-completion-check
-    kind: ai_agent
-    purpose: Judge readiness vs PRD/raw task/SPEC/node outputs and invariants; emit node-routed rerun requests or ready_for_validation.
-    skills: []
+    purpose: Readiness and migration_report modes; validation handoff to kmp-test-validator.
+    skills: [operating-instructions]
     tools: [rg, git]
-  - id: migration-report
-    kind: ai_agent
-    purpose: Synthesize final migration report and validation inputs for kmp-test-validator; ready_for_validation only when completion is ready.
-    skills: []
-    tools: [git]
 ---
 
 # Android To KMP Migrator Swarm Skill
 
-This is the agent-facing registry and team definition for the `android-to-kmp-migrator` controller (the same-name subagent in `kmp-migration/agents/`). It converts a Legacy Android SPEC plus an existing KMP target project into migrated, validation-ready KMP code.
+Module-first migrator for Legacy Android → KMP target assembly. **Upstream analyst P6 is read-only input; this skill's job is to edit the target KMP project** under `kmp_target_project_path`.
 
-The team is a **specialization pipeline (C) with embedded parallel fan-outs (B) and review→fix loops**: a serial analysis chain feeds a dependency gate, then a parallel prep stage, then UI-before-logic implementation, then parallel verification, completion check, and report. A single agent attempting the whole migration blurs the hard stage boundaries — it implements logic before the UI surface exists, skips the dependency minimal-change gate, lets Android-only APIs leak into `commonMain`, and self-approves its own work. Isolating each concern into an owned node with hard handoff gates and a mandatory review→fix→re-review loop keeps every change scoped, traceable, and reviewed before downstream nodes consume it. The controller (Leader) owns routing, contract enforcement, rerun handling, and the `kmp-test-validator` handoff; nodes own bounded target-understanding and implementation work.
+**Canonical contract**: [output-contract.md](output-contract.md)
 
-## Workflow
+**Baseline operating instructions**: [../operating-instructions/SKILL.md](../operating-instructions/SKILL.md) is the shared conduct layer for this skill and every dispatched migrator role. The Leader MUST read it before pre-flight and include it in each role dispatch as baseline instructions; role files, architecture references, workflow gates, and output contracts add to it, not replace it.
 
-The full playbook (Mermaid topology, per-step gates, review→fix loop, failure routing, Final Report format) is in [workflow.md](workflow.md). Protocol summary:
+## Protocol Summary
 
-0. **Pre-flight: check dependencies** — read [dependencies.yaml](dependencies.yaml) and verify `rg` / `git` / `curl` (all `required: false`; the target Gradle wrapper drives builds). Report status; **user decides** whether to proceed.
-1. **Trigger + shared brief + workspace state** — Leader confirms the migration trigger and Legacy SPEC context, builds the shared brief, and initializes `migration-workspace-state`. Default `output_dir` = `~/.a2c_agents/migration/`.
-2. **Analysis chain (serial)** — `legacy-spec-delta-review` → `target-project-understand` (must confirm KMP, else `blocked`) → `migration-alignment`.
-3. **Dependency gate** — `dependency-resolution` must return `ready_for_implementation` before any implementation node runs (minimal-change gate; see [bind.md](bind.md)).
-4. **Stage Prep (parallel)** — `theme-design-system-mapping`, `resource-migration`, `navigation-migration`, `platform-api-replacement`, `state-model-mapping`.
-5. **Review→fix loop** — after any file-changing node: `module-node-migration-review` → `module-node-migration-fix` (if `needs_fix`) → mandatory re-review, until `approved`.
-6. **UI implementation** — `ui-mockup-implementation` (before logic), then the review→fix loop.
-7. **Dataflow/logic implementation** — `dataflow-logic-implementation`, then the review→fix loop.
-8. **Stage Verify (parallel)** — `source-set-placement-guard`, `api-contract-parity`, `ui-render-fidelity-check`, `incremental-build-check`; failures route back to the responsible node.
-9. **Completion check** — `prd-completion-check` → `ready_for_validation`, `needs_rerun` (route to nodes), or `blocked`.
-10. **Final: migration report** — `migration-report` returns `ready_for_validation` only when completion is ready; the Leader then invokes `kmp-test-validator`. Leader routes failures verbatim, never mediates.
+0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**, resolve user-task constraints, partial migration scope, and optional mock-data allowance; record `dependency_preflight`, `design_mode`, `partial_migration`, and `mock_data_preflight` in `run_manifest.json`.
+1. Verify analyst **P6**; `run_manifest.json`, `upstream_analyst_index.json`.
+2. Migration inventory + `modules_migration_index.json`; for partial migration include only focused/requested modules plus explicit integration seams.
+3. Workspace state init — **`migration_todo_list[]`** + **`pipeline_steps[]`** monitor; refresh after each node group syncs todo/step status.
+4. TPA `global_baseline`.
+5. **Per module** (assembly_order or partial scoped order): TPA `module_anchors` → **planning-gate** (incl. user-task alignment, partial boundary, dependency/mock plan) → **prep** (incl. analytics_expectations and allowed mock fixtures) → review/fix → **implementation `ui`** focused target edits → review/fix → **implementation `logic`** focused target edits incl. 埋点 restoration → review/fix → verification (incl. analytics_restoration and mock-data usage checks) → completion record → readiness → module representation.
+6. **Global phase `integrate`** (cross-module glue + **entry point wiring** + **analytics SDK wiring**) → **`align`** (incl. **entry point** and **analytics alignment** vs Android) + alignment report.
+7. Global representation + completion-report `report` mode.
+8. **kmp-test-validator** — **mandatory** when **V0** ready (MG17).
+
+## Design Mode (architecture pattern)
+
+The migrator targets one presentation architecture per run, selected at **pre-flight (Step 0)** by the Leader from the **user input**, then frozen for the whole run and recorded in `run_manifest.json` → `design_mode`.
+
+| `design_mode` | Architecture reference | When chosen |
+|---|---|---|
+| `mvi` **(default)** | [references/kmp-mvi-flowredux.md](references/kmp-mvi-flowredux.md) | Default when user input gives no clear signal; or user mentions MVI, FlowRedux, state machine, reducer, intent, unidirectional, sealed `State`/`Action`, `dispatch`, `inState`, `onEnter` |
+| `mvvm` | [references/kmp-mvvm.md](references/kmp-mvvm.md) | User mentions MVVM, shared `ViewModel`, `StateFlow`/`uiState`, `viewModelScope`, `collectAsStateWithLifecycle`, KMP-ObservableViewModel, SKIE |
+
+Both modes also follow [references/kmp-expert.md](references/kmp-expert.md) for base KMP/CMP conventions.
+
+**Rules**:
+- **Default is `mvi`** — when the user input contains no explicit or implied architecture signal, the Leader MUST select `mvi`.
+- Record the decision as `design_mode: { value, source: "user_input | default", signals: [] }` in `run_manifest.json` at **MG0**.
+- The Leader passes `design_mode` and the resolved `architecture_reference_path` to every architecture-producing role (planning-gate, prep, module-implementation, module-node-review-fix, global-migration-phase) and to TPA for target-pattern detection.
+- `design_mode` is **fixed for the run**; a mid-run change requires a fresh run, not in-place mutation.
+
+## Skill Chain (mandatory)
+
+```text
+android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-validator (V0)
+```
+
+| Order | Skill | Gate | Rule |
+|---|---|---|---|
+| 1 | `android-project-analyst` | **P6** | MUST finish before migrator dispatch. If P6 missing/stale → run analyst first; migrator returns `blocked`. |
+| 2 | `android-to-kmp-migrator` | **M0**–**V0** | Runs only on analyst P6 artifacts; produces `migration_report.*` at **V0**. |
+| 3 | `kmp-test-validator` | **V0** | MUST be invoked after migrator **V0**; migration incomplete without validator dispatch. |
 
 ## Roles
 
-Each node is dispatched as a subagent that must read its role file (`skill_spec_path`), paste its `## Inline Persona for Teammate` into the dispatch prompt, and execute only that role's bounded slice. The dispatch order enforces upstream→downstream data availability and the review→fix gates.
-
-| id | Purpose | When dispatched | Key dependencies | Role file |
-|---|---|---|---|---|
-| migration-workspace-state | State ledger / stale-output tracking | Step 1 + refreshed after major completions | git | [roles/migration-workspace-state.md](roles/migration-workspace-state.md) |
-| legacy-spec-delta-review | SPEC-vs-source delta review | Step 2 (serial) | rg | [roles/legacy-spec-delta-review.md](roles/legacy-spec-delta-review.md) |
-| target-project-understand | Target KMP understanding + reuse inventory | Step 2 (serial) | rg | [roles/target-project-understand.md](roles/target-project-understand.md) |
-| migration-alignment | Source-to-target map + ordered tasks | Step 2 (serial) | rg | [roles/migration-alignment.md](roles/migration-alignment.md) |
-| dependency-resolution | Minimal-change dependency gate | Step 3 (gate) | rg | [roles/dependency-resolution.md](roles/dependency-resolution.md) |
-| theme-design-system-mapping | Visual token mapping | Step 4 (parallel prep) | rg | [roles/theme-design-system-mapping.md](roles/theme-design-system-mapping.md) |
-| resource-migration | Local & online resource migration | Step 4 (parallel prep) | rg, curl | [roles/resource-migration.md](roles/resource-migration.md) |
-| navigation-migration | Route/param/back/deep-link migration | Step 4 (parallel prep) | rg | [roles/navigation-migration.md](roles/navigation-migration.md) |
-| platform-api-replacement | Android-only API → expect/actual | Step 4 (parallel prep) | rg | [roles/platform-api-replacement.md](roles/platform-api-replacement.md) |
-| state-model-mapping | State holder & model mapping | Step 4 (parallel prep) | rg | [roles/state-model-mapping.md](roles/state-model-mapping.md) |
-| ui-mockup-implementation | UI surface implementation (first) | Step 6 (after prep approved) | rg | [roles/ui-mockup-implementation.md](roles/ui-mockup-implementation.md) |
-| dataflow-logic-implementation | Data/API/logic implementation | Step 7 (after UI approved) | rg | [roles/dataflow-logic-implementation.md](roles/dataflow-logic-implementation.md) |
-| module-node-migration-review | Read-only per-slice review | Step 5 loop (after any file change) | rg, git | [roles/module-node-migration-review.md](roles/module-node-migration-review.md) |
-| module-node-migration-fix | Scoped must-fix application | Step 5 loop (on needs_fix) | rg, git | [roles/module-node-migration-fix.md](roles/module-node-migration-fix.md) |
-| source-set-placement-guard | KMP source-set boundary guard | Step 8 (parallel verify) | rg, git | [roles/source-set-placement-guard.md](roles/source-set-placement-guard.md) |
-| api-contract-parity | Migrated vs Legacy API parity | Step 8 (parallel verify) | rg | [roles/api-contract-parity.md](roles/api-contract-parity.md) |
-| ui-render-fidelity-check | Render + visual-state coverage | Step 8 (parallel verify) | rg | [roles/ui-render-fidelity-check.md](roles/ui-render-fidelity-check.md) |
-| incremental-build-check | Smallest target build/check gate | Step 8 (parallel verify) | git | [roles/incremental-build-check.md](roles/incremental-build-check.md) |
-| prd-completion-check | Readiness verdict + rerun routing | Step 9 | rg, git | [roles/prd-completion-check.md](roles/prd-completion-check.md) |
-| migration-report | Final report + validation inputs | Step 10 | git | [roles/migration-report.md](roles/migration-report.md) |
-
-> Before dispatching each teammate, read its role file and paste its `## Inline Persona for Teammate`
-> section directly into the dispatch prompt — adopting agents do NOT auto-load role files. Fill the
-> `{PLACEHOLDER}` inputs from the contract.
+| id | Modes | Role file |
+|---|---|---|
+| `migration-workspace-state` | — | [roles/migration-workspace-state.md](roles/migration-workspace-state.md) |
+| `target-project-assistant` | `global_baseline`, `module_anchors`, `consult` | [roles/target-project-assistant.md](roles/target-project-assistant.md) |
+| `migration-planning-gate` | — | [roles/migration-planning-gate.md](roles/migration-planning-gate.md) |
+| `migration-prep` | — | [roles/migration-prep.md](roles/migration-prep.md) |
+| `module-implementation` | `ui`, `logic` | [roles/module-implementation.md](roles/module-implementation.md) |
+| `module-node-review-fix` | `review`, `fix` | [roles/module-node-review-fix.md](roles/module-node-review-fix.md) |
+| `migration-verification` | — | [roles/migration-verification.md](roles/migration-verification.md) |
+| `global-migration-phase` | `integrate`, `align` | [roles/global-migration-phase.md](roles/global-migration-phase.md) |
+| `completion-report` | `readiness`, `report` | [roles/completion-report.md](roles/completion-report.md) |
 
 ## Files
 
-| File | What it contains | When to read |
-|---|---|---|
-| [workflow.md](workflow.md) | Mermaid C+B topology, staged protocol with gates, review→fix loop, failure routing, Final Report format | Before first dispatch — the complete playbook |
-| [bind.md](bind.md) | Resource limits, team behavioral constraints, dependency-gate/single-project invariants, failure & degraded modes | When hitting limits, handling failures, or scoping a large migration |
-| [roles/\*.md](roles/) | Per-node identity, success criteria, boundary, output schema, Inline Persona for Teammate | Before dispatching each teammate — extract Inline Persona |
-| [dependencies.yaml](dependencies.yaml) | External CLI tools (`rg`, `git`, `curl`) checked at startup | Step 0 — verify deps, report missing items, user decides go/no-go |
+| File | Contents |
+|---|---|
+| [output-contract.md](output-contract.md) | Paths, upstream P6, packages M0–V0 |
+| [workflow.md](workflow.md) | Topology, steps, gates |
+| [bind.md](bind.md) | Limits, constraints, failures |
+| [dependencies.yaml](dependencies.yaml) | CLI + optional MCP per role |
+| [roles/](roles/) | Role specs |
+| [references/](references/) | Architecture references: `kmp-mvi-flowredux.md` (MVI, default), `kmp-mvvm.md` (MVVM), `kmp-expert.md` (base KMP/CMP) |
 
-## Shared Return Shape
+## Handoff Gates
 
-Every node return payload includes, in addition to node-specific fields:
-
-```json
-{
-  "status": "completed | passed | ready_for_implementation | ready_for_validation | needs_rerun | failed | blocked",
-  "node": "<node-name>",
-  "output_files": ["<paths>"],
-  "changed_files": ["<paths or empty>"],
-  "stale_upstream_inputs": ["<paths or empty>"],
-  "rerun_requests": [ { "node": "<responsible-node>", "reason": "", "required_inputs": [], "expected_output": "" } ],
-  "blocking_gaps": ["<gaps or empty>"]
-}
-```
-
-Controller handling: missing/empty `output_files` → rerun the same node; non-empty `stale_upstream_inputs` → refresh those upstream artifacts then rerun; non-empty `rerun_requests` → dispatch the responsible node first; `blocking_gaps` with no resolving rerun → stop with a user-visible blocker.
-
-## Optional Android Studio MCP Context
-
-When the `jetbrains` MCP server is available, the controller may pass indexed IDE context to nodes: project structure/dependencies (`get_project_modules`, `get_project_dependencies`, `get_repositories`), code intelligence (`find_files_by_glob`, `search_in_files_by_regex`, `get_symbol_info`), diagnostics after code changes (`get_file_problems`), IDE build diagnostics (`build_project`), run configs (`get_run_configurations`, `execute_run_configuration`), and IDE-safe edits (`rename_refactoring`, `reformat_file`). Always pass `projectPath: <kmp_target_project_path>`. MCP is advisory — Gradle build/check gates, module review, completion check, and KMP validation remain required; record MCP gaps in the workspace ledger.
+| Package | Unlocks |
+|---|---|
+| `M2` | Target alignment (TPA) |
+| `M3` | Per-module complete |
+| `M4` | All modules migrated |
+| `M5` | Global integrate |
+| `M6` | Global align passed |
+| `V0` | kmp-test-validator |
 
 ## Shared Rules
 
-- Each node must read its own role file before work and stay inside its responsibility boundary.
-- Every important claim must include evidence from source paths, SPEC sections, or upstream node outputs; unknowns are marked explicitly, never guessed.
-- The controller must not substitute itself for node implementation; no migration leaves TODO placeholders as completion output.
-- Target conventions and reusable modules/components take priority over new abstractions; target build config is read-only except via `dependency-resolution`.
-- Migrated code stays inside one KMP target project; SPEC guides migration, but raw Legacy Android source wins when evidence conflicts.
+- **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
+- **Design mode**: identified from user input at pre-flight, **default `mvi`**; frozen for the run; architecture-producing roles MUST follow the resolved `architecture_reference_path` (`kmp-mvi-flowredux.md` for `mvi`, `kmp-mvvm.md` for `mvvm`).
+- **Target KMP edit mandate**: after analyst P6 understanding, migrator roles MUST create or update production files under `kmp_target_project_path`. Planning-only or artifact-only completion is invalid.
+- **User task and focused scope**: `raw_user_task`, `user_task_constraints`, analyst `focused_analysis`, and adapter `partial_migration` are hard dispatch inputs. For partial migration, migrate only requested `migration_module_ids` / allowed source roots plus explicit integration seams; do not broaden to full-project implementation.
+- **Mock data discipline**: mock data may be introduced only when `mock_data_preflight.allowed` is true, must be isolated and tracked, and must be summarized for validator/release follow-up. It cannot hide API mismatches or replace production business logic.
+- **Roles that edit target** (record `changed_files[]` or `integration_changed_files[]`):
+  - `migration-prep` — optional scaffold edits (theme, resources, routes, models) when planning allows
+  - `module-implementation` `ui` / `logic` — required per-module UI and logic port
+  - `module-node-review-fix` `fix` — scoped remediation in `allowed_files`
+  - `global-migration-phase` `integrate` — cross-module glue and entry-point wiring
+- **Read-only on target**: `target-project-assistant`, `migration-planning-gate`, `migration-verification`, `global-migration-phase` `align`, `completion-report`.
+- Analyst **P6** required; TPA owns all target Q&A.
+- Mode boundaries non-negotiable: `ui`/`logic`, `integrate`/`align`, `review`/`fix`.
+- No full project build in migrator.
+- JSON artifacts are machine-routable source of truth.
