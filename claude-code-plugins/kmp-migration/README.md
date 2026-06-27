@@ -215,6 +215,18 @@ The plugin ships a `PreToolUse` command hook that blocks write/edit tools from m
 - Matched tools: `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`
 - Behavior: returns exit code `2` when the target path is a protected `.env` file.
 
+### Ponytail Coding Guardrail
+
+The plugin ships a Ponytail-style coding guardrail adapted from `DietrichGebert/ponytail`: before implementation, the agent must check whether the task can be skipped, solved by existing project code, solved by the standard library, solved by a native platform feature, solved by an installed dependency, or reduced to one line before writing new code.
+
+- Skill: `skills/ponytail/SKILL.md`
+- Review skill: `skills/ponytail-review/SKILL.md`
+- Hook config: `hooks/hooks.json`
+- Hook scripts: `hooks/ponytail-*.js`
+- Validation script: `node scripts/check-ponytail-assets.js`
+
+Lifecycle hooks activate Ponytail on `SessionStart`, propagate it on `SubagentStart`, and track `/ponytail lite|full|ultra|off` plus `/ponytail-review` from `UserPromptSubmit`. Set `PONYTAIL_DEFAULT_MODE=off` to disable the guardrail by default, or `lite`, `full`, or `ultra` to choose the startup level.
+
 ## Rule Contracts
 
 The plugin includes agent-facing rules under `rules/`. These rules are contracts for controllers, stages, node skills, commands, fixes, and validation workflows:
