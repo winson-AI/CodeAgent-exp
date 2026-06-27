@@ -1,0 +1,36 @@
+---
+description: Double-confirm that migration fidelity is proven by an evidence-backed, fail-closed verification chain before any run is called passed, so the fidelity gate stays high.
+alwaysApply: true
+---
+
+# Fidelity Gate Verification
+
+This rule double-confirms the reliable verification mechanism that keeps the migration fidelity gate high. It binds the migrator's static verification and the validator's fidelity/build/launch gates into one non-negotiable chain. No run is `passed` on assertion; it is `passed` only on re-verified evidence.
+
+## Verification Chain (ordered, fail-closed)
+
+A migrated scope is high-fidelity only when each stage passes in order, every later stage refusing to trust an unverified earlier one:
+
+1. **Migrator static verification** (`migration-verification`): every required `check_id` (`target_files_exist`, `source_set`, `syntax_check`, `api_contract`, `ui_render`, `ui_restoration`, `logic_restoration`, `analytics_restoration`) is `passed`. `module_completion_record.json` is written only then. Full build is forbidden here.
+2. **Pre-build fidelity trust** (`validation-fidelity-gate` mode `trust`, `VG1`): Android/SPEC compared to KMP; no unresolved `test_trust_blockers` before build results are trusted.
+3. **Build + entry-point launch** (`validation-code-gate` `build` `VG2`, then mandatory `entry_point_launch`): real compile/preview pass; entry launch matches Android launcher/start destination/startup hooks/deep links.
+4. **Post-build restoreability** (`validation-fidelity-gate` mode `restoreability`, `VG3`): module/function parity re-verified on built target; entry-point static re-verification and, when required, analytics reporting reachability confirmed.
+
+## Reliability Requirements
+
+- **Evidence over claim.** Every `passed` cites source/SPEC/command/artifact paths. "looks good", "should work", or a compile standing in for runtime is not a pass (a build is not a runtime).
+- **Compare against authoritative upstream.** Restoration checks compare to analyst `module_representation`, `behavior_logic`, `presentation_resource`, and cross-module globals — not to the migrator's own summary.
+- **Missing migration ≠ test failure to patch.** Gaps emit `migrator_supplement_request`; the validator MUST NOT delete or stub migrated behavior to make a gate pass, and code-gate `fix` is the only target-code editor.
+- **Re-run the gate after any change.** After a fix or supplement, rerun the affected build/launch/restoreability gate and report the delta; a green on the changed unit does not certify the rest.
+- **Scoped mocks never certify the whole.** Partial-migration mock machines may satisfy only the current-module surface, must be approved, `must_not_ship`, and carry a replacement follow-up; they never pass full-project fidelity.
+
+## High-Gate Verdict
+
+- Migration `V0` `passed` requires `VG2` + `entry_point_launch` + `VG3` all passed, plus any enabled optional `VG4` submodule with no unresolved failure.
+- Analytics reporting MUST be `passed` or `not_applicable` when the migration scope had 埋点; entry-point alignment MUST be `passed` (or `passed_with_assumptions` with evidence).
+
+## Fail-Closed
+
+- Any required gate not `passed` → run is `blocked` or `failed`, never silently `passed`.
+- A later gate dispatched before its predecessor passed → `blocked`.
+- A `passed` claim without cited evidence → reject and re-run the owning gate.

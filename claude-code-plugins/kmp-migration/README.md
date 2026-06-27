@@ -234,6 +234,9 @@ The plugin includes agent-facing rules under `rules/`. These rules are contracts
 - `stage-node-io-contract.md`: input checker first, durable output save before success, and exact handoff fields.
 - `workflow-stage-contracts.md`: required gates for analyst, migrator, validator, and fix workflows.
 - `agent-only-output-contract.md`: structured downstream-agent artifacts instead of human-oriented prose.
+- `phase-document-template-contract.mdc`: documents plus their templates are mandatory across understanding, migration, and verification before a phase can claim success.
+- `status-controller-task-ledger.mdc`: every running task is driven by a status controller whose task list tracks `todo`/`done`/`blocked` and gates stage advance.
+- `fidelity-gate-verification.mdc`: an evidence-backed, fail-closed verification chain (migrator static checks → trust → build/launch → restoreability) keeps the fidelity gate high.
 
 Controllers reference these rules before dispatching or validating stage/node work.
 

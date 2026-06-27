@@ -1,0 +1,35 @@
+---
+description: Double-confirm that every understanding, migration, and verification run produces the required documents from a fixed template before it can claim success.
+alwaysApply: true
+---
+
+# Phase Document And Template Contract
+
+This rule double-confirms that documents and their templates are mandatory in all three phases: understanding (`android-project-analyst`), migration (`android-to-kmp-migrator`), and verification (`kmp-test-validator`). It restates and reinforces each skill's `output-contract.md`; when this rule and an output contract agree, both apply; the per-skill output contract still wins on exact paths and filenames.
+
+## Required Documents Per Phase
+
+A phase MUST NOT report `completed`, `ready_for_validation`, `passed`, or hand off downstream until its required documents exist, are non-empty, and are in-path.
+
+| Phase | Mandatory documents |
+|---|---|
+| Understanding | `SPEC/prd.md`, `SPEC/design.md`, `SPEC/verification.md`, migration-mode `SPEC/plan.md`; per-module `module_representation.md` + `module_ui_representation.md`; `global/global_representation.md` |
+| Migration | `report/migration_report.md` + `migration_report.json`, `report/alignment_report.md`, per-module `module_migration_representation.md`, `global_migration_representation.md` |
+| Verification | `report/kmp_validation_report.md` + `kmp_validation_report.json`, fidelity/build/restoreability artifacts under their gate folders |
+
+Each document MUST be paired with its machine artifact (`.json`) where the output contract declares one. A Markdown document without its declared JSON twin is an incomplete deliverable.
+
+## Template Requirement
+
+Every required document MUST follow a fixed template, not free-form prose:
+
+- Use the section skeleton already declared in the owning skill (for example `module_ui_representation.md` structure and the `*_workspace_state.md` required-sections block in the output contracts) verbatim.
+- When a document has no declared skeleton (SPEC `prd.md` / `design.md` / `verification.md` / `plan.md`, and the final reports), it MUST still use a stable template: a title, a metadata block (scope, mode, source/target paths, run id), the contract's required content keys as headed sections, an evidence/traceability section with source paths, and a readiness/verdict line.
+- Reusable templates SHOULD live under the plugin `templates/` directory and be referenced by path; an empty `templates/` directory is not a reason to skip the skeleton.
+- Section headings and key names MUST be consistent across runs so downstream parsers and reviewers can locate fields without re-reading source.
+
+## Fail-Closed
+
+- Missing document, missing JSON twin, empty file, or out-of-path file → `blocked` with the exact missing path.
+- Document present but off-template (missing required sections, no evidence paths, no readiness/verdict) → `needs_rerun` to the owning Leader step.
+- A downstream phase MUST treat an upstream phase's missing or off-template document as a hard blocker and MUST NOT reconstruct it from chat summaries.
