@@ -6,6 +6,8 @@ The Leader and every node MUST read this file before writing artifacts. `SKILL.m
 
 ## Output Root Layout
 
+This contract describes **one** analyst understand run. A migration produces **two** runs (source and target understand subsystems), each with its **own distinct `output_root`** and its own full copy of this artifact tree. The source subsystem analyzes `source_project_path`; the target subsystem (`project_kind: kmp_target`) analyzes `target_project_path` and is written to a separate root (e.g. `.../android-project-analyst/target`). Both runs use the identical file format and gates below.
+
 Lock one `output_root` before any dispatch:
 
 ```text
@@ -107,7 +109,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required JSON / content keys | Downstream trigger role |
 |---|---|---|---|
-| `run_manifest.json` | Leader | `source_project_path`, `mode`, `analysis_scope`, `focused_analysis`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path` | **All handlers** — resolves `output_root` and declares which gate package this run claims |
+| `run_manifest.json` | Leader | `understand_subsystem` (`source \| target`), `project_kind` (`android_source \| kmp_target`), `source_project_path`, `mode`, `analysis_scope`, `focused_analysis`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path`; a `kmp_target` run analyzes the project at `target_project_path` | **All handlers** — resolves `output_root`, declares the understand subsystem/project kind, and which gate package this run claims |
 
 `handoff_package` MUST list absolute paths to the gate entry artifacts the run claims ready (see Handoff Packages below).
 

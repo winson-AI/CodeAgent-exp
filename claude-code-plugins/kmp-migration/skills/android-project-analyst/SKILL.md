@@ -45,6 +45,15 @@ This is the agent-facing registry and team definition for the `android-project-a
 
 The team is **module-first Mixed B+C with a workspace-state ledger**: the Leader partitions the project into `analysis_modules`, writes index artifacts and one `modules/<module_id>/` folder per module, maintains `analysis-workspace-state` before downstream consumption, runs three foundation nodes in **parallel** (B) inside each module, then a final **gated specialization** node (C) synthesizes module behavior from verified upstream outputs. The Leader writes a module representation per module, records cross-module architecture and data/logic separately under `global/`, then combines everything into `global_representation.*` and SPEC. The controller owns routing, strict output-path enforcement, reconciliation, workspace-state refreshes, and SPEC integration; nodes own bounded module analysis only.
 
+## Understand Subsystems (source vs target)
+
+The same analyst workflow and output contract are reused to produce **understand subsystems** for either project in a migration:
+
+- **Source Project Subsystem** (`understand_subsystem: source`, `project_kind: android_source`): the default — understand a Legacy Android source project (exploration or migration mode).
+- **Target Project Subsystem** (`understand_subsystem: target`, `project_kind: kmp_target`): understand the existing KMP/CMP target project so the migrate stage has comprehensive target context. Use the **same artifact tree and file format**, written to a **distinct `output_root`** (e.g. `.../android-project-analyst/target`).
+
+When `coding-task-adapter` runs route `migration`, it dispatches this analyst **twice** — once per project — into two distinct output roots. Each run records `understand_subsystem` and `project_kind` in `run_manifest.json`. For a `kmp_target` run the Step 1 trigger accepts a KMP/multiplatform project (`*.gradle(.kts)` with `kotlin("multiplatform")`, `commonMain`/`androidMain`/`iosMain` source sets, or a `shared` + `*App` module shape) instead of requiring `AndroidManifest.xml`; nodes adapt their evidence patterns to KMP conventions while keeping the same dimension folders, representation, global records, and SPEC layout. Target runs default to `exploration` mode (no `plan.md`) unless the adapter requests otherwise.
+
 ## Focused Analysis For Adapter Routes
 
 When invoked by `coding-task-adapter` for an `only_understand_*` request or explicit partial migration, the analyst MUST run in focused mode:

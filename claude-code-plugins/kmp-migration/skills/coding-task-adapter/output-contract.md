@@ -8,13 +8,14 @@ The Leader and every node MUST read this file before writing artifacts. When `SK
 
 The adapter records but does not write into downstream workflow roots:
 
-| Workflow | Default `output_root` |
-|---|---|
-| `android-project-analyst` | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst` |
-| `android-to-kmp-migrator` | `<output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator` |
-| `kmp-test-validator` | `<output_dir or ~/.a2c_agents/validation>/kmp-test-validator` |
+| Workflow | Understand subsystem | Default `output_root` |
+|---|---|---|
+| `android-project-analyst` | source | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst/source` |
+| `android-project-analyst` | target (migration only) | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst/target` |
+| `android-to-kmp-migrator` | — | `<output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator` |
+| `kmp-test-validator` | — | `<output_dir or ~/.a2c_agents/validation>/kmp-test-validator` |
 
-Validator artifacts MUST stay under the parallel `validation` root — never under the migration root.
+For route `migration` the analysis stage produces **two** analyst understand subsystems in **distinct output roots** (`.../source` and `.../target`), both using the analyst output contract/file format. For `only_understand_*` routes only the source subsystem is produced (the analyst default root `.../android-project-analyst` or `.../android-project-analyst/source` is acceptable as long as it is recorded). Validator artifacts MUST stay under the parallel `validation` root — never under the migration root.
 
 **Fail closed**: adapter roles MUST NOT claim downstream pass without durable report artifacts and matching stage inspection support.
 
@@ -82,7 +83,8 @@ output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
 |---|---|
 | `route_decision` | After `task-route-orchestrator` mode `route` |
 | `pre_downstream_dispatch` | Before downstream workflow invoke |
-| `post_analyst` | After analyst workflow when route requires it |
+| `post_source_understand` | After the source-understand analyst run (covers the single analyst run for `only_understand_*`; the source subsystem for route `migration`) |
+| `post_target_understand` | After the target-understand analyst run; **required** for route `migration` |
 | `post_migrator` | After migrator workflow when route requires it |
 | `post_validator` | After validator workflow; **required** for route `migration` |
 | `pre_report` | Before `adapter-report` |
@@ -100,7 +102,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | 1 | `AG1` | `route-orchestration/route/task_route.*` |
 | 2 | `AG2` | `workspace-state/adapter_workspace_state.*`, `stage-inspections/route_decision/*`, `intermediate-assets/intermediate_asset_records.*` |
 | 3 | `AG3` | `route-orchestration/orchestrate/workflow_orchestration.*`, `downstream-index/downstream_workflow_index.*` |
-| 4 | `AG4` | applicable `stage-inspections/<stage_id>/*` after each route/downstream boundary |
+| 4 | `AG4` | applicable `stage-inspections/<stage_id>/*` after each route/downstream boundary; route `migration` requires `post_source_understand`, `post_target_understand`, `post_migrator`, `post_validator` |
 | 5 | `AG5` | `stage-inspections/pre_report/*` with `status: pass` |
 | 6 | `AG6` | `report/adapter_report.*`, `stage-inspections/post_report/*` |
 
@@ -120,7 +122,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required content | Downstream trigger role |
 |---|---|---|---|
-| `downstream-index/downstream_workflow_index.json` | `task-route-orchestrator` mode `orchestrate` | `workflows[]` with `workflow_id`, `output_root`, `handoff_package`, `key_artifact_paths[]`, `status`, `scope`, `partial_migration` | **adapter-workspace-state**, **adapter-report** — machine lookup for consumed downstream evidence |
+| `downstream-index/downstream_workflow_index.json` | `task-route-orchestrator` mode `orchestrate` | `workflows[]` with `workflow_id`, `understand_subsystem`, `output_root`, `handoff_package`, `key_artifact_paths[]`, `status`, `scope`, `partial_migration` | **adapter-workspace-state**, **adapter-report** — machine lookup for consumed downstream evidence. Route `migration` MUST list **two** `android-project-analyst` entries: `understand_subsystem: source` and `understand_subsystem: target` |
 
 ### Workspace ledger
 
@@ -158,7 +160,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 | `A1` | `route-orchestration/route/task_route.json` — route known or explicit `blocked` with `blocking_gaps` |
 | `A2` | `adapter_workspace_state.json`, `stage-inspections/route_decision/*`, route assets recorded in `intermediate_asset_records.json` |
 | `A3` | `workflow_orchestration.json`, `downstream_workflow_index.json` — dispatch contracts and observed outputs recorded |
-| `A4` | All applicable boundary stages (`pre_downstream_dispatch`, `post_analyst`, `post_migrator`, `post_validator`) are `pass` or explicitly `skipped` with evidence; route `migration` MUST NOT skip `post_validator` |
+| `A4` | All applicable boundary stages (`pre_downstream_dispatch`, `post_source_understand`, `post_target_understand`, `post_migrator`, `post_validator`) are `pass` or explicitly `skipped` with evidence; route `migration` MUST NOT skip `post_target_understand` or `post_validator` |
 | `A5` | `stage-inspections/pre_report/*` — `status: pass` |
 | `A6` | `report/adapter_report.json` issued |
 
@@ -176,7 +178,7 @@ Record consumed paths in `intermediate_asset_records.json` and `downstream_workf
 | `only_understand_logic` | analyst `P5` or focused `P2` with `behavior_logic.*` + SPEC |
 | `only_understand_architecture` | analyst `P5` or `P2` with `project_architecture.*` + SPEC |
 | `only_understand_overview` | analyst `P5` |
-| `migration` | analyst `P6` when required, migrator `M6` + `migration_report.*`, **required** validator `VG5` + `kmp_validation_report.*`; when `partial_migration.enabled`, all evidence must match the declared partial scope/boundaries |
+| `migration` | source-understand analyst `P6` **and** target-understand analyst subsystem (`P5`+ on the target root), migrator `M6` + `migration_report.*`, **required** validator `VG5` + `kmp_validation_report.*`; when `partial_migration.enabled`, all evidence (both subsystems included) must match the declared partial scope/boundaries |
 | `validation_handoff` | migrator `V0`, validator `VG5` + `kmp_validation_report.*` |
 
 ---
@@ -240,7 +242,8 @@ Rules:
   "target_project_path": "",
   "output_root": "",
   "downstream_output_roots": {
-    "android-project-analyst": "",
+    "android-project-analyst-source": "",
+    "android-project-analyst-target": "",
     "android-to-kmp-migrator": "",
     "kmp-test-validator": ""
   },
@@ -257,6 +260,8 @@ Rules:
   "workflows": [
     {
       "workflow_id": "android-project-analyst | android-to-kmp-migrator | kmp-test-validator",
+      "understand_subsystem": "source | target | none",
+      "understand_target_path": "",
       "output_root": "",
       "handoff_package": "",
       "handoff_ready": true,
@@ -301,8 +306,9 @@ Before claiming adapter completion, the Leader MUST:
 3. Refresh `adapter-workspace-state` after every route and downstream boundary.
 4. Never invoke `adapter-report` before `A5` is true.
 5. Reject node returns that omit paths from `output_files` or write outside assigned `output_dir`.
-6. For route `migration`, invoke `kmp-test-validator` after migrator handoff; record validator output root under parallel `validation` location; do not mark `A4`/`A6` ready without `post_validator` pass.
-7. For partial migration, preserve the same `partial_migration` boundaries in route, downstream dispatches, stage inspections, asset records, and final report; never widen scope silently.
+6. For route `migration`, dispatch the analysis stage as **two** analyst understand runs (source subsystem + target subsystem) into distinct understand output roots before the migrator; record both in `downstream_workflow_index.json`; do not mark `A4` ready without `post_source_understand` and `post_target_understand` pass.
+7. For route `migration`, invoke `kmp-test-validator` after migrator handoff; record validator output root under parallel `validation` location; do not mark `A4`/`A6` ready without `post_validator` pass.
+8. For partial migration, preserve the same `partial_migration` boundaries in route, both understand subsystems, downstream dispatches, stage inspections, asset records, and final report; never widen scope silently.
 
 ## Node Obligations
 

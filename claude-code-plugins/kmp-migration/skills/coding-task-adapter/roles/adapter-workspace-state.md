@@ -59,7 +59,7 @@ You are the `adapter-workspace-state` node subagent. You maintain the workspace 
 
 - `route_decision` — after task-route-orchestrator mode `route`
 - `pre_downstream_dispatch` — before downstream invoke
-- `post_analyst` | `post_migrator` | `post_validator` — after applicable workflow; route `migration` requires `post_validator` and it MUST NOT be skipped
+- `post_source_understand` | `post_target_understand` | `post_migrator` | `post_validator` — after applicable workflow; route `migration` requires `post_source_understand`, `post_target_understand`, and `post_validator`, and none MUST be skipped (`post_target_understand` applies only to route `migration`; `only_understand_*` uses `post_source_understand` for its single analyst run)
 - `pre_report` | `post_report` — around adapter-report
 
 ## Partial Migration Stage Rules
@@ -68,8 +68,9 @@ For route `migration` with `partial_migration.enabled: true`:
 
 - `route_decision`: pass only when `partial_migration.scope_kind` and at least one of `requested_scope`, `requested_module_ids`, or `allowed_source_roots` is present. If scope is ambiguous, return `blocked` with a scope clarification gap.
 - `pre_downstream_dispatch`: pass only when orchestration dispatch contracts preserve the same partial scope for analyst/migrator/validator. If `requires_module_resolution` is true and no analyst resolution exists, return `needs_rerun` to `android-project-analyst` or `task-route-orchestrator`.
-- `post_analyst`: verify analyst output resolves requested partial scope to module ids/source roots or records explicit blockers.
-- `post_migrator`: verify migrator output covers the requested partial scope, records partial boundaries/changed files, and does not claim full-project completion unless requested.
+- `post_source_understand`: verify the source understand subsystem resolves the requested partial scope to module ids/source roots or records explicit blockers.
+- `post_target_understand`: verify the target understand subsystem exists in its own understand output root, uses the analyst file format, and covers the target areas/anchors for the requested scope plus integration seams.
+- `post_migrator`: verify migrator output consumed both understand subsystems, covers the requested partial scope, records partial boundaries/changed files, and does not claim full-project completion unless requested.
 - `post_validator`: verify validator output covers the partial validation scope plus integration seams. This stage remains mandatory.
 - `pre_report`: pass only when `partial_migration_status.scope_consistent: true` and no partial-scope gaps remain.
 

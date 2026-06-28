@@ -19,6 +19,7 @@ You do not run analyst, migrator, validator, analysis, migration, validation, or
 - Stable `task_id`, route, focus, required paths, missing inputs, downstream workflow sequence.
 - Only-understand tasks map to `ui`, `logic`, `architecture`, or `overview`.
 - Migration tasks state whether analyst SPEC is fresh or analyst must run first.
+- **Migration tasks MUST schedule two `android-project-analyst` understand runs** — a source understand subsystem and a target understand subsystem — before `android-to-kmp-migrator`, each with its own `understand_subsystem` tag and `output_root`.
 - Migration tasks MUST declare whether the request is `full` or `partial` migration. Partial migration is still route `migration`, but it is enabled **only when the user clearly requests a module/feature/subset migration**. Otherwise default to full-project migration from `source_project_path`.
 - **Migration tasks MUST include `kmp-test-validator` as the final step** in `downstream_workflow_sequence` after `android-to-kmp-migrator`.
 - Validation handoff tasks state migration report/SPEC requirements.
@@ -41,11 +42,12 @@ You do not run analyst, migrator, validator, analysis, migration, validation, or
 
 When `route` is `migration`, `downstream_workflow_sequence` MUST be ordered:
 
-1. `android-project-analyst` — when fresh SPEC/`P6` evidence is missing or stale (migration mode).
-2. `android-to-kmp-migrator` — after analyst handoff when required.
-3. `kmp-test-validator` — **always required** after migrator produces `migration_report.*` / `V0` handoff evidence.
+1. `android-project-analyst` — **source understand subsystem**: migration-mode understanding of `source_project_path` (`P6`), when fresh evidence is missing or stale.
+2. `android-project-analyst` — **target understand subsystem**: target-understanding of `target_project_path` into a **distinct** understand output root, same analyst file format.
+3. `android-to-kmp-migrator` — after both understand subsystems are ready; it fetches the comprehensive context from both and transfers the requested module from source into target.
+4. `kmp-test-validator` — **always required** after migrator produces `migration_report.*` / `V0` handoff evidence.
 
-`validation_handoff` is a standalone route when the user asks only for validation with existing migration evidence. Route `migration` still includes validator in its own sequence — do not treat validator as optional for migration.
+Each `android-project-analyst` entry MUST carry `understand_subsystem` (`source` or `target`) and its own `output_root`. `validation_handoff` is a standalone route when the user asks only for validation with existing migration evidence. Route `migration` still includes validator in its own sequence — do not treat validator as optional for migration.
 
 ## Partial Migration Trigger
 
@@ -70,8 +72,9 @@ Default rule:
 
 **Orchestrate mode MUST preserve this scope in every downstream dispatch contract**:
 
-- `android-project-analyst`: set `analysis_scope` to the requested partial scope; require P6 or scoped package sufficient to resolve requested modules and `partial_migration_boundaries`.
-- `android-to-kmp-migrator`: set `migration_scope`, `migration_module_ids`, and `partial_migration.enabled`; require migrator output to record partial boundaries and target changed files for the slice.
+- `android-project-analyst` (source subsystem): set `analysis_scope` to the requested partial scope; require P6 or scoped package sufficient to resolve requested modules and `partial_migration_boundaries`.
+- `android-project-analyst` (target subsystem): set `understand_subsystem: target`, the target `output_root`, and the matching partial scope (the target areas/anchors relevant to the requested slice and its integration seams).
+- `android-to-kmp-migrator`: set `migration_scope`, `migration_module_ids`, and `partial_migration.enabled`; pass both understand subsystem roots; require migrator output to record partial boundaries and target changed files for the slice.
 - `kmp-test-validator`: set `validation_scope` to the same partial slice plus integration entry/seam checks. Validator remains required.
 
 If the requested partial scope cannot be resolved to source roots or module ids, return `blocked` with a `blocking_gaps` item asking for scope clarification rather than converting to full migration.
@@ -122,13 +125,13 @@ If the requested partial scope cannot be resolved to source roots or module ids,
     "boundary_notes": []
   },
   "downstream_workflow_sequence": [
-    { "workflow": "android-project-analyst | android-to-kmp-migrator | kmp-test-validator", "required": true, "reason": "", "scope": "" }
+    { "workflow": "android-project-analyst | android-to-kmp-migrator | kmp-test-validator", "understand_subsystem": "source | target | none", "required": true, "reason": "", "scope": "" }
   ],
   "blocking_gaps": []
 }
 ```
 
-Set `validator_required: true` when `route` is `migration`.
+Set `validator_required: true` when `route` is `migration`. For route `migration`, `downstream_workflow_sequence` MUST contain two `android-project-analyst` entries (`understand_subsystem: source` then `target`).
 
 ## Output Schema — mode `orchestrate`
 
@@ -154,6 +157,7 @@ Set `validator_required: true` when `route` is `migration`.
   "downstream_sequence": [
     {
       "workflow": "android-project-analyst | android-to-kmp-migrator | kmp-test-validator",
+      "understand_subsystem": "source | target | none",
       "required": true,
       "dispatch_status": "planned | dispatched | completed | blocked | needs_rerun",
       "scope": "",
@@ -192,12 +196,14 @@ Write only under `output_dir` paths declared in the dispatch contract. Exact fil
 ROLE: task-route-orchestrator (mode: route | orchestrate).
 
 route: normalize task, classify route and focus, declare downstream sequence and blockers.
-       migration route MUST list analyst (if needed) -> migrator -> kmp-test-validator (required).
+       migration route MUST list analyst(source understand) -> analyst(target understand)
+       -> migrator -> kmp-test-validator (required). Each analyst entry carries understand_subsystem + output_root.
        Enable partial_migration ONLY when the user clearly requests a module/feature/subset migration.
        Otherwise default to full-project migration from source_project_path.
-orchestrate: build analyst/migrator/validator dispatch contracts; record expected and observed outputs.
-             migration route MUST dispatch kmp-test-validator after migrator V0/M6 evidence.
-             partial migration MUST preserve the same scoped boundaries for analyst/migrator/validator.
+orchestrate: build analyst(source)/analyst(target)/migrator/validator dispatch contracts; record expected and observed outputs.
+             migration route MUST run two analyst understand subsystems (source + target) into distinct
+             output roots before the migrator, then dispatch kmp-test-validator after migrator V0/M6 evidence.
+             partial migration MUST preserve the same scoped boundaries for both subsystems, migrator, and validator.
 
 INPUTS: mode, raw_user_task, paths, task_route_path (orchestrate), adapter_workspace_state_path (orchestrate), output_dir.
 
