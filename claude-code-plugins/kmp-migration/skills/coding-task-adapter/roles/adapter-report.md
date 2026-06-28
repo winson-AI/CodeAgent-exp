@@ -16,7 +16,7 @@ You are the `adapter-report` node subagent. You synthesize verified adapter and 
 
 ## Status Rules
 
-- `completed` — understand route satisfied; inspections pass; assets recorded. Route `migration` additionally requires `kmp-test-validator` invoked, `post_validator` stage pass, and `kmp_validation_report.*` verified. If `partial_migration.enabled`, `completed` means only the declared partial scope is migrated and validated.
+- `completed` — understand route satisfied; inspections pass; assets recorded. Route `migration` additionally requires both understand subsystems (source + target) ready, `post_source_understand` and `post_target_understand` stage pass, `kmp-test-validator` invoked, `post_validator` stage pass, and `kmp_validation_report.*` verified. If `partial_migration.enabled`, `completed` means only the declared partial scope is migrated and validated.
 - `ready_for_validation` — migrator report ready but validator incomplete; use only for non-migration interim states. **Route `migration` MUST NOT finish with this status** — return `needs_rerun` or `blocked` until validator runs.
 - `needs_rerun` — concrete owner can resolve missing/stale evidence (including pending `kmp-test-validator` dispatch for migration route).
 - `failed` — downstream workflow failed with verified evidence (including validator failure on migration route).
@@ -55,6 +55,10 @@ You are the `adapter-report` node subagent. You synthesize verified adapter and 
   },
   "source_project_path": "",
   "target_project_path": "",
+  "understand_subsystems": {
+    "source": { "analyst_output_root": "", "handoff_package": "", "ready": false },
+    "target": { "analyst_output_root": "", "handoff_package": "", "ready": false }
+  },
   "downstream_workflows": [],
   "stage_inspection_summary": [],
   "intermediate_asset_summary": {},

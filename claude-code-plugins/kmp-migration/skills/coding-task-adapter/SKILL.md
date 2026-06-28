@@ -41,16 +41,27 @@ Front-door adapter for the KMP Migration Toolkit. It does not replace `android-p
 | `only_understand_logic` | `android-project-analyst` — behavior/control-flow focus |
 | `only_understand_architecture` | `android-project-analyst` — architecture/ecosystem focus |
 | `only_understand_overview` | `android-project-analyst` — full representation + SPEC |
-| `migration` | analyst (if SPEC stale) → `android-to-kmp-migrator` → **`kmp-test-validator` (required)**; defaults to full project, supports partial scope only when explicitly requested |
+| `migration` | `android-project-analyst` ×2 (source understand subsystem + target understand subsystem) → `android-to-kmp-migrator` → **`kmp-test-validator` (required)**; defaults to full project, supports partial scope only when explicitly requested |
 | `validation_handoff` | `kmp-test-validator` when migration evidence exists |
+
+## Analysis Stage Modes (understand vs migrate)
+
+The adapter front-door drives an analysis stage with two modes before any migrate/validate stage:
+
+- **Understand mode** (`only_understand_*`): one `android-project-analyst` run on the source project. The adapter outputs the understand results and the file system only — no migrate or validate stage.
+- **Migrate mode** (route `migration`): the analysis stage understands **both** projects by dispatching `android-project-analyst` once on the source and once on the target, into **two distinct understand folders** that use the current analyst file format:
+  - **Source Project Subsystem** — analyst migration mode on `source_project_path` (`P6`).
+  - **Target Project Subsystem** — analyst target-understanding on `target_project_path` (same output contract/format).
+
+The migrate stage (`android-to-kmp-migrator`) fetches the comprehensive context from both understand subsystems, clarifies the migration task (partial or full), and transfers the required module from the source project into the target project. The validate stage (`kmp-test-validator`) is unchanged and remains required.
 
 ## Protocol Summary
 
 0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); lock adapter `output_root`.
 1. **Route** — `task-route-orchestrator` mode `route` → `task_route.*`.
 2. **Workspace init** — `adapter-workspace-state` → ledger, first stage inspection, asset records.
-3. **Orchestrate** — `task-route-orchestrator` mode `orchestrate` → downstream dispatch contracts and observed outputs; preserve `partial_migration` boundaries when scoped.
-4. **Stage gates** — refresh `adapter-workspace-state` after each route and downstream boundary.
+3. **Orchestrate** — `task-route-orchestrator` mode `orchestrate` → downstream dispatch contracts and observed outputs; for route `migration` dispatch the analysis stage as source-understand + target-understand analyst runs before the migrator; preserve `partial_migration` boundaries when scoped.
+4. **Stage gates** — refresh `adapter-workspace-state` after each route and downstream boundary (`post_source_understand`, `post_target_understand`, `post_migrator`, `post_validator`).
 5. **Report** — `adapter-report` when `pre_report` stage passes and assets are complete.
 
 ## Roles
@@ -120,9 +131,11 @@ Any artifact written outside the path tree in `output-contract.md` is **invalid*
 
 - Adapter roles orchestrate only — no Android analysis, migration implementation, validation testing, or code fixes.
 - Route classification happens before downstream workflow selection.
+- `only_understand_*` runs one analyst understand run on the source and outputs the understand results + file system only.
+- Route `migration` runs the analysis stage as **two understand subsystems** — source understand + target understand — in two distinct analyst output roots before migrator dispatch. The migrator fetches both subsystems.
 - Partial migration is route `migration` with `partial_migration.enabled: true` only when the user clearly asks for a module/feature/subset migration. Otherwise migrate the whole input project from `source_project_path`.
-- When partial migration is enabled, scope must be preserved through analyst, migrator, validator, stage inspections, and final report.
+- When partial migration is enabled, scope must be preserved through both understand subsystems, migrator, validator, stage inspections, and final report.
 - Every consumed durable artifact must appear in `intermediate_asset_records.*`.
 - Downstream evidence is consumed by path and status only — never invented.
-- Route `migration` MUST invoke `kmp-test-validator` after migrator handoff; adapter cannot claim migration completion without validator evidence and `post_validator` stage pass.
+- Route `migration` MUST invoke `kmp-test-validator` after migrator handoff; adapter cannot claim migration completion without both understand subsystems, validator evidence, and `post_validator` stage pass.
 - Final user-facing completion requires `adapter_report.*`.

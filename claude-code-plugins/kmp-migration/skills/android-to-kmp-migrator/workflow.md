@@ -6,7 +6,7 @@ See [output-contract.md](output-contract.md) and active role IDs in [SKILL.md](S
 
 | Phase | Skill | Gate | Leader rule |
 |---|---|---|---|
-| Prerequisite | `android-project-analyst` | **P6** | MUST finish before `android-to-kmp-migrator` is invoked. Missing/stale P6 → `blocked`; dispatch analyst first. |
+| Prerequisite | `android-project-analyst` ×2 | source **P6** + target subsystem | Both understand subsystems MUST finish before `android-to-kmp-migrator` is invoked. Missing/stale source P6 or (route `migration`) target subsystem → `blocked`; dispatch the missing analyst run first. |
 | Migration | `android-to-kmp-migrator` | **M0**–**V0** | Runs only after P6 verified; ends with `migration_report.*` and **V0** ready. |
 | Post-migration | `kmp-test-validator` | **V0** | MUST be invoked after migrator completes **V0** (MG17). Do not end the migration workflow without validator dispatch. |
 
@@ -62,9 +62,9 @@ graph TD
 ## Step 0 — Pre-flight
 
 - **Executor**: Leader
-- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` analyst **P6**; the **user input / migration request**; optional adapter `partial_migration`
-- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, P6 readiness pointer), `design_mode` (architecture pattern decision), `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight`
-- **Gate**: missing CLI tools → degraded modes per dependencies.yaml; `android-project-analyst` **P6** not ready → **blocked** — invoke analyst first, do not dispatch migrator nodes
+- **Input**: [dependencies.yaml](dependencies.yaml) — `tools[]` (`rg`, `git`, `curl`), `optional_mcp.jetbrains`, `upstream_inputs` **source understand subsystem `P6`** and **target understand subsystem** (route `migration`); the **user input / migration request**; optional adapter `partial_migration`
+- **Output**: `run_manifest.json` → `dependency_preflight` (CLI status, MCP availability, source `P6` + target subsystem readiness pointers), `design_mode` (architecture pattern decision), `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight`
+- **Gate**: missing CLI tools → degraded modes per dependencies.yaml; source subsystem **P6** not ready, or target understand subsystem missing for route `migration` → **blocked** — invoke `android-project-analyst` for the missing subsystem first, do not dispatch migrator nodes
 
 ### Step 0a — Identify design mode (default MVI)
 
@@ -82,10 +82,11 @@ graph TD
 - If no explicit partial migration request exists, set `partial_migration.enabled: false` and migrate the whole analyst assembly scope.
 - Allow mock data only when a dependency gap blocks local migration wiring and the user/task permits it. Record `mock_data_preflight.allowed`, reason, scope, allowed modules, expiry condition, and tracking ids. Mock data is temporary migration scaffolding, not production completion.
 
-## Step 1 — Upstream + output root
+## Step 1 — Upstream + output root (fetch comprehensive context)
 
-- Verify analyst package **P6**; write `upstream_analyst_index.json` including analyst `focused_analysis` snapshot when present.
-- For partial migration, P6 must either already be focused to the requested module/feature or contain enough module-index evidence to restrict migrator inventory without inspecting out-of-scope modules.
+- Fetch the comprehensive context from **both** understand subsystems: verify the source subsystem package **P6** and (for route `migration`) the target subsystem; write `upstream_analyst_index.json` with `source_subsystem` and `target_subsystem` blocks, including the source `focused_analysis` snapshot when present.
+- **Clarify the migration task** here: confirm whether the request is **full** or **partial** migration from `partial_migration` / `raw_user_task`, and resolve which source module(s) transfer into the target. Partial migration stays bounded to the requested module/feature/subset; full migration covers the source assembly scope.
+- For partial migration, the source P6 must either already be focused to the requested module/feature or contain enough module-index evidence to restrict migrator inventory without inspecting out-of-scope modules; the target subsystem provides the anchor candidates for the requested slice.
 
 ## Step 2 — Migration inventory
 
@@ -100,7 +101,7 @@ graph TD
 
 ## Step 4 — Target project assistant (global)
 
-- `mode: global_baseline` → `target_alignment_revision.*`
+- `mode: global_baseline` → `target_alignment_revision.*`, consuming the **Target Project Subsystem** understand artifacts (`target_analyst_output_root`) as primary evidence; TPA maps legacy scopes to target anchors rather than re-analyzing the target from scratch.
 
 ## Step 5 — Per-module pipeline
 
@@ -147,7 +148,8 @@ Any target question → TPA `mode: consult` (append `consultation_log`).
 
 ## Acceptance Criteria
 
-- `android-project-analyst` **P6** verified before any migrator module dispatch.
+- Source understand subsystem **P6** **and** (for route `migration`) the target understand subsystem verified before any migrator module dispatch; both recorded in `upstream_analyst_index.json`.
+- Migration task clarified as full or partial at Step 1, with the requested source module(s) resolved for transfer into the target.
 - `design_mode` identified from user input at Step 0 (default `mvi`) and recorded in `run_manifest.json`; architecture-producing dispatches carry `design_mode` + `architecture_reference_path`.
 - `raw_user_task`, `user_task_constraints`, `partial_migration`, and `mock_data_preflight` recorded at Step 0 and passed through planning/prep/implementation/verification/report dispatches.
 - Partial migration never broadens to whole-project implementation; unresolved focused scope blocks instead of guessing.
