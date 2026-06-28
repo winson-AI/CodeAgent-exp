@@ -22,28 +22,41 @@ claude --plugin-dir ./claude-code-plugins/kmp-migration
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit. Includes specialized agents for project analysis, source-to-source migration, fidelity-first test validation, memory curation, skill maintenance, Android understanding, targeted KMP issue fixing, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, and `.env` edit protection. | 0.1.21 |
+| [kmp-migration](kmp-migration/) | End-to-end Android to KMP migration toolkit orchestrated by a front-door task adapter. Routes understand vs. migration requests, runs dual source+target understanding for migrations, then source-to-source migration and fidelity-first test validation. Includes specialized agents, slash commands, the Ponytail coding guardrail, Android Studio MCP-assisted project/code intelligence, agent-facing stage contracts, and `.env` edit protection. | 0.1.30 |
 | [flow_d2c](flow_d2c/) | Figma → React → optimized mobile React → Android/KMP/CMP Compose design-to-code workflow. Bundles the orchestrator skill, the React refactor and Compose translation skills, a Compose-library adapter generator, a UI reconstruction scoring skill, and the `anchor-d2c-mcp` MCP server for Figma-to-code conversion. | 0.1.0 |
 
 ### kmp-migration
 
+**Overall orchestration workflow:**
+
+![KMP migration overall orchestration workflow](kmp-migration/assets/overall_migration.png)
+
+The `coding-task-adapter` is the front door: it classifies the request, then drives a staged pipeline with gates between each boundary.
+
+- **Understand mode** (`only_understand_*`) — one `android-project-analyst` run on the source produces the understand results and file system, then stops.
+- **Migrate mode** (`migration`) — the analysis stage understands **both** projects, running `android-project-analyst` once on the source (Source Project Subsystem, `P6`) and once on the target (Target Project Subsystem, same file format) into two distinct understand roots. The `android-to-kmp-migrator` then fetches both subsystems, clarifies full vs. partial scope, transfers the requested module from source into the target, and hands off to the mandatory `kmp-test-validator` before the adapter issues its final verdict.
+
 **What it ships:**
-- 5 specialized agents:
-  - `android-project-analyst`: Deep Android architecture, UI, data/control flow analysis, and SPEC generation.
-  - `android-to-kmp-migrator`: Runnable Android-to-KMP migration with mandatory compile, preview, and use-case validation.
-  - `kmp-test-validator`: High-fidelity validation against Android behavior and provided test cases.
-  - `memory-curator`: Agent memory audit, cleanup recommendations, and recovery state records.
-  - `skill-maintenance-advisor`: Periodic advice for creating or updating reusable skills from conversation context.
+- 7 skills (Swarm Skills + guardrails) under `skills/`:
+  - `coding-task-adapter`: Front-door orchestrator that routes understand/migration/validation tasks, runs dual source+target understanding for migrations, enforces stage gates, and emits the final adapter report.
+  - `android-project-analyst`: Module-first Android (and KMP-target) understanding across presentation/architecture/data/behavior dimensions, cross-module assembly basis, and SPEC generation.
+  - `android-to-kmp-migrator`: Source-to-target KMP migration that consumes both understand subsystems and edits the target project, with analytics (埋点) and entry-point restoration.
+  - `kmp-test-validator`: Fidelity-first validation (trust + restoreability), build/compile gate, entry-point launch, and business testing against Android behavior and provided test cases.
+  - `operating-instructions`: Shared baseline conduct layer included in every dispatched role.
+  - `ponytail` / `ponytail-review`: Ponytail coding guardrail (decision ladder + review) that checks whether work can be skipped, reused, or reduced before writing new code.
+- 5 specialized agents under `agents/`:
+  - `android-project-analyst`, `android-to-kmp-migrator`, `kmp-test-validator` controllers, plus `memory-curator` (memory audit/recovery) and `skill-maintenance-advisor` (periodic skill upkeep advice).
 - 2 slash commands:
   - `/legacy-android-understand`: Invoke `android-project-analyst` in exploration mode for project, module, feature, question, or target-code understanding.
   - `/fix-issue-kmp`: Fix known KMP compile issues or migrated use-case failures with targeted edits, command logs, and rerun evidence.
-- 1 hook:
+- Hooks (`hooks/hooks.json`):
   - `PreToolUse` `.env` protection: blocks write/edit tool calls targeting `.env` files.
+  - Ponytail lifecycle hooks: activate the guardrail on `SessionStart`, propagate it on `SubagentStart`, and track `/ponytail` modes from `UserPromptSubmit`.
 - 1 MCP config:
   - `jetbrains`: connects to Android Studio or another JetBrains IDE through the IDE MCP server on `http://localhost:64342/sse`; agents use it optionally for project structure, code intelligence, diagnostics, build hooks, run configs, and IDE-safe edits.
-- 1 rules set:
-  - `rules/`: agent-facing contracts for stage/node input checks, output persistence, workflow gates, and downstream-agent artifacts.
-- Supporting scripts and configuration for plugin hooks, MCP/LSP integration, monitors, and settings.
+- Agent-facing rules under `rules/`:
+  - Stage/node I/O contracts, workflow-stage gates, agent-only output, phase-document templates, status-controller task ledger, fidelity-gate verification, and the Ponytail rule.
+- Supporting assets and configuration: workflow diagrams (`assets/`), hook/utility scripts (`pre-edit-protect.sh`, `ktlint-format.sh`, `check-ponytail-assets.js`), output style (`terse`), theme (`dracula`), monitors, and MCP/LSP settings.
 
 Full docs: [kmp-migration/README.md](kmp-migration/README.md)
 
@@ -78,13 +91,16 @@ claude-code-plugins/
 ├── kmp-migration/                # Plugin: KMP Migration Toolkit
 │   ├── .claude-plugin/
 │   │   └── plugin.json           # Plugin manifest
-│   ├── skills/                   # Auto-invoked skills
-│   ├── commands/                 # Slash commands
+│   ├── skills/                   # Swarm Skills: coding-task-adapter, analyst, migrator, validator, operating-instructions, ponytail(+review)
+│   ├── commands/                 # Slash commands (/legacy-android-understand, /fix-issue-kmp)
 │   ├── agents/                   # Specialized subagents
-│   ├── hooks/                    # Tool-layer enforcement
-│   ├── rules/                    # Agent-facing stage/node contracts
+│   ├── hooks/                    # Tool-layer enforcement (.env protection + Ponytail lifecycle)
+│   ├── rules/                    # Agent-facing stage/node contracts (.mdc)
 │   ├── scripts/                  # Hook and utility scripts
+│   ├── assets/                   # Workflow diagrams (overall_migration.png/.svg, wf_migration.png)
 │   ├── monitors/                 # Monitor configuration
+│   ├── output-styles/            # Output styles (terse)
+│   ├── themes/                   # Themes (dracula)
 │   ├── .mcp.json                 # Plugin MCP configuration
 │   ├── .lsp.json                 # Plugin LSP configuration
 │   ├── settings.json             # Plugin settings
