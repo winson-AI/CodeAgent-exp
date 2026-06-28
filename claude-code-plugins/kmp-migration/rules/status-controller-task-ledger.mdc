@@ -1,0 +1,46 @@
+---
+description: Double-confirm that every running understanding, migration, validation, or fix task is driven by a status controller whose task list tracks todo, done, and blocked before any stage advances.
+alwaysApply: true
+---
+
+# Status Controller And Task Ledger
+
+This rule double-confirms that a status controller is mandatory while any task runs. Every controller (`android-project-analyst`, `android-to-kmp-migrator`, `kmp-test-validator`, `coding-task-adapter`, and the fix command) MUST keep a live, machine-readable task ledger and gate progress on it.
+
+## Mandatory Ledger
+
+Each run MUST maintain its workspace-state artifact pair as the single source of truth:
+
+| Controller | Ledger owner | Ledger artifacts |
+|---|---|---|
+| Understanding | `analysis-workspace-state` | `analysis_workspace_state.json` + `.md` |
+| Migration | `migration-workspace-state` | `migration_workspace_state.json` + `.md` |
+| Validation | `validation-workspace-state` | `validation_workspace_state.json` + `.md` |
+
+The ledger MUST contain both a **task list** (`*_todo_list[]`) and a **pipeline step monitor** (`pipeline_steps[]`) with `handoff_gates`.
+
+## Task States (todo / done / blocked)
+
+Every task-list item and pipeline step MUST carry an explicit status drawn from this canonical set:
+
+- `pending` — queued, not started (todo).
+- `in_progress` — owning node dispatched or partial output without a passed gate.
+- `completed` — required artifacts exist, are in-path, non-empty, not stale, and the item's review/verification gate passed (done).
+- `blocked` — has `blocking_gaps`, failed a gate, depends on stale upstream, or violates scope.
+- `skipped` — explicitly out of scope with recorded evidence.
+
+`completed` MUST be evidence-backed: never infer "done" from chat text, a changed file alone, or a subagent's "COMPLETE" without verifying its artifacts. Anything not provably `completed` or `skipped` is `pending`, `in_progress`, or `blocked`.
+
+## Run-Time Obligations
+
+- Initialize the ledger before the first work node (analyst `G1`, migrator `MG1`, validator `VG0b`).
+- Refresh the ledger **before dispatching the next stage** so todo and step status stay in sync; a stage MUST NOT advance while its ledger is stale.
+- Keep `*_status.todo_summary` (counts by status) and `*_status.pipeline_summary.current_step_id` (first non-completed step) accurate on every refresh.
+- Surface every `blocked` item with a machine-routable reason and an owner node / rerun hook; do not hide repeated failures.
+- A controller MUST NOT claim run completion, readiness, or a final verdict while any in-scope task list item or required pipeline step is `pending`, `in_progress`, `blocked`, or `stale`.
+
+## Fail-Closed
+
+- Missing or empty ledger artifact → `blocked`.
+- Stage advanced without a ledger refresh, or status not synced from durable artifacts → `needs_rerun` to the workspace-state node.
+- Final report issued with unresolved `blocked`/`pending` in-scope items → reject the completion claim.
