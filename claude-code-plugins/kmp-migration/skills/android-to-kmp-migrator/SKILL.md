@@ -66,7 +66,7 @@ Module-first migrator for Legacy Android → KMP target assembly. **Two upstream
 ## Protocol Summary
 
 0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream understand subsystems — source **P6** and target subsystem (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**, resolve user-task constraints, partial migration scope, and optional mock-data allowance; record `dependency_preflight`, `design_mode`, `partial_migration`, and `mock_data_preflight` in `run_manifest.json`.
-1. Fetch comprehensive context — verify source subsystem **P6** and target understand subsystem; clarify full vs partial migration task; write `run_manifest.json`, `upstream_analyst_index.json` (`source_subsystem` + `target_subsystem`).
+1. Fetch comprehensive context — resolve shared base `agents_root = <output_dir or ~/.a2c_agents>` (upstream base/`output_root` used verbatim), lock `output_root = <agents_root>/migration/android-to-kmp-migrator`; verify source subsystem **P6** and target understand subsystem (both under the same `agents_root`); clarify full vs partial migration task; write `run_manifest.json`, `upstream_analyst_index.json` (`source_subsystem` + `target_subsystem`).
 2. Migration inventory + `modules_migration_index.json`; for partial migration include only focused/requested modules plus explicit integration seams.
 3. Workspace state init — **`migration_todo_list[]`** + **`pipeline_steps[]`** monitor; refresh after each node group syncs todo/step status.
 4. TPA `global_baseline`.

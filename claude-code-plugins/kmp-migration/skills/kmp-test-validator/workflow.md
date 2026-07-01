@@ -31,7 +31,7 @@ graph TD
 
 ### Step 0 — Pre-flight
 
-Verify migrator `V0`; write `upstream_migration_index.json`; lock `output_root` (`VG0`). If `migration_report.partial_migration.enabled` is true, copy the partial scope into validator `run_manifest.json`; resolve `mock_machine_preflight` only for current-module checks when real dependencies are unavailable.
+Resolve the shared base `agents_root = <output_dir or ~/.a2c_agents>` (use the upstream base/`output_root` verbatim), lock `output_root = <agents_root>/validation/kmp-test-validator`, and confirm the migrator `V0` root resolves under the same `agents_root`. Verify migrator `V0`; write `run_manifest.json` (incl. `agents_root`, `output_root`) and `upstream_migration_index.json` (`VG0`). If `migration_report.partial_migration.enabled` is true, copy the partial scope into validator `run_manifest.json`; resolve `mock_machine_preflight` only for current-module checks when real dependencies are unavailable.
 
 ### Step 1 — Workspace State
 

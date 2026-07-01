@@ -63,10 +63,24 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 
 ---
 
+## Base Root Resolution (shared with upstream)
+
+All paths converge on one base directory, shared across the whole toolkit:
+
+```text
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/migration/android-to-kmp-migrator
+```
+
+- **Upstream consistency (mandatory)**: when invoked by `coding-task-adapter`, `agents_root` and the exact `output_root` are supplied in the dispatch contract and MUST be used **verbatim**; the recorded `output_root` MUST equal the value the adapter listed in its `downstream_output_roots`. Do not invent a base or fall back to a default when an upstream path is provided.
+- **Standalone default**: with no path provided, `agents_root = ~/.a2c_agents`.
+- Both upstream understand subsystems MUST resolve under the **same** `agents_root` — source at `<agents_root>/understand/android-project-analyst/source`, target at `.../target`; a subsystem root under a different base is a `path_mismatch` blocker.
+- `agents_root` and `output_root` are recorded in `run_manifest.json` and validated per **Path Accuracy Validation** below.
+
 ## Migration Output Root Layout
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
+output_root = <agents_root>/migration/android-to-kmp-migrator
 
 <output_root>/
 ├── run_manifest.json
@@ -132,7 +146,8 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 | Variable | Resolved path |
 |---|---|
-| `output_root` | `<output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator` |
+| `agents_root` | `<output_dir or ~/.a2c_agents>` |
+| `output_root` | `<agents_root>/migration/android-to-kmp-migrator` |
 | `upstream_index_dir` | `<output_root>/upstream-index` |
 | `module_index_dir` | `<output_root>/module-index` |
 | `module_root` | `<output_root>/modules/<migration_module_id>` |
@@ -140,6 +155,16 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 | `module_representation_dir` | `<module_root>/representation` |
 | `global_dir` | `<output_root>/global` |
 | `report_dir` | `<output_root>/report` |
+
+### Path Accuracy Validation (mandatory)
+
+The Leader MUST validate paths at run lock (MG0) and reject/rerun on any failure:
+
+1. **Single base** — `agents_root` resolves to one absolute path (`<output_dir or ~/.a2c_agents>`); reject relative/empty values or a second base (`invalid_base`).
+2. **Upstream consistency** — when the dispatch supplies `agents_root`/`output_root`, use them verbatim; the resolved `output_root` MUST equal the upstream-recorded value. Divergence, or a self-invented base while an upstream path exists, is `path_mismatch`.
+3. **Stage derivation** — `output_root` MUST equal `<agents_root>/migration/android-to-kmp-migrator`; a wrong stage folder or skill segment is `path_mismatch`.
+4. **Shared base with upstream understand** — both analyst subsystem roots recorded in `upstream_analyst_index.json` MUST resolve under the same `agents_root` (`<agents_root>/understand/android-project-analyst/{source,target}`); a subsystem under a different base is `path_mismatch`.
+5. **Containment** — every migrator artifact path MUST be under `output_root` (else `out_of_path`); target edits stay under `kmp_target_project_path`.
 
 ### Build Boundary (mandatory)
 
@@ -166,7 +191,7 @@ output_root = <output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator
 
 | Step | Gate | Required artifacts before next step |
 |---|---|---|
-| `MG0` | Run lock | `run_manifest.json` (incl. `design_mode`, `raw_user_task`, `partial_migration`, `mock_data_preflight`), `upstream-index/upstream_analyst_index.json` |
+| `MG0` | Run lock | `run_manifest.json` (incl. `agents_root`, `output_root`, `design_mode`, `raw_user_task`, `partial_migration`, `mock_data_preflight`), `upstream-index/upstream_analyst_index.json` |
 | `MG1` | Workspace init | global `migration_workspace_state.*` (initial `pipeline_steps[]`, empty `migration_todo_list[]`) |
 | `MG2` | Migration index | `migration_module_inventory.*`, `modules_migration_index.json`, per-module `module_brief.json` |
 | `MG3` | Target baseline | global `target-project-assistant/*` (`mode: global_baseline`) + `target_alignment_revision.*` |
@@ -552,7 +577,7 @@ For partial migration and/or mock data, `migration_report.json` MUST also includ
 
 ## Leader Obligations
 
-1. Verify the source understand subsystem package `P6` **and** the target understand subsystem (for route `migration`) before `MG0` completes; record both in `upstream-index/upstream_analyst_index.json`; identify `design_mode` from user input (default `mvi`); resolve `partial_migration` and `mock_data_preflight`; write these to `run_manifest.json` at `MG0`, then pass `raw_user_task`, `user_task_constraints`, `partial_migration`, `mock_data_preflight`, `design_mode` + `architecture_reference_path`, and both understand subsystem roots into every relevant dispatch.
+1. Resolve `agents_root = <output_dir or ~/.a2c_agents>` (use the upstream-supplied base/`output_root` verbatim), derive `output_root = <agents_root>/migration/android-to-kmp-migrator`, and confirm both upstream understand subsystem roots resolve under the same `agents_root`. Verify the source understand subsystem package `P6` **and** the target understand subsystem (for route `migration`) before `MG0` completes; record `agents_root`, `output_root`, and both subsystem roots in `run_manifest.json` and `upstream-index/upstream_analyst_index.json`; identify `design_mode` from user input (default `mvi`); resolve `partial_migration` and `mock_data_preflight`; then pass `raw_user_task`, `user_task_constraints`, `partial_migration`, `mock_data_preflight`, `design_mode` + `architecture_reference_path`, and both understand subsystem roots into every relevant dispatch.
 2. Dispatch `target-project-assistant` for all target-project questions; TPA consumes the Target Project Subsystem understand artifacts as primary evidence; other roles MUST reference TPA artifacts instead of re-analyzing target ad hoc.
 3. Refresh `migration-workspace-state` after inventory, each module node group, each module representation, global phase, and report; ensure `migration_todo_list` and `pipeline_steps` stay synced before dispatching the next step.
 4. Ensure each module produces **target KMP edits** via `module-implementation` (and optional `migration-prep` / `module-node-review-fix` `fix`) before writing `module_completion_record.json`.
@@ -572,6 +597,9 @@ For partial migration and/or mock data, `migration_report.json` MUST also includ
 | Missing path | `blocked`, `reason: missing` |
 | Empty file | `blocked`, `reason: empty` |
 | Out of `output_root` | `blocked`, `reason: out_of_path` |
+| `agents_root` relative/empty or a second base introduced | `blocked`, `reason: invalid_base` |
+| `output_root` not `<agents_root>/migration/android-to-kmp-migrator`, or diverges from the upstream-supplied path | `blocked`, `reason: path_mismatch` |
+| Upstream understand subsystem root under a different `agents_root` | `blocked`, `reason: path_mismatch` |
 | Stale per workspace ledger | `needs_rerun`, name owner |
 | `module_completion_record` failed | Re-enter module loop from routed node |
 | `post_integration_alignment` omissions | Rerun listed modules or `global-migration-phase integrate` |

@@ -4,14 +4,28 @@ This document is the **canonical path and content contract** for `android-projec
 
 The Leader and every node MUST read this file before writing artifacts. `SKILL.md` and `workflow.md` reference this contract; when they diverge, **this file wins on paths, filenames, and trigger gates**.
 
+## Base Root Resolution (shared with upstream)
+
+All paths converge on one base directory, shared across the whole toolkit:
+
+```text
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/understand/android-project-analyst[/<understand_subsystem>]
+```
+
+- **Upstream consistency (mandatory)**: when invoked by `coding-task-adapter` (or any upstream), `agents_root` and the exact `output_root` are supplied in the dispatch contract and MUST be used **verbatim**. The run MUST NOT invent its own base or fall back to a default when an upstream path is provided; the recorded `output_root` MUST equal the value the adapter listed in its `downstream_output_roots`.
+- **Standalone default**: with no path provided, `agents_root = ~/.a2c_agents`.
+- `understand_subsystem` suffix: `/source` or `/target` for a migration's dual-understand subsystems; a standalone understand run may use the bare `<agents_root>/understand/android-project-analyst` root.
+- `agents_root` and `output_root` are recorded in `run_manifest.json` and validated per **Path Accuracy Validation** below.
+
 ## Output Root Layout
 
-This contract describes **one** analyst understand run. A migration produces **two** runs (source and target understand subsystems), each with its **own distinct `output_root`** and its own full copy of this artifact tree. The source subsystem analyzes `source_project_path`; the target subsystem (`project_kind: kmp_target`) analyzes `target_project_path` and is written to a separate root (e.g. `.../android-project-analyst/target`). Both runs use the identical file format and gates below.
+This contract describes **one** analyst understand run. A migration produces **two** runs (source and target understand subsystems), each with its **own distinct `output_root`** derived from the same `agents_root` (`.../android-project-analyst/source` and `.../android-project-analyst/target`) and its own full copy of this artifact tree. The source subsystem analyzes `source_project_path`; the target subsystem (`project_kind: kmp_target`) analyzes `target_project_path`. Both runs use the identical file format and gates below.
 
 Lock one `output_root` before any dispatch:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/understand>/android-project-analyst
+output_root = <agents_root>/understand/android-project-analyst[/<understand_subsystem>]
 
 <output_root>/
 ├── run_manifest.json                          # run identity + handoff package pointer
@@ -66,7 +80,8 @@ output_root = <output_dir or ~/.a2c_agents/understand>/android-project-analyst
 
 | Variable | Resolved path |
 |---|---|
-| `output_root` | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst` |
+| `agents_root` | `<output_dir or ~/.a2c_agents>` |
+| `output_root` | `<agents_root>/understand/android-project-analyst[/<understand_subsystem>]` |
 | `workspace_state_dir` | `<output_root>/workspace-state` |
 | `module_index_dir` | `<output_root>/module-index` |
 | `module_root` | `<output_root>/modules/<module_id>` |
@@ -81,6 +96,16 @@ output_root = <output_dir or ~/.a2c_agents/understand>/android-project-analyst
 - Dimension folder names use **kebab-case** node ids (`node-results/presentation-resource/`).
 - `module_id` folder names use the **same slug** as in `module_inventory.json` and `modules_index.json`.
 - No artifact outside `<output_root>/` is valid for gates below.
+
+### Path Accuracy Validation (mandatory)
+
+The Leader MUST validate paths at output-root lock and reject/rerun on any failure:
+
+1. **Single base** — `agents_root` resolves to one absolute path (`<output_dir or ~/.a2c_agents>`); reject relative/empty values or a second base.
+2. **Upstream consistency** — when the dispatch supplies `agents_root`/`output_root`, use them verbatim; the resolved `output_root` MUST equal the upstream-recorded value. Divergence, or a self-invented base while an upstream path exists, is `path_mismatch`.
+3. **Stage derivation** — `output_root` MUST equal `<agents_root>/understand/android-project-analyst[/<understand_subsystem>]`; a wrong stage folder or skill segment is `path_mismatch`.
+4. **Subsystem distinctness** — in a migration, the `source` and `target` roots MUST be distinct; identical roots are `path_mismatch`.
+5. **Containment** — every artifact path MUST be under `output_root` (else `out_of_path`); every node artifact under `<output_root>/modules/<module_id>/node-results/<node_id>/`; SPEC under `<output_root>/SPEC`.
 
 ---
 
@@ -109,7 +134,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required JSON / content keys | Downstream trigger role |
 |---|---|---|---|
-| `run_manifest.json` | Leader | `understand_subsystem` (`source \| target`), `project_kind` (`android_source \| kmp_target`), `source_project_path`, `mode`, `analysis_scope`, `focused_analysis`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path`; a `kmp_target` run analyzes the project at `target_project_path` | **All handlers** — resolves `output_root`, declares the understand subsystem/project kind, and which gate package this run claims |
+| `run_manifest.json` | Leader | `understand_subsystem` (`source \| target`), `project_kind` (`android_source \| kmp_target`), `source_project_path`, `mode`, `analysis_scope`, `focused_analysis`, `agents_root`, `output_root`, `schedule_version`, `handoff_package`, `allowed_path_roots`, `dependency_preflight`, `timestamp`; migration mode adds `target_project_path`; a `kmp_target` run analyzes the project at `target_project_path` | **All handlers** — resolves `agents_root` (shared base) + `output_root`, declares the understand subsystem/project kind, and which gate package this run claims |
 
 `handoff_package` MUST list absolute paths to the gate entry artifacts the run claims ready (see Handoff Packages below).
 
@@ -528,6 +553,8 @@ Every node MUST:
 | Path missing | `blocked` — return `blocking_gaps: [{ "artifact": "<path>", "reason": "missing" }]` |
 | File empty | `blocked` — reason `empty` |
 | Path outside `output_root` | `blocked` — reason `out_of_path` |
+| `agents_root` relative/empty or a second base introduced | `blocked` — reason `invalid_base` |
+| `output_root` not `<agents_root>/understand/android-project-analyst[/…]`, diverges from the upstream-supplied path, or source/target roots identical | `blocked` — reason `path_mismatch` |
 | Stale per workspace ledger | `needs_rerun` — name owning node or Leader integration step |
 | Schema/content invalid | `blocked` — reason `invalid_contract`; cite this file section |
 | `readiness: blocked` in verification | `blocked` — do not start migration or validation |

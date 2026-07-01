@@ -47,10 +47,11 @@ The migrate stage (`android-to-kmp-migrator`) fetches the comprehensive context 
 
 ## Output Paths
 
-The canonical path tree, stage folder names, and handoff packages `A0`–`A6` are in [output-contract.md](output-contract.md). Summary:
+The canonical path tree, stage folder names, path-accuracy validation, and handoff packages `A0`–`A6` are in [output-contract.md](output-contract.md). All paths converge on one base `agents_root = <output_dir or ~/.a2c_agents>` (default `~/.a2c_agents`). Summary:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/task-adapter/coding-task-adapter
 downstream_index_dir = <output_root>/downstream-index
 workspace_state_dir = <output_root>/workspace-state
 route_orchestration_dir = <output_root>/route-orchestration
@@ -59,7 +60,7 @@ intermediate_asset_dir = <output_root>/intermediate-assets
 report_dir = <output_root>/report
 ```
 
-Validator artifacts are recorded under the validator's parallel `validation` root, not the migration root.
+Downstream roots derive from the same `agents_root` (`<agents_root>/{understand,migration,validation}/<skill>`); the adapter records them but does not own their internal trees. Validator artifacts are recorded under the parallel `validation` root, never the migration root.
 
 ## Route Matrix
 

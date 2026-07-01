@@ -84,10 +84,11 @@ The migrate stage (`android-to-kmp-migrator`) fetches the comprehensive context 
 
 ## Output Layout
 
-See [output-contract.md](output-contract.md) for the full folder tree, filename invariants, and handoff packages `A0`–`A6`. Summary path variables:
+See [output-contract.md](output-contract.md) for the full folder tree, filename invariants, path-accuracy validation, and handoff packages `A0`–`A6`. All paths converge on a single base `agents_root = <output_dir or ~/.a2c_agents>` (default `~/.a2c_agents`). Summary path variables:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/task-adapter/coding-task-adapter
 downstream_index_dir = <output_root>/downstream-index
 workspace_state_dir = <output_root>/workspace-state
 route_orchestration_dir = <output_root>/route-orchestration
@@ -96,9 +97,9 @@ intermediate_asset_dir = <output_root>/intermediate-assets
 report_dir = <output_root>/report
 ```
 
-Downstream workflows write only to their own output roots; the adapter records paths in `downstream-index/` and `intermediate-assets/`.
+Downstream roots are **derived from the same `agents_root`** (`<agents_root>/{understand,migration,validation}/<skill>`), owned by the downstream contracts, and only recorded by the adapter — their internal trees are excluded from the adapter's owned path tree.
 
-Any artifact written outside the path tree in `output-contract.md` is **invalid** — adapter roles MUST return `blocked` with `reason: out_of_path`.
+Any adapter artifact written outside `output_root` is **invalid** — adapter roles MUST return `blocked` with `reason: out_of_path`; a downstream root that does not derive from `agents_root` is `blocked` with `reason: path_mismatch`.
 
 ## Artifact Owners
 
