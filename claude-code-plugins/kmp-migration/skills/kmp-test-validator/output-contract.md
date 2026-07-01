@@ -52,10 +52,24 @@ Rules:
 
 ---
 
+## Base Root Resolution (shared with upstream)
+
+All paths converge on one base directory, shared across the whole toolkit:
+
+```text
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/validation/kmp-test-validator
+```
+
+- **Upstream consistency (mandatory)**: when invoked by `coding-task-adapter` (or the migrator handoff), `agents_root` and the exact `output_root` are supplied and MUST be used **verbatim**; the recorded `output_root` MUST equal the value the adapter listed in its `downstream_output_roots`. Do not invent a base or fall back to a default when an upstream path is provided.
+- **Standalone default**: with no path provided, `agents_root = ~/.a2c_agents`.
+- The upstream migrator `V0` root recorded in `upstream_migration_index.json` MUST resolve under the same `agents_root` (`<agents_root>/migration/android-to-kmp-migrator`); a migration root under a different base is a `path_mismatch` blocker. Validator artifacts stay under the parallel `validation` root — never under the migration root.
+- `agents_root` and `output_root` are recorded in `run_manifest.json` and validated per **Path Accuracy Validation** below.
+
 ## Validation Output Root Layout
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
+output_root = <agents_root>/validation/kmp-test-validator
 
 <output_root>/
 ├── run_manifest.json
@@ -106,6 +120,8 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 
 | Variable | Path |
 |---|---|
+| `agents_root` | `<output_dir or ~/.a2c_agents>` |
+| `output_root` | `<agents_root>/validation/kmp-test-validator` |
 | `fidelity_gate_dir` | `<output_root>/fidelity-gate` |
 | `fidelity_trust_dir` | `<fidelity_gate_dir>/trust` |
 | `fidelity_restoreability_dir` | `<fidelity_gate_dir>/restoreability` |
@@ -116,6 +132,16 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 | `knowledge_entries_dir` | `<code_gate_knowledge_dir>/entries` |
 | `business_testing_dir` | `<output_root>/business-testing` |
 | `entry_point_launch_dir` | `<business_testing_dir>/entry-point-launch` |
+
+### Path Accuracy Validation (mandatory)
+
+The Leader MUST validate paths at output-root lock (VG0) and reject/rerun on any failure:
+
+1. **Single base** — `agents_root` resolves to one absolute path (`<output_dir or ~/.a2c_agents>`); reject relative/empty values or a second base (`invalid_base`).
+2. **Upstream consistency** — when the dispatch supplies `agents_root`/`output_root`, use them verbatim; the resolved `output_root` MUST equal the upstream-recorded value. Divergence, or a self-invented base while an upstream path exists, is `path_mismatch`.
+3. **Stage derivation** — `output_root` MUST equal `<agents_root>/validation/kmp-test-validator`; a wrong stage folder or skill segment is `path_mismatch`.
+4. **Shared base with migrator** — the migrator `V0` root in `upstream_migration_index.json` MUST resolve under the same `agents_root` (`<agents_root>/migration/android-to-kmp-migrator`); a migration root under a different base is `path_mismatch`.
+5. **Containment** — every validator artifact MUST be under `output_root` (else `out_of_path`); validator MUST NOT write into the migration root. Only `validation-code-gate` mode `fix` edits target production code under `kmp_target_project_path`.
 
 ### Role Ownership (mandatory)
 
@@ -132,7 +158,7 @@ output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
 
 ## Write Order (Leader Schedule)
 
-1. Verify `V0`; write `run_manifest.json`, `upstream_migration_index.json`, including `partial_migration` and `mock_machine_preflight` when applicable.
+1. Resolve `agents_root = <output_dir or ~/.a2c_agents>` (use the upstream base/`output_root` verbatim), lock `output_root = <agents_root>/validation/kmp-test-validator`, and confirm the migrator `V0` root resolves under the same `agents_root`. Verify `V0`; write `run_manifest.json` (incl. `agents_root`, `output_root`), `upstream_migration_index.json`, including `partial_migration` and `mock_machine_preflight` when applicable.
 2. `validation-workspace-state` — initialize `pipeline_steps[]` and `validation_todo_list[]`; refresh after each group and sync todo/step status.
 3. `validation-fidelity-gate` mode `trust` → `VG1`.
 4. `validation-code-gate` mode `build` → `VG2`; on failure → mode `fix` (lookup `compile_error_knowledge.*` and optional `error_knowledge_path`) → rerun `build` (max 3 fix cycles); on `VG2` pass after a fix cycle, persist verified bug-fix experiences under `code-gate/knowledge/entries/`.
@@ -400,6 +426,9 @@ Mandatory after `VG2` for migration `V0`. Anchors Legacy Android launcher/Applic
 
 | Condition | Action |
 |---|---|
+| `agents_root` relative/empty or a second base introduced | `blocked`, `reason: invalid_base` |
+| `output_root` not `<agents_root>/validation/kmp-test-validator`, or diverges from the upstream-supplied path | `blocked`, `reason: path_mismatch` |
+| Migrator `V0` root under a different `agents_root`, or validator artifact under the migration root | `blocked`, `reason: path_mismatch` / `out_of_path` |
 | Unknown or invalid role ID in return payload | Reject; re-dispatch with role + mode from `SKILL.md` |
 | `restoreability` before `VG2` or before `entry_point_launch` completes | `blocked` |
 | Fix mode delete/stub violation | `failed`; rerun fix with constraint recorded |

@@ -47,7 +47,7 @@ The team is a **serial pipeline with two controller loops**: code-gate fix remed
 
 ## Protocol Summary
 
-0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); verify migrator `V0`; lock output root; resolve partial migration scope and optional `mock_machine_preflight`.
+0. **Pre-flight** — [dependencies.yaml](dependencies.yaml); resolve shared base `agents_root = <output_dir or ~/.a2c_agents>` (upstream base/`output_root` used verbatim); verify migrator `V0` (its root under the same `agents_root`); lock `output_root = <agents_root>/validation/kmp-test-validator`; resolve partial migration scope and optional `mock_machine_preflight`.
 1. **Workspace state** — ledger + `handoff_gates`; init **`validation_todo_list[]`** + **`pipeline_steps[]`**; refresh and sync after each node group.
 2. **Fidelity gate `trust`** — migration trigger + pre-build fidelity (`VG1`).
 3. **Code gate `build`** — three-scenario compile + build/preview (`VG2`); for partial migration, current-module check may use an approved mock machine; on failure → code gate `fix` (lookup bug-fix knowledge, then fix) → rerun `build` (max 3 cycles); persist verified compile-error experiences after `VG2` pass.
@@ -79,11 +79,14 @@ The team is a **serial pipeline with two controller loops**: code-gate fix remed
 ## Strict Output Schedule
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/validation>/kmp-test-validator
+agents_root = <output_dir or ~/.a2c_agents>
+output_root = <agents_root>/validation/kmp-test-validator
 fidelity_gate_dir = <output_root>/fidelity-gate
 code_gate_dir = <output_root>/code-gate
 business_testing_dir = <output_root>/business-testing
 ```
+
+All paths derive from the shared `agents_root`; when `coding-task-adapter` (or the migrator handoff) supplies `agents_root`/`output_root`, use them **verbatim** (default base `~/.a2c_agents` only when none is provided). The migrator `V0` root MUST resolve under the same `agents_root`.
 
 See [output-contract.md](output-contract.md) for full layout. No validator artifact inside migration output root.
 

@@ -28,20 +28,31 @@ skills:
     handoff_package: P6
     must_complete_before: android-to-kmp-migrator
     purpose: |
-      android-to-kmp-migrator MUST NOT be invoked until android-project-analyst has
-      finished and produced package P6 (handoff_gates.P6.ready = true). If P6 is
-      missing or stale, dispatch or re-run android-project-analyst first — do not
-      start migrator module dispatch.
+      android-to-kmp-migrator MUST NOT be invoked until the analysis stage has produced
+      both understand subsystems: the source subsystem package P6 (handoff_gates.P6.ready
+      = true) AND the target understand subsystem (android-project-analyst on the KMP
+      target). If either is missing or stale, dispatch or re-run android-project-analyst
+      for the missing subsystem first — do not start migrator module dispatch.
 
 # Read-only upstream inputs (not MCP — verified at Step 1)
 upstream_inputs:
   - source: android-project-analyst
+    understand_subsystem: source
     handoff_package: P6
     required: true
     purpose: |
       Legacy understanding via analyst artifacts only: modules_index.json,
       migration_assembly_basis.json, cross_module_* globals, module representations,
       SPEC (prd/design/plan/verification). Migrator does not re-run full legacy analysis.
+  - source: android-project-analyst
+    understand_subsystem: target
+    project_kind: kmp_target
+    required: true   # for route migration
+    purpose: |
+      Target KMP understanding in the same analyst file format (distinct output root):
+      global_representation.json, modules_index.json, target module representations,
+      SPEC design/verification. target-project-assistant consumes this as primary
+      target evidence for anchor mapping instead of re-discovering the target.
 
 optional_mcp:
   - server: jetbrains
@@ -135,8 +146,10 @@ downstream_handoff:
       with explicit validator blockers recorded in migration_report and workspace ledger.
 
 degraded_modes:
-  - trigger: analyst P6 not ready
-    effect: blocked — do not dispatch migration nodes; repair upstream analyst handoff first
+  - trigger: source subsystem P6 not ready
+    effect: blocked — do not dispatch migration nodes; repair the source understand handoff first
+  - trigger: target understand subsystem missing for route migration
+    effect: blocked — dispatch android-project-analyst on the KMP target before migrator nodes
   - trigger: rg missing
     effect: Use built-in Grep/Read; record in run_manifest dependency_preflight
   - trigger: git missing

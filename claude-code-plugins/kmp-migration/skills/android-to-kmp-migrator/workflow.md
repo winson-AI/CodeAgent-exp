@@ -84,6 +84,7 @@ graph TD
 
 ## Step 1 — Upstream + output root (fetch comprehensive context)
 
+- Resolve the shared base `agents_root = <output_dir or ~/.a2c_agents>` (use the upstream-supplied base/`output_root` verbatim), lock `output_root = <agents_root>/migration/android-to-kmp-migrator`, and confirm both understand subsystem roots resolve under the same `agents_root` (`.../understand/android-project-analyst/{source,target}`).
 - Fetch the comprehensive context from **both** understand subsystems: verify the source subsystem package **P6** and (for route `migration`) the target subsystem; write `upstream_analyst_index.json` with `source_subsystem` and `target_subsystem` blocks, including the source `focused_analysis` snapshot when present.
 - **Clarify the migration task** here: confirm whether the request is **full** or **partial** migration from `partial_migration` / `raw_user_task`, and resolve which source module(s) transfer into the target. Partial migration stays bounded to the requested module/feature/subset; full migration covers the source assembly scope.
 - For partial migration, the source P6 must either already be focused to the requested module/feature or contain enough module-index evidence to restrict migrator inventory without inspecting out-of-scope modules; the target subsystem provides the anchor candidates for the requested slice.

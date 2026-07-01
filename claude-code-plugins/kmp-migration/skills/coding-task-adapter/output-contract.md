@@ -4,18 +4,30 @@ This document is the **canonical path and content contract** for `coding-task-ad
 
 The Leader and every node MUST read this file before writing artifacts. When `SKILL.md` or `workflow.md` diverge, **this file wins on paths, filenames, downstream root recording, and trigger gates**.
 
-## Downstream Output Roots (read-only consumption)
+## Agents Root Resolution (single default base)
 
-The adapter records but does not write into downstream workflow roots:
+All paths in this toolkit converge on **one** base directory. Resolve it once, before any dispatch:
 
-| Workflow | Understand subsystem | Default `output_root` |
+```text
+agents_root = <output_dir or ~/.a2c_agents>
+```
+
+- `agents_root` is the only knob. When the user/caller supplies `output_dir`, use it verbatim as `agents_root`; otherwise **default to `~/.a2c_agents`**.
+- `agents_root` MUST resolve to a single absolute path and is recorded once in `run_manifest.json` → `agents_root`.
+- Every adapter and downstream path is derived from this base — no other default base may be introduced.
+
+## Downstream Output Roots (resolved, not owned)
+
+The adapter **does not own or define** the downstream workflow file trees — those are owned by each downstream skill's own `output-contract.md`. The adapter only **derives** each downstream `output_root` from the shared `agents_root` (so the whole pipeline stays consistent), passes it explicitly in the dispatch contract, and **records** the observed root. Downstream internal paths are therefore **excluded** from this contract's owned path tree and from the adapter's `out_of_path` check against `output_root`.
+
+| Workflow | Understand subsystem | Derived `output_root` |
 |---|---|---|
-| `android-project-analyst` | source | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst/source` |
-| `android-project-analyst` | target (migration only) | `<output_dir or ~/.a2c_agents/understand>/android-project-analyst/target` |
-| `android-to-kmp-migrator` | — | `<output_dir or ~/.a2c_agents/migration>/android-to-kmp-migrator` |
-| `kmp-test-validator` | — | `<output_dir or ~/.a2c_agents/validation>/kmp-test-validator` |
+| `android-project-analyst` | source | `<agents_root>/understand/android-project-analyst/source` |
+| `android-project-analyst` | target (migration only) | `<agents_root>/understand/android-project-analyst/target` |
+| `android-to-kmp-migrator` | — | `<agents_root>/migration/android-to-kmp-migrator` |
+| `kmp-test-validator` | — | `<agents_root>/validation/kmp-test-validator` |
 
-For route `migration` the analysis stage produces **two** analyst understand subsystems in **distinct output roots** (`.../source` and `.../target`), both using the analyst output contract/file format. For `only_understand_*` routes only the source subsystem is produced (the analyst default root `.../android-project-analyst` or `.../android-project-analyst/source` is acceptable as long as it is recorded). Validator artifacts MUST stay under the parallel `validation` root — never under the migration root.
+For route `migration` the analysis stage produces **two** analyst understand subsystems in **distinct output roots** (`.../source` and `.../target`), both using the analyst output contract/file format. For `only_understand_*` routes only the source subsystem is produced. Validator artifacts MUST stay under the parallel `validation` root — never under the migration root.
 
 **Fail closed**: adapter roles MUST NOT claim downstream pass without durable report artifacts and matching stage inspection support.
 
@@ -23,10 +35,10 @@ For route `migration` the analysis stage produces **two** analyst understand sub
 
 ## Adapter Output Root Layout
 
-Lock one `output_root` before any dispatch:
+Lock one `output_root` (derived from `agents_root`) before any dispatch:
 
 ```text
-output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
+output_root = <agents_root>/task-adapter/coding-task-adapter
 
 <output_root>/
 ├── run_manifest.json
@@ -59,7 +71,8 @@ output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
 
 | Variable | Resolved path |
 |---|---|
-| `output_root` | `<output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter` |
+| `agents_root` | `<output_dir or ~/.a2c_agents>` |
+| `output_root` | `<agents_root>/task-adapter/coding-task-adapter` |
 | `downstream_index_dir` | `<output_root>/downstream-index` |
 | `workspace_state_dir` | `<output_root>/workspace-state` |
 | `route_orchestration_dir` | `<output_root>/route-orchestration` |
@@ -76,6 +89,19 @@ output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter
 - Route/orchestration subfolders use fixed names: `route/`, `orchestrate/`.
 - Stage folders use **kebab-case** `stage_id` values listed below.
 - No adapter artifact outside `<output_root>/` is valid for gates below.
+
+### Path Accuracy Validation (mandatory)
+
+Adapter roles MUST validate paths before consuming or recording them, and fail closed on any mismatch:
+
+1. **Single base** — `agents_root` resolves to exactly one absolute path; if `output_dir` was supplied it is used verbatim, otherwise `~/.a2c_agents`. Reject relative paths, empty values, or a second base.
+2. **Adapter containment** — every adapter artifact path MUST be under `output_root = <agents_root>/task-adapter/coding-task-adapter`. A path outside it is `out_of_path`.
+3. **Downstream derivation** — every recorded downstream `output_root` MUST equal `<agents_root>/<stage>/<skill>[/<subsystem>]` for its workflow (`understand/android-project-analyst/{source,target}`, `migration/android-to-kmp-migrator`, `validation/kmp-test-validator`). A downstream root that does not derive from the same `agents_root`, or lands under the wrong stage folder, is `path_mismatch`.
+4. **Subsystem distinctness** — for route `migration`, the source and target analyst roots MUST be distinct paths (`.../source` ≠ `.../target`); identical roots are `path_mismatch`.
+5. **Cross-file consistency** — `agents_root`, `output_root`, and every `downstream_output_roots.*` value MUST be byte-identical across `run_manifest.json`, `downstream_workflow_index.json`, `adapter_workspace_state.json`, and `adapter_report.json`. Any divergence is `path_mismatch`.
+6. **Existence + non-empty** — a path may only be marked `present`/`ready` when the file exists and is non-empty; otherwise `missing`/`empty`.
+
+The `adapter-workspace-state` role records the outcome of checks 1–6 in `path_compliance[]`; a failure of any check blocks `pre_report`.
 
 ### Stage IDs (folder names under `stage-inspections/`)
 
@@ -114,7 +140,7 @@ Artifacts MUST be produced in this order. Skipping a layer invalidates downstrea
 
 | Path | Owner | Required JSON / content keys | Downstream trigger role |
 |---|---|---|---|
-| `run_manifest.json` | Leader | `task_id`, `route`, `source_project_path`, `target_project_path`, `output_root`, `downstream_output_roots`, `dependency_preflight`, `handoff_package`, `timestamp` | **All adapter roles** — resolves roots and declares claimed gate package |
+| `run_manifest.json` | Leader | `task_id`, `route`, `source_project_path`, `target_project_path`, `agents_root`, `output_root`, `downstream_output_roots`, `dependency_preflight`, `handoff_package`, `timestamp` | **All adapter roles** — resolves `agents_root` (single base) + roots and declares claimed gate package |
 
 `handoff_package` MUST list absolute paths to the gate entry artifacts the run claims ready (see Handoff Packages below).
 
@@ -240,18 +266,21 @@ Rules:
   },
   "source_project_path": "",
   "target_project_path": "",
-  "output_root": "",
+  "agents_root": "<output_dir or ~/.a2c_agents>",
+  "output_root": "<agents_root>/task-adapter/coding-task-adapter",
   "downstream_output_roots": {
-    "android-project-analyst-source": "",
-    "android-project-analyst-target": "",
-    "android-to-kmp-migrator": "",
-    "kmp-test-validator": ""
+    "android-project-analyst-source": "<agents_root>/understand/android-project-analyst/source",
+    "android-project-analyst-target": "<agents_root>/understand/android-project-analyst/target",
+    "android-to-kmp-migrator": "<agents_root>/migration/android-to-kmp-migrator",
+    "kmp-test-validator": "<agents_root>/validation/kmp-test-validator"
   },
   "dependency_preflight": {},
   "handoff_package": "A0",
   "timestamp": ""
 }
 ```
+
+`agents_root` is the single resolved base. `output_root` and every `downstream_output_roots.*` MUST be derived from it; a target subsystem root is required only for route `migration`. The literal `<agents_root>` tokens above are placeholders — the manifest stores fully resolved absolute paths.
 
 ### `downstream_workflow_index.json`
 
@@ -301,6 +330,7 @@ Rules:
 
 Before claiming adapter completion, the Leader MUST:
 
+0. Resolve `agents_root = <output_dir or ~/.a2c_agents>` once at pre-flight, derive `output_root` and every downstream root from it, and record them in `run_manifest.json`. Pass each derived downstream `output_root` explicitly in its dispatch contract — never let a downstream workflow fall back to its own default base.
 1. Write `handoff_gates` into `adapter_workspace_state.json` with boolean `ready` flags for `A0`–`A6` and `missing_paths[]` per false gate.
 2. Set `run_manifest.json` → `handoff_package` to the **highest package actually ready** (`A0`..`A6`) and list every artifact path in that package.
 3. Refresh `adapter-workspace-state` after every route and downstream boundary.
@@ -325,7 +355,11 @@ Every node MUST:
 |---|---|
 | Path missing | `blocked` — `blocking_gaps: [{ "artifact": "<path>", "reason": "missing" }]` |
 | File empty | `blocked` — reason `empty` |
-| Path outside `output_root` | `blocked` — reason `out_of_path` |
+| Adapter artifact outside `output_root` | `blocked` — reason `out_of_path` |
+| `agents_root` relative/empty or a second base introduced | `blocked` — reason `invalid_base` |
+| Downstream root not derived from `agents_root` / wrong stage folder | `blocked` — reason `path_mismatch` |
+| Source and target analyst roots identical (route `migration`) | `blocked` — reason `path_mismatch` |
+| `agents_root`/`output_root`/`downstream_output_roots.*` diverge across manifest, index, ledger, report | `blocked` — reason `path_mismatch` |
 | Stale per workspace ledger | `needs_rerun` — name owning role or downstream workflow |
 | Schema/content invalid | `blocked` — reason `invalid_contract`; cite this file section |
 | `pre_report` not `pass` | `blocked` — do not run `adapter-report` |

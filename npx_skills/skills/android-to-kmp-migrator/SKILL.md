@@ -57,7 +57,7 @@ roles:
 
 # Android To KMP Migrator Swarm Skill
 
-Module-first migrator for Legacy Android → KMP target assembly. **Upstream analyst P6 is read-only input; this skill's job is to edit the target KMP project** under `kmp_target_project_path`.
+Module-first migrator for Legacy Android → KMP target assembly. **Two upstream `android-project-analyst` understand subsystems (source `P6` + target) are read-only input; this skill's job is to transfer the requested source module(s) into the target KMP project** by editing files under `kmp_target_project_path`.
 
 **Canonical contract**: [output-contract.md](output-contract.md)
 
@@ -65,8 +65,8 @@ Module-first migrator for Legacy Android → KMP target assembly. **Upstream ana
 
 ## Protocol Summary
 
-0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream analyst **P6** (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**, resolve user-task constraints, partial migration scope, and optional mock-data allowance; record `dependency_preflight`, `design_mode`, `partial_migration`, and `mock_data_preflight` in `run_manifest.json`.
-1. Verify analyst **P6**; `run_manifest.json`, `upstream_analyst_index.json`.
+0. Pre-flight — [dependencies.yaml](dependencies.yaml): `rg` / `git` / `curl`, optional `jetbrains` MCP (`optional_mcp`), upstream understand subsystems — source **P6** and target subsystem (`upstream_inputs`); **identify `design_mode` from user input (default `mvi`)**, resolve user-task constraints, partial migration scope, and optional mock-data allowance; record `dependency_preflight`, `design_mode`, `partial_migration`, and `mock_data_preflight` in `run_manifest.json`.
+1. Fetch comprehensive context — resolve shared base `agents_root = <output_dir or ~/.a2c_agents>` (upstream base/`output_root` used verbatim), lock `output_root = <agents_root>/migration/android-to-kmp-migrator`; verify source subsystem **P6** and target understand subsystem (both under the same `agents_root`); clarify full vs partial migration task; write `run_manifest.json`, `upstream_analyst_index.json` (`source_subsystem` + `target_subsystem`).
 2. Migration inventory + `modules_migration_index.json`; for partial migration include only focused/requested modules plus explicit integration seams.
 3. Workspace state init — **`migration_todo_list[]`** + **`pipeline_steps[]`** monitor; refresh after each node group syncs todo/step status.
 4. TPA `global_baseline`.
@@ -142,7 +142,8 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
 
 ## Shared Rules
 
-- **Skill chain**: `android-project-analyst` **P6** before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
+- **Skill chain**: `android-project-analyst` understand subsystems (source **P6** + target) before migrator; `kmp-test-validator` **after** migrator **V0** — both mandatory.
+- **Comprehensive context**: the migrator consumes both the source and target understand subsystems; TPA uses the Target Project Subsystem as primary target evidence.
 - **Design mode**: identified from user input at pre-flight, **default `mvi`**; frozen for the run; architecture-producing roles MUST follow the resolved `architecture_reference_path` (`kmp-mvi-flowredux.md` for `mvi`, `kmp-mvvm.md` for `mvvm`).
 - **Target KMP edit mandate**: after analyst P6 understanding, migrator roles MUST create or update production files under `kmp_target_project_path`. Planning-only or artifact-only completion is invalid.
 - **User task and focused scope**: `raw_user_task`, `user_task_constraints`, analyst `focused_analysis`, and adapter `partial_migration` are hard dispatch inputs. For partial migration, migrate only requested `migration_module_ids` / allowed source roots plus explicit integration seams; do not broaden to full-project implementation.
@@ -153,7 +154,7 @@ android-project-analyst (P6) → android-to-kmp-migrator (M0–V0) → kmp-test-
   - `module-node-review-fix` `fix` — scoped remediation in `allowed_files`
   - `global-migration-phase` `integrate` — cross-module glue and entry-point wiring
 - **Read-only on target**: `target-project-assistant`, `migration-planning-gate`, `migration-verification`, `global-migration-phase` `align`, `completion-report`.
-- Analyst **P6** required; TPA owns all target Q&A.
+- Source subsystem **P6** and target understand subsystem required; TPA owns all target Q&A and grounds it in the Target Project Subsystem artifacts.
 - Mode boundaries non-negotiable: `ui`/`logic`, `integrate`/`align`, `review`/`fix`.
 - No full project build in migrator.
 - JSON artifacts are machine-routable source of truth.

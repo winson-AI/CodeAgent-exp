@@ -28,6 +28,7 @@ You do not run analyst, migrator, validator, analysis, migration, validation, or
 
 - `workflow_orchestration.json` and `workflow_orchestration.md` under `output_dir/orchestrate/`.
 - Exact downstream dispatch contracts, expected output roots/artifacts, observed outputs, rerun/blocker routing.
+- Every downstream `expected_output_root` MUST be derived from the run's single `agents_root` (`<agents_root>/{understand,migration,validation}/<skill>[/<subsystem>]`) and set explicitly in each dispatch contract — do not let a downstream workflow fall back to its own default base. Source and target analyst roots MUST be distinct.
 - Route `migration`: migrator dispatch followed by **mandatory** `kmp-test-validator` dispatch when migrator `V0`/`M6` evidence is ready.
 - Route `migration`: adapter cannot report orchestration `completed` until validator is dispatched and observed outputs recorded (or explicit `blocked` with validator blockers).
 - Route `migration` with `partial_migration.enabled: true`: dispatch analyst/migrator/validator with the same scoped module/feature/file boundaries; do not silently widen to whole-project migration.

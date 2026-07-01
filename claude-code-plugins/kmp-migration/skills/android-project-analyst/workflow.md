@@ -49,9 +49,10 @@ graph TD
 
 The canonical path tree, filename invariants, and handoff packages `P0`–`P6` are in [output-contract.md](output-contract.md). This section summarizes path variables only.
 
-The Leader MUST lock one `output_root` before dispatch and MUST reject or rerun any node that writes outside its assigned directory. Defaults:
+The Leader MUST lock one `output_root` before dispatch and MUST reject or rerun any node that writes outside its assigned directory. All paths derive from one shared base `agents_root = <output_dir or ~/.a2c_agents>`; when an upstream (`coding-task-adapter`) supplies `agents_root`/`output_root`, use them **verbatim** (do not invent a base). Defaults:
 
-- `output_root`: `<output_dir or ~/.a2c_agents/understand>/android-project-analyst`
+- `agents_root`: `<output_dir or ~/.a2c_agents>`
+- `output_root`: `<agents_root>/understand/android-project-analyst[/<understand_subsystem>]`
 - `workspace_state_dir`: `<output_root>/workspace-state`
 - `module_index_dir`: `<output_root>/module-index`
 - `module_root`: `<output_root>/modules/<module_id>`
@@ -99,8 +100,8 @@ No node may choose its own output path. `presentation-resource` may write downlo
   - partial migration: set `focused_analysis.enabled: true`, preserve adapter `partial_migration` boundaries, and analyze only the attention module/feature needed for migration planning.
   - no focused input: whole-project analysis (`focused_analysis.enabled: false`).
   If focused scope cannot be resolved to source roots/module ids, stop with `blocked` and precise `scope_gaps`.
-  Lock `output_root`, `module_index_dir`, `global_dir`, and `spec_dir`. For a target subsystem run, `output_root` must be the distinct target understand root the adapter assigned (e.g. `.../android-project-analyst/target`). Write `run_manifest.json` with `understand_subsystem`, `project_kind`, the analyzed project path, mode, scope, focused_analysis, schedule version, allowed path roots, and timestamp.
-- **Output**: announced mode banner + `run_manifest.json`; default `output_root` = `~/.a2c_agents/understand/android-project-analyst` (source subsystem) or the adapter-assigned target root. `run_manifest.json` must contain `understand_subsystem`, `project_kind`, the analyzed project path, mode, analysis scope, focused_analysis, output root, allowed path roots, dependency-preflight status, schedule version, and timestamp.
+  Resolve `agents_root = <output_dir or ~/.a2c_agents>` (use the upstream-supplied base verbatim when provided), then lock `output_root = <agents_root>/understand/android-project-analyst[/<understand_subsystem>]`, `module_index_dir`, `global_dir`, and `spec_dir`. When the adapter supplied an explicit `output_root`, it MUST be used verbatim; for a target subsystem run it is the distinct target understand root (`.../android-project-analyst/target`). Write `run_manifest.json` with `agents_root`, `understand_subsystem`, `project_kind`, the analyzed project path, mode, scope, focused_analysis, schedule version, allowed path roots, and timestamp.
+- **Output**: announced mode banner + `run_manifest.json`; default base `agents_root = ~/.a2c_agents` → `output_root = <agents_root>/understand/android-project-analyst[/<understand_subsystem>]`, or the adapter-assigned root when provided. `run_manifest.json` must contain `agents_root`, `understand_subsystem`, `project_kind`, the analyzed project path, mode, analysis scope, focused_analysis, output root, allowed path roots, dependency-preflight status, schedule version, and timestamp.
 - **Serial / Parallel**: serial (precedes all dispatch)
 - **Quality gate**: project-kind evidence present (Android evidence for `android_source`, KMP/multiplatform evidence for `kmp_target`) AND scope valid AND `run_manifest.json` exists/non-empty → proceed; otherwise STOP and explain the failed check. Migration mode without `target_project_path` → ask before producing `plan.md`.
 

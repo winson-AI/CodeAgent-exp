@@ -15,8 +15,8 @@
 
 - **Orchestrator only** — classify, route, inspect, record, report. No analysis, migration, validation, or code edits.
 - **Route before downstream** — `task-route-orchestrator` mode `route` completes before workflow invoke.
-- **Strict output root** — `output_root = <output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter`; paths and gates per [output-contract.md](output-contract.md).
-- **Downstream boundary** — analyst/migrator/validator artifacts stay in their output roots; adapter records paths in asset ledger.
+- **Single base root** — resolve `agents_root = <output_dir or ~/.a2c_agents>` once (default `~/.a2c_agents`); derive `output_root` and all downstream roots from it. Adapter own tree: `output_root = <agents_root>/task-adapter/coding-task-adapter`; paths, gates, and path-accuracy validation per [output-contract.md](output-contract.md).
+- **Downstream boundary** — analyst/migrator/validator paths derive from the same `agents_root` but are owned by their own contracts; the adapter sets each downstream `output_root` in the dispatch contract and records it in the asset ledger — it does not own their internal trees.
 - **Dual understand subsystems** — route `migration` runs the analysis stage as two `android-project-analyst` understand runs (source + target) into distinct understand output roots; both are recorded before migrator dispatch.
 - **Validator root** — validation artifacts under parallel `validation` root, not migration root.
 - **Stage gates** — every route and downstream boundary gets `stage_inspection.*` with `pass | needs_rerun | blocked`.
@@ -33,6 +33,8 @@
 |---|---|
 | Node timeout | Retry once; then `[ROLE MISSING]` and block dependent stages |
 | Malformed or out-of-path output | Rerun owning role with path contract |
+| Downstream root not derived from `agents_root` / wrong stage folder | `blocked` reason `path_mismatch`; re-dispatch with the derived `output_root` |
+| Path values diverge across manifest/index/ledger/report | `blocked` reason `path_mismatch`; reconcile from `run_manifest.json` |
 | Ambiguous route | Rerun mode `route`; then ask user for path/scope |
 | Migration missing target understand subsystem | Block `post_migrator`; dispatch the target-understand analyst run before the migrator |
 | No explicit partial migration requirement | Treat route `migration` as full-project migration from `source_project_path` |
@@ -47,12 +49,19 @@ Canonical paths and handoff gates `A0`–`A6`: [output-contract.md](output-contr
 
 ```json
 {
-  "output_root": "<output_dir or ~/.a2c_agents/task-adapter>/coding-task-adapter",
+  "agents_root": "<output_dir or ~/.a2c_agents>",
+  "output_root": "<agents_root>/task-adapter/coding-task-adapter",
   "downstream_index_dir": "<output_root>/downstream-index",
   "workspace_state_dir": "<output_root>/workspace-state",
   "route_orchestration_dir": "<output_root>/route-orchestration",
   "stage_inspection_dir": "<output_root>/stage-inspections",
   "intermediate_asset_dir": "<output_root>/intermediate-assets",
-  "report_dir": "<output_root>/report"
+  "report_dir": "<output_root>/report",
+  "downstream_output_roots": {
+    "android-project-analyst-source": "<agents_root>/understand/android-project-analyst/source",
+    "android-project-analyst-target": "<agents_root>/understand/android-project-analyst/target",
+    "android-to-kmp-migrator": "<agents_root>/migration/android-to-kmp-migrator",
+    "kmp-test-validator": "<agents_root>/validation/kmp-test-validator"
+  }
 }
 ```
