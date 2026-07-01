@@ -20,7 +20,7 @@ A cross-CLI repository for AI-powered development workflows. It currently ships 
 | `flow_d2c` for Claude Code | `claude-code-plugins/flow_d2c/` | `0.1.0` | Figma to React to optimized mobile React to Android/KMP/CMP Compose workflow with UI reconstruction scoring, Compose adapter bundle generation, and the `anchor-d2c-mcp` Figma-to-code MCP server. |
 | `codex-kmp-migration` | `codex-plugins/kmp-migration/` | `0.1.2` | Codex skill distribution for Android project analysis, Android-to-KMP migration, and migrated KMP validation. |
 | `kmp-migration` for Gemini CLI | `gemini-extensions/kmp-migration/` | `0.1.2` | Gemini extension containing the same three KMP-focused skills plus `GEMINI.md` context and a local MCP entry point. |
-| `@code-migration/wow-migrator` | `npx_skills/` | `0.2.10` | npm installer that copies the bundled Android/KMP swarm skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm skill directories. |
+| `@code-migration/wow-migrator` | `npx_skills/` | `0.2.11` | npm installer that copies the bundled Android/KMP swarm skills into Claude Code, Codex, Cursor, Gemini, OpenCode, OpenClaw, and JiuwenSwarm skill directories. |
 
 ## KMP Migration Content
 
@@ -137,7 +137,7 @@ When changing plugin behavior, keep these manifests aligned with the related dis
 - `gemini-extensions/kmp-migration/package.json`
 - `npx_skills/package.json`
 
-Current versions: Claude Code `kmp-migration` is `0.1.30`, Claude Code `flow_d2c` is `0.1.0`, Codex and Gemini KMP distributions are `0.1.2`, and the npm skill installer is `0.2.10`.
+Current versions: Claude Code `kmp-migration` is `0.1.30`, Claude Code `flow_d2c` is `0.1.0`, Codex and Gemini KMP distributions are `0.1.2`, and the npm skill installer is `0.2.11`.
 
 ## Project Structure
 
