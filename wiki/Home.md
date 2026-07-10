@@ -307,9 +307,9 @@ npm install -g @code-migration/wow-migrator
 wow-migrator install --yes
 ```
 
-### C. Related wiki pages (optional expansions)
+### C. Related wiki pages
 
-| Page | Suggested content |
+| Page | Content |
 | --- | --- |
 | [Architecture](Architecture.md) | Gate IDs, artifact trees, dual-subsystem layout |
 | [Skill-Catalog](Skill-Catalog.md) | Per-role I/O cheat sheet |
